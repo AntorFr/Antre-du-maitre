@@ -1,0 +1,10 @@
+{
+  "name": "L'Antre du Maître",
+  "short_name": "Antre du Maître",
+  "lang": "fr",
+  "display": "standalone",
+  "start_url": "/",
+  "background_color": "#EEEDFE",
+  "theme_color": "#2A1F5C"
+}
+

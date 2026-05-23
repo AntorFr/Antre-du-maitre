@@ -1,0 +1,181 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id        String     @id @default(uuid())
+  username  String     @unique
+  password  String
+  role      Role       @default(CHILD)
+  createdAt DateTime   @default(now())
+
+  world     World?
+  scenarios Scenario[]
+}
+
+enum Role {
+  ADMIN
+  CHILD
+}
+
+model World {
+  id        String                @id @default(uuid())
+  userId    String                @unique
+  user      User                  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  entities  WorldEntity[]
+  proposals WorldEntityProposal[]
+}
+
+model WorldEntity {
+  id               String            @id @default(uuid())
+  worldId          String
+  world            World             @relation(fields: [worldId], references: [id], onDelete: Cascade)
+  type             EntityType
+  name             String
+  description      String
+  tags             Json
+  source           WorldEntitySource
+  sourceScenarioId String?
+  sourceSessionId  String?
+  createdAt        DateTime          @default(now())
+  updatedAt        DateTime          @updatedAt
+
+  @@index([worldId, type])
+}
+
+model WorldEntityProposal {
+  id          String            @id @default(uuid())
+  worldId     String
+  world       World             @relation(fields: [worldId], references: [id], onDelete: Cascade)
+  scenarioId  String?
+  sessionId   String?
+  type        EntityType
+  name        String
+  description String
+  tags        Json
+  source      WorldEntitySource
+  status      ProposalStatus    @default(PENDING)
+  createdAt   DateTime          @default(now())
+  reviewedAt  DateTime?
+
+  @@index([worldId, status])
+}
+
+enum EntityType {
+  LIEU
+  PNJ
+  FACTION
+  EVENEMENT
+  REGLE
+}
+
+enum WorldEntitySource {
+  CREATION
+  DEBRIEF
+  MANUAL
+}
+
+enum ProposalStatus {
+  PENDING
+  ACCEPTED
+  REJECTED
+}
+
+model Scenario {
+  id          String            @id @default(uuid())
+  userId      String
+  user        User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  title       String
+  status      ScenarioStatus    @default(DRAFT)
+  data        Json
+  chatHistory Json
+  todoItems   TodoItem[]
+  sessions    ScenarioSession[]
+  createdAt   DateTime          @default(now())
+  updatedAt   DateTime          @updatedAt
+
+  @@index([userId, status])
+}
+
+enum ScenarioStatus {
+  DRAFT
+  COMPLETE
+  IN_PROGRESS
+  PLAYED
+}
+
+model ScenarioSession {
+  id              String        @id @default(uuid())
+  scenarioId      String
+  scenario        Scenario      @relation(fields: [scenarioId], references: [id], onDelete: Cascade)
+  number          Int
+  plannedActes    Json
+  plannedDuration Int?
+  recapHook       String?
+  status          SessionStatus @default(PLANNED)
+  playedAt        DateTime?
+  debriefHistory  Json?
+  debriefSummary  Json?
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+
+  @@unique([scenarioId, number])
+}
+
+enum SessionStatus {
+  PLANNED
+  PLAYED
+}
+
+model TodoItem {
+  id         String       @id @default(uuid())
+  scenarioId String
+  scenario   Scenario     @relation(fields: [scenarioId], references: [id], onDelete: Cascade)
+  category   TodoCategory
+  label      String
+  done       Boolean      @default(false)
+  order      Int
+  createdAt  DateTime     @default(now())
+
+  @@index([scenarioId, category])
+}
+
+enum TodoCategory {
+  FICHES_MONSTRES
+  FICHES_PNJS
+  CARTES
+  DEROULEMENTS
+  AUTRE
+}
+
+model Monster {
+  id          String   @id
+  slug        String   @unique
+  name        String
+  source      String
+  sourceUrl   String
+  nc          String?
+  family      String?
+  category    String?
+  environment String?
+  archetype   String?
+  size        String?
+  def         Int?
+  pv          Int?
+  initiative  Int?
+  stats       Json
+  attacks     Json
+  abilities   Json
+  rawData     Json?
+  importedAt  DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([name])
+  @@index([family])
+  @@index([environment])
+}

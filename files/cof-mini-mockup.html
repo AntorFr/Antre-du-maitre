@@ -1,0 +1,436 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>L'Antre du Maître — Maquette UI</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/tabler-icons.min.css">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
+    --color-background-primary: #ffffff;
+    --color-background-secondary: #f5f5f3;
+    --color-background-tertiary: #eeede8;
+    --color-text-primary: #1a1a1a;
+    --color-text-secondary: #666660;
+    --color-text-tertiary: #999990;
+    --color-border-tertiary: rgba(0,0,0,0.12);
+    --color-border-secondary: rgba(0,0,0,0.22);
+    --border-radius-md: 8px;
+    --border-radius-lg: 12px;
+    --font-sans: system-ui, -apple-system, sans-serif;
+  }
+  body {
+    font-family: var(--font-sans);
+    background: #f0eff5;
+    padding: 2rem 1rem;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 1.5rem;
+    min-height: 100vh;
+  }
+  h1 { font-size: 18px; font-weight: 500; color: #2A1F5C; text-align: center; }
+  .subtitle { font-size: 13px; color: #666; text-align: center; }
+  .screens-row { display: flex; flex-wrap: wrap; gap: 1.5rem; justify-content: center; align-items: flex-start; }
+  .screen-label { font-size: 11px; color: #999; text-align: center; margin-bottom: 6px; }
+
+  /* ── Phone shell ── */
+  .phone { width: 340px; background: var(--color-background-primary); border-radius: 28px; border: 1px solid rgba(0,0,0,0.15); overflow: hidden; display: flex; flex-direction: column; box-shadow: 0 4px 24px rgba(0,0,0,0.10); }
+
+  /* ── Topbar ── */
+  .topbar { background: #2A1F5C; padding: 12px 16px 10px; display: flex; align-items: center; gap: 10px; }
+  .topbar-title { color: #EEEDFE; font-size: 15px; font-weight: 500; flex: 1; }
+  .topbar-sub { color: #AFA9EC; font-size: 11px; margin-top: 1px; }
+  .badge { background: #534AB7; border-radius: 20px; padding: 3px 10px; color: #EEEDFE; font-size: 11px; white-space: nowrap; }
+
+  /* ── Avatar zone ── */
+  .avatar-zone { background: linear-gradient(180deg,#2A1F5C 0%,#1a1440 100%); padding: 16px 0 18px; display: flex; flex-direction: column; align-items: center; gap: 10px; }
+  .wizard-wrap { position: relative; display: flex; align-items: center; justify-content: center; }
+  .ring  { position: absolute; width: 88px;  height: 88px;  border-radius: 50%; border: 1.5px solid #7F77DD; opacity: 0.4; animation: pulse 2s ease-in-out infinite; }
+  .ring2 { position: absolute; width: 100px; height: 100px; border-radius: 50%; border: 1px   solid #534AB7; opacity: 0.2; animation: pulse 2s ease-in-out infinite .4s; }
+  @keyframes pulse { 0%,100% { transform:scale(1); opacity:.4; } 50% { transform:scale(1.08); opacity:.1; } }
+  .wizard { width: 72px; height: 72px; border-radius: 50%; background: #534AB7; border: 2.5px solid #AFA9EC; display: flex; align-items: center; justify-content: center; font-size: 34px; }
+  .bubble { background: #3C3489; border-radius: 12px; padding: 10px 14px; margin: 0 18px; position: relative; max-width: 290px; }
+  .bubble::before { content:''; position:absolute; top:-7px; left:50%; transform:translateX(-50%); border:7px solid transparent; border-bottom-color:#3C3489; border-top:none; }
+  .bubble p { color: #EEEDFE; font-size: 13px; line-height: 1.5; text-align: center; }
+  .bubble .hint { color: #AFA9EC; font-size: 11px; margin-top: 4px; text-align: center; }
+
+  /* ── Main content area ── */
+  .main { flex: 1; padding: 14px 14px 16px; display: flex; flex-direction: column; gap: 12px; background: var(--color-background-primary); }
+
+  /* ── Steps ── */
+  .steps-row { display: flex; gap: 4px; align-items: center; }
+  .step { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 3px; }
+  .step-dot { width: 28px; height: 28px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 13px; border: 0.5px solid var(--color-border-tertiary); }
+  .step-dot.done   { background: #EEEDFE; color: #3C3489; border-color: #AFA9EC; }
+  .step-dot.active { background: #534AB7; color: #EEEDFE; border-color: #534AB7; }
+  .step-dot.todo   { background: var(--color-background-secondary); color: var(--color-text-tertiary); }
+  .step-line { flex: 1; height: 1px; background: var(--color-border-tertiary); margin-top: -14px; }
+  .step-label { font-size: 9px; color: var(--color-text-secondary); text-align: center; max-width: 40px; }
+  .step-label.active { color: #534AB7; font-weight: 500; }
+
+  /* ── Progress ── */
+  .progress-wrap { display: flex; flex-direction: column; gap: 5px; }
+  .progress-meta { display: flex; justify-content: space-between; font-size: 11px; color: var(--color-text-secondary); }
+  .progress-meta span:last-child { color: #534AB7; font-weight: 500; }
+  .progress-bg { height: 5px; background: var(--color-background-secondary); border-radius: 99px; overflow: hidden; }
+  .progress-fill { height: 100%; background: #534AB7; border-radius: 99px; }
+
+  /* ── Suggestions ── */
+  .sugg-row { display: flex; flex-direction: column; gap: 6px; }
+  .sugg-label { font-size: 11px; color: var(--color-text-secondary); }
+  .sugg-btn { background: var(--color-background-secondary); border: 0.5px solid var(--color-border-tertiary); border-radius: var(--border-radius-md); padding: 9px 12px; font-size: 12px; color: var(--color-text-primary); text-align: left; cursor: pointer; display: flex; align-items: center; gap: 8px; min-height: 44px; line-height: 1.3; }
+  .sugg-btn i { color: #7F77DD; font-size: 14px; flex-shrink: 0; }
+  .sugg-btn.highlight { border-color: #AFA9EC; background: #EEEDFE; color: #3C3489; }
+  .sugg-free { font-size: 11px; color: #7F77DD; text-align: center; font-style: italic; }
+
+  /* ── Transcript ── */
+  .transcript { background: var(--color-background-secondary); border-radius: var(--border-radius-md); padding: 8px 12px; font-size: 12px; color: var(--color-text-secondary); font-style: italic; display: flex; align-items: center; gap: 8px; min-height: 36px; }
+  .dot { width: 6px; height: 6px; border-radius: 50%; background: #7F77DD; flex-shrink: 0; animation: blink 1.2s ease-in-out infinite; }
+  @keyframes blink { 0%,100% { opacity:1; } 50% { opacity:.2; } }
+
+  /* ── Mic ── */
+  .mic-zone { display: flex; flex-direction: column; align-items: center; gap: 6px; }
+  .mic-btn { width: 64px; height: 64px; border-radius: 50%; background: #534AB7; border: none; display: flex; align-items: center; justify-content: center; cursor: pointer; }
+  .mic-btn i { font-size: 28px; color: #EEEDFE; }
+  .mic-hint { font-size: 11px; color: var(--color-text-secondary); }
+
+  /* ── Nav ── */
+  .nav { display: flex; border-top: 0.5px solid var(--color-border-tertiary); }
+  .nav-item { flex: 1; padding: 10px 4px 8px; display: flex; flex-direction: column; align-items: center; gap: 3px; font-size: 10px; color: var(--color-text-secondary); cursor: pointer; border: none; background: transparent; }
+  .nav-item.active { color: #534AB7; }
+  .nav-item i { font-size: 20px; }
+
+  /* ── Section cards ── */
+  .section-card { background: var(--color-background-secondary); border-radius: var(--border-radius-md); padding: 10px 12px; }
+  .section-title { font-size: 11px; color: var(--color-text-secondary); margin-bottom: 6px; display: flex; align-items: center; gap: 5px; }
+  .section-title i { font-size: 13px; }
+  .section-val { font-size: 13px; color: var(--color-text-primary); line-height: 1.4; }
+
+  /* ── Todo ── */
+  .todo-item { display: flex; align-items: center; gap: 10px; padding: 8px 0; border-bottom: 0.5px solid var(--color-border-tertiary); min-height: 44px; }
+  .todo-item:last-child { border-bottom: none; }
+  .todo-cb { width: 20px; height: 20px; border-radius: 4px; border: 0.5px solid var(--color-border-secondary); flex-shrink: 0; display: flex; align-items: center; justify-content: center; cursor: pointer; }
+  .todo-cb.done { background: #534AB7; border-color: #534AB7; color: #fff; }
+  .todo-cb.done i { font-size: 12px; }
+  .todo-text { font-size: 12px; color: var(--color-text-primary); flex: 1; line-height: 1.3; }
+  .todo-text.done { color: var(--color-text-tertiary); text-decoration: line-through; }
+  .cat-header { display: flex; align-items: center; gap: 6px; padding: 8px 0 4px; font-size: 11px; font-weight: 500; }
+  .cat-badge { border-radius: 20px; padding: 2px 8px; font-size: 10px; }
+
+  /* ── Sessions ── */
+  .session-block { background: var(--color-background-secondary); border-radius: var(--border-radius-md); padding: 10px 12px; display: flex; gap: 10px; }
+  .session-num { width: 28px; height: 28px; border-radius: 50%; background: #534AB7; color: #EEEDFE; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 500; flex-shrink: 0; }
+  .session-label { font-size: 12px; font-weight: 500; color: var(--color-text-primary); }
+  .session-sub { font-size: 11px; color: var(--color-text-secondary); margin-top: 2px; }
+
+  /* ── World entities ── */
+  .world-entity { display: flex; align-items: flex-start; gap: 8px; padding: 8px 0; border-bottom: 0.5px solid var(--color-border-tertiary); min-height: 44px; }
+  .world-entity:last-child { border-bottom: none; }
+  .entity-icon { width: 30px; height: 30px; border-radius: var(--border-radius-md); display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+  .entity-icon i { font-size: 15px; }
+  .entity-name { font-size: 12px; font-weight: 500; color: var(--color-text-primary); }
+  .entity-desc { font-size: 11px; color: var(--color-text-secondary); margin-top: 1px; line-height: 1.3; }
+  .entity-badges { display: flex; gap: 4px; margin-top: 4px; flex-wrap: wrap; }
+  .entity-badge { font-size: 9px; padding: 2px 6px; border-radius: 20px; }
+
+  .pill-filter { padding: 5px 10px; border-radius: 20px; font-size: 11px; cursor: pointer; border: 0.5px solid var(--color-border-tertiary); background: var(--color-background-secondary); color: var(--color-text-secondary); }
+  .pill-filter.active { background: #EEEDFE; color: #3C3489; border-color: #534AB7; }
+
+  /* ── Action buttons ── */
+  .btn { padding: 10px; border-radius: var(--border-radius-md); font-size: 12px; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 5px; min-height: 44px; border: 0.5px solid var(--color-border-secondary); background: var(--color-background-secondary); color: var(--color-text-primary); }
+  .btn-primary { background: #EEEDFE; color: #3C3489; border-color: #AFA9EC; }
+  .btn-ghost { background: var(--color-background-primary); color: var(--color-text-secondary); }
+
+  .note { font-size: 11px; color: #999; text-align: center; margin-top: 0.5rem; }
+</style>
+</head>
+<body>
+
+<h1>L'Antre du Maître — Maquette UI</h1>
+<p class="subtitle">CoF Mini · iPad PWA · Référence visuelle pour le LLM codeur</p>
+<p class="subtitle" style="margin-top:4px;color:#534AB7">Palette principale : #2A1F5C (dark) · #534AB7 (primary) · #AFA9EC (light) · #EEEDFE (background tint)</p>
+
+<div class="screens-row">
+
+  <!-- ═══ ÉCRAN 1 : CRÉATION VOCALE ═══ -->
+  <div>
+    <div class="screen-label">Écran 1 — Création vocale (étape Défis)</div>
+    <div class="phone">
+      <div class="topbar">
+        <div>
+          <div class="topbar-title">L'Antre du Maître</div>
+          <div class="topbar-sub">CoF Mini — Créateur d'aventures</div>
+        </div>
+        <div class="badge"><i class="ti ti-scroll"></i> Scénario 3</div>
+      </div>
+      <div class="avatar-zone">
+        <div class="wizard-wrap">
+          <div class="ring2"></div>
+          <div class="ring"></div>
+          <div class="wizard">🧙</div>
+        </div>
+        <div class="bubble">
+          <p>Super choix ! Maintenant, dis-moi… quel type de défi veux-tu pour ton aventure ?</p>
+          <div class="hint">Je t'explique chaque option !</div>
+        </div>
+      </div>
+      <div class="main">
+        <div class="steps-row">
+          <div class="step"><div class="step-dot done"><i class="ti ti-check"></i></div><div class="step-label">Ton</div></div>
+          <div class="step-line"></div>
+          <div class="step"><div class="step-dot done"><i class="ti ti-check"></i></div><div class="step-label">Lieu</div></div>
+          <div class="step-line"></div>
+          <div class="step"><div class="step-dot done"><i class="ti ti-check"></i></div><div class="step-label">Quête</div></div>
+          <div class="step-line"></div>
+          <div class="step"><div class="step-dot done"><i class="ti ti-check"></i></div><div class="step-label">Méchant</div></div>
+          <div class="step-line"></div>
+          <div class="step"><div class="step-dot active"><i class="ti ti-wand"></i></div><div class="step-label active">Défis</div></div>
+          <div class="step-line"></div>
+          <div class="step"><div class="step-dot todo"></div><div class="step-label">Actes</div></div>
+          <div class="step-line"></div>
+          <div class="step"><div class="step-dot todo"></div><div class="step-label">Cartes</div></div>
+          <div class="step-line"></div>
+          <div class="step"><div class="step-dot todo"></div><div class="step-label">Durée</div></div>
+        </div>
+        <div class="progress-wrap">
+          <div class="progress-meta"><span>Création du scénario</span><span>5 / 10</span></div>
+          <div class="progress-bg"><div class="progress-fill" style="width:50%"></div></div>
+        </div>
+        <div class="transcript">
+          <div class="dot"></div>
+          <span>« Je veux du mystère et de l'enquête… »</span>
+        </div>
+        <div class="sugg-row">
+          <div class="sugg-label">Merlin te suggère :</div>
+          <div class="sugg-btn highlight"><i class="ti ti-search"></i><span>Enquête + Énigme — parfait pour un mystère en forêt !</span></div>
+          <div class="sugg-btn"><i class="ti ti-sword"></i><span>Combat + Exploration — pour une aventure qui bouge !</span></div>
+          <div class="sugg-btn"><i class="ti ti-messages"></i><span>Négociation + Fuite — les héros usent leurs mots</span></div>
+          <div class="sugg-free">ou dis autre chose au micro !</div>
+        </div>
+        <div class="mic-zone">
+          <div class="mic-btn"><i class="ti ti-microphone"></i></div>
+          <div class="mic-hint">Appuie et parle !</div>
+        </div>
+      </div>
+      <nav class="nav">
+        <button class="nav-item active"><i class="ti ti-wand"></i>Créer</button>
+        <button class="nav-item"><i class="ti ti-scroll"></i>Scénario</button>
+        <button class="nav-item"><i class="ti ti-checklist"></i>Todo</button>
+        <button class="nav-item"><i class="ti ti-map"></i>Monde</button>
+      </nav>
+    </div>
+  </div>
+
+  <!-- ═══ ÉCRAN 2 : FICHE SCÉNARIO ═══ -->
+  <div>
+    <div class="screen-label">Écran 2 — Fiche scénario avec découpage sessions</div>
+    <div class="phone">
+      <div class="topbar">
+        <div>
+          <div class="topbar-title">La Forêt des Murmures</div>
+          <div class="topbar-sub">Scénario complet · ~90 min</div>
+        </div>
+        <div class="badge" style="background:#3B6D11;color:#EAF3DE"><i class="ti ti-check"></i> Prêt</div>
+      </div>
+      <div class="main">
+        <div style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px">
+          <div class="section-card">
+            <div class="section-title"><i class="ti ti-map-pin"></i> Lieu</div>
+            <div class="section-val">Forêt des Murmures</div>
+          </div>
+          <div class="section-card">
+            <div class="section-title"><i class="ti ti-mood-smile"></i> Ambiance</div>
+            <div class="section-val">Mystère</div>
+          </div>
+        </div>
+        <div class="section-card">
+          <div class="section-title"><i class="ti ti-target"></i> Quête</div>
+          <div class="section-val">Retrouver le médaillon volé par l'Esprit de la forêt avant la pleine lune.</div>
+        </div>
+        <div class="section-card">
+          <div class="section-title"><i class="ti ti-sword"></i> Types de défis</div>
+          <div style="display:flex;gap:5px;flex-wrap:wrap;margin-top:4px">
+            <span style="font-size:11px;padding:3px 8px;border-radius:20px;background:#EEEDFE;color:#3C3489">🔍 Enquête</span>
+            <span style="font-size:11px;padding:3px 8px;border-radius:20px;background:#EEEDFE;color:#3C3489">🧩 Énigme</span>
+            <span style="font-size:11px;padding:3px 8px;border-radius:20px;background:#EEEDFE;color:#3C3489">⚔️ 1 Combat</span>
+          </div>
+        </div>
+        <div class="section-card">
+          <div class="section-title"><i class="ti ti-clock"></i> Découpage sessions</div>
+          <div style="display:flex;flex-direction:column;gap:6px;margin-top:6px">
+            <div class="session-block">
+              <div class="session-num">1</div>
+              <div>
+                <div class="session-label">Actes 1-2 · ~45 min</div>
+                <div class="session-sub">Arrivée → découverte des indices</div>
+              </div>
+            </div>
+            <div class="session-block">
+              <div class="session-num">2</div>
+              <div>
+                <div class="session-label">Actes 3-4 · ~45 min</div>
+                <div class="session-sub">Énigme → confrontation finale</div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div style="display:flex;gap:8px">
+          <button class="btn" style="flex:1"><i class="ti ti-download"></i> PDF</button>
+          <button class="btn btn-primary" style="flex:2"><i class="ti ti-checklist"></i> Préparer la partie</button>
+        </div>
+        <button class="btn btn-ghost" style="width:100%"><i class="ti ti-star"></i> On a joué cette aventure !</button>
+      </div>
+      <nav class="nav">
+        <button class="nav-item"><i class="ti ti-wand"></i>Créer</button>
+        <button class="nav-item active"><i class="ti ti-scroll"></i>Scénario</button>
+        <button class="nav-item"><i class="ti ti-checklist"></i>Todo</button>
+        <button class="nav-item"><i class="ti ti-map"></i>Monde</button>
+      </nav>
+    </div>
+  </div>
+
+  <!-- ═══ ÉCRAN 3 : TODO ═══ -->
+  <div>
+    <div class="screen-label">Écran 3 — Todo de préparation</div>
+    <div class="phone">
+      <div class="topbar">
+        <div>
+          <div class="topbar-title">Préparer la partie</div>
+          <div class="topbar-sub">La Forêt des Murmures</div>
+        </div>
+        <div class="badge">5 / 9</div>
+      </div>
+      <div class="main">
+        <div class="progress-wrap">
+          <div class="progress-meta"><span>Tâches complétées</span><span>5 / 9</span></div>
+          <div class="progress-bg"><div class="progress-fill" style="width:55%"></div></div>
+        </div>
+        <div>
+          <div class="cat-header" style="color:#3C3489"><span class="cat-badge" style="background:#EEEDFE;color:#3C3489">Monstres</span></div>
+          <div class="todo-item">
+            <div class="todo-cb done"><i class="ti ti-check"></i></div>
+            <div class="todo-text done">Fiche Araignée géante (DEF 12, PV 8, ATT +3)</div>
+          </div>
+          <div class="todo-item">
+            <div class="todo-cb"></div>
+            <div class="todo-text">Fiche Esprit de la forêt (DEF 14, PV 12, ATT +4)</div>
+          </div>
+        </div>
+        <div>
+          <div class="cat-header" style="color:#185FA5"><span class="cat-badge" style="background:#E6F1FB;color:#185FA5">PNJs</span></div>
+          <div class="todo-item">
+            <div class="todo-cb done"><i class="ti ti-check"></i></div>
+            <div class="todo-text done">Vieille Maren — forestière alliée</div>
+          </div>
+          <div class="todo-item">
+            <div class="todo-cb"></div>
+            <div class="todo-text">Le Seigneur des Araignées — antagoniste</div>
+          </div>
+        </div>
+        <div>
+          <div class="cat-header" style="color:#0F6E56"><span class="cat-badge" style="background:#E1F5EE;color:#0F6E56">Cartes Battle Mats</span></div>
+          <div class="todo-item">
+            <div class="todo-cb done"><i class="ti ti-check"></i></div>
+            <div class="todo-text done">BM1-27-28 "Forêt automnale" — Acte 1</div>
+          </div>
+          <div class="todo-item">
+            <div class="todo-cb done"><i class="ti ti-check"></i></div>
+            <div class="todo-text done">BM2-05-06 "Piste en forêt" — Acte 2</div>
+          </div>
+          <div class="todo-item">
+            <div class="todo-cb"></div>
+            <div class="todo-text">BM3-07-08 "Cercle de pierres" — Combat final</div>
+          </div>
+        </div>
+        <div>
+          <div class="cat-header" style="color:#854F0B"><span class="cat-badge" style="background:#FAEEDA;color:#854F0B">Déroulements</span></div>
+          <div class="todo-item">
+            <div class="todo-cb"></div>
+            <div class="todo-text">Préparer 3 indices pour l'enquête</div>
+          </div>
+          <div class="todo-item">
+            <div class="todo-cb"></div>
+            <div class="todo-text">Penser à ce qui se passe si les joueurs évitent le combat</div>
+          </div>
+        </div>
+      </div>
+      <nav class="nav">
+        <button class="nav-item"><i class="ti ti-wand"></i>Créer</button>
+        <button class="nav-item"><i class="ti ti-scroll"></i>Scénario</button>
+        <button class="nav-item active"><i class="ti ti-checklist"></i>Todo</button>
+        <button class="nav-item"><i class="ti ti-map"></i>Monde</button>
+      </nav>
+    </div>
+  </div>
+
+  <!-- ═══ ÉCRAN 4 : MONDE ═══ -->
+  <div>
+    <div class="screen-label">Écran 4 — Base de connaissance du monde</div>
+    <div class="phone">
+      <div class="topbar">
+        <div>
+          <div class="topbar-title">Mon monde</div>
+          <div class="topbar-sub">7 entrées · 3 scénarios</div>
+        </div>
+        <div class="badge"><i class="ti ti-plus"></i> Ajouter</div>
+      </div>
+      <div class="main">
+        <div style="display:flex;gap:6px;flex-wrap:wrap">
+          <button class="pill-filter active">Tous</button>
+          <button class="pill-filter">Lieux</button>
+          <button class="pill-filter">PNJs</button>
+          <button class="pill-filter">Événements</button>
+        </div>
+        <div class="section-card" style="padding:0 12px">
+          <div class="world-entity">
+            <div class="entity-icon" style="background:#E1F5EE"><i class="ti ti-map-pin" style="color:#0F6E56"></i></div>
+            <div>
+              <div class="entity-name">Forêt des Murmures</div>
+              <div class="entity-desc">Une forêt ancienne où les arbres chuchotent la nuit.</div>
+              <div class="entity-badges">
+                <span class="entity-badge" style="background:#E1F5EE;color:#0F6E56">Lieu</span>
+                <span class="entity-badge" style="background:#EEEDFE;color:#3C3489">Création</span>
+              </div>
+            </div>
+          </div>
+          <div class="world-entity">
+            <div class="entity-icon" style="background:#E6F1FB"><i class="ti ti-user" style="color:#185FA5"></i></div>
+            <div>
+              <div class="entity-name">Vieille Maren</div>
+              <div class="entity-desc">Forestière alliée. Connaît tous les secrets de la forêt.</div>
+              <div class="entity-badges">
+                <span class="entity-badge" style="background:#E6F1FB;color:#185FA5">PNJ</span>
+                <span class="entity-badge" style="background:#EAF3DE;color:#3B6D11">Debriefing</span>
+              </div>
+            </div>
+          </div>
+          <div class="world-entity">
+            <div class="entity-icon" style="background:#FAEEDA"><i class="ti ti-bolt" style="color:#854F0B"></i></div>
+            <div>
+              <div class="entity-name">Le médaillon est retrouvé</div>
+              <div class="entity-desc">Les héros ont rendu le médaillon. Rokk le gobelin les a aidés.</div>
+              <div class="entity-badges">
+                <span class="entity-badge" style="background:#FAEEDA;color:#854F0B">Événement</span>
+                <span class="entity-badge" style="background:#EAF3DE;color:#3B6D11">Debriefing</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <nav class="nav">
+        <button class="nav-item"><i class="ti ti-wand"></i>Créer</button>
+        <button class="nav-item"><i class="ti ti-scroll"></i>Scénario</button>
+        <button class="nav-item"><i class="ti ti-checklist"></i>Todo</button>
+        <button class="nav-item active"><i class="ti ti-map"></i>Monde</button>
+      </nav>
+    </div>
+  </div>
+
+</div>
+
+<p class="note">Maquette générée pour le projet CoF Mini — L'Antre du Maître<br>Palette violet #2A1F5C/#534AB7 · Tailwind + React + Vite PWA</p>
+
+</body>
+</html>

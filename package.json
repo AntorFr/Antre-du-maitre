@@ -1,0 +1,24 @@
+{
+  "name": "antre-du-maitre",
+  "private": true,
+  "version": "0.1.0",
+  "workspaces": [
+    "backend",
+    "frontend",
+    "packages/*"
+  ],
+  "scripts": {
+    "dev": "npm run dev:backend",
+    "dev:backend": "npm run build --workspace @antre-du-maitre/shared && npm run dev --workspace @antre-du-maitre/backend",
+    "dev:frontend": "npm run build --workspace @antre-du-maitre/shared && npm run dev --workspace @antre-du-maitre/frontend",
+    "build": "npm run build --workspace @antre-du-maitre/shared && npm run build --workspace @antre-du-maitre/backend && npm run build --workspace @antre-du-maitre/frontend",
+    "typecheck": "npm run build --workspace @antre-du-maitre/shared && npm run typecheck --workspace @antre-du-maitre/backend && npm run typecheck --workspace @antre-du-maitre/frontend && npm run typecheck --workspace @antre-du-maitre/shared",
+    "db:generate": "npm run db:generate --workspace @antre-du-maitre/backend",
+    "db:migrate": "npm run db:migrate --workspace @antre-du-maitre/backend",
+    "db:studio": "npm run db:studio --workspace @antre-du-maitre/backend",
+    "db:seed": "npm run db:seed --workspace @antre-du-maitre/backend"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}

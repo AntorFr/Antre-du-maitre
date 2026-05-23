@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="L'Antre du Maître">
+  <rect width="512" height="512" rx="112" fill="#2A1F5C"/>
+  <circle cx="256" cy="228" r="92" fill="#534AB7" stroke="#AFA9EC" stroke-width="16"/>
+  <path d="M160 190c28-70 164-70 192 0-52-30-140-30-192 0Z" fill="#EEEDFE" opacity=".95"/>
+  <path d="M188 330c34 44 102 44 136 0 18 12 34 36 42 70H146c8-34 24-58 42-70Z" fill="#AFA9EC"/>
+  <circle cx="222" cy="230" r="12" fill="#EEEDFE"/>
+  <circle cx="290" cy="230" r="12" fill="#EEEDFE"/>
+  <path d="M216 278c25 18 55 18 80 0" fill="none" stroke="#EEEDFE" stroke-width="12" stroke-linecap="round"/>
+  <path d="M360 132l26 48 54 10-38 40 7 55-49-24-50 24 8-55-39-40 54-10 27-48Z" fill="#EEEDFE"/>
+</svg>
