@@ -4,7 +4,7 @@ import {
   type ScenarioDetail,
   type ScenarioSummary,
 } from '@antre-du-maitre/shared';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 
 import { FormattedText } from '../components/FormattedText';
 import { Icon, type IconName } from '../components/Icon';
@@ -59,6 +59,7 @@ export function Create({
     null,
   );
   const [error, setError] = useState<string | null>(null);
+  const chatEndRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -118,6 +119,12 @@ export function Create({
       cancelled = true;
     };
   }, [onScenarioChange, token]);
+
+  useEffect(() => {
+    chatEndRef.current?.scrollIntoView({
+      block: 'end',
+    });
+  }, [activeScenario?.id, isSending, messages]);
 
   function activateScenario(scenario: ScenarioSummary | ScenarioDetail | null) {
     setActiveScenario(scenario);
@@ -320,16 +327,10 @@ export function Create({
   const currentStepIndex = SCENARIO_STEPS.indexOf(data.currentStep);
   const progressPct = Math.round(((currentStepIndex + 1) / SCENARIO_STEPS.length) * 100);
   const isMerlinWorking = isSending;
-  const lastAssistantMessage =
-    [...messages].reverse().find((message) => message.role === 'assistant')
-      ?.content ?? WELCOME_MESSAGE;
-  const lastUserMessage = [...messages]
-    .reverse()
-    .find((message) => message.role === 'user')?.content;
 
   return (
     <div className="flex h-full min-w-0 bg-white">
-      <aside className="flex w-72 shrink-0 flex-col items-center gap-3 border-r border-white/10 bg-wizard-950 px-4 py-4 text-wizard-100">
+      <aside className="flex w-64 shrink-0 flex-col items-center gap-3 border-r border-white/10 bg-wizard-950 px-4 py-4 text-wizard-100">
         <div className="relative flex h-[90px] w-[90px] items-center justify-center">
           <div className="absolute h-[90px] w-[90px] rounded-full border border-wizard-600/40" />
           <div className="absolute h-[76px] w-[76px] rounded-full border border-wizard-400/50" />
@@ -338,58 +339,35 @@ export function Create({
           </div>
         </div>
 
-        <div
-          className={[
-            'w-full rounded-xl px-4 py-3 text-center transition',
-            isMerlinWorking
-              ? 'bg-wizard-600 ring-2 ring-wizard-300/60'
-              : 'bg-wizard-700',
-          ].join(' ')}
-        >
-          <div className="text-[13px] leading-5 text-wizard-100">
-            {isMerlinWorking
-              ? 'Merlin prépare la suite de ton aventure…'
-              : <FormattedText compact text={lastAssistantMessage} />}
-          </div>
-          <p className="mt-1 text-[11px] text-wizard-300">
-            {isMerlinWorking
-              ? 'Le grimoire réfléchit, cela peut prendre quelques secondes.'
-              : "Je t'explique chaque option."}
+        <div className="w-full rounded-xl bg-wizard-700 px-4 py-3 text-center">
+          <p className="text-[11px] font-medium uppercase tracking-[0.16em] text-wizard-300">
+            Merlin
+          </p>
+          <p className="mt-1 text-[14px] font-medium text-wizard-100">
+            {isMerlinWorking ? 'Écrit la suite…' : 'Prêt à guider'}
+          </p>
+          <p className="mt-1 line-clamp-2 text-[11px] leading-5 text-wizard-300">
+            {activeScenario.title}
           </p>
         </div>
 
-        <div className="h-[3px] w-full overflow-hidden rounded-full bg-white/10">
-          <div
-            className={[
-              'h-full rounded-full bg-wizard-600 transition-all',
-              isMerlinWorking ? 'w-full animate-pulse' : 'w-1/3',
-            ].join(' ')}
-          />
-        </div>
-
-        <div className="flex min-h-9 w-full items-center gap-2 rounded-lg bg-white/5 px-3 py-2 text-[12px] italic text-wizard-300">
-          <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-wizard-400" />
-          <span className="line-clamp-2">
-            {lastUserMessage ? `« ${lastUserMessage} »` : 'Parle ou choisis une proposition.'}
-          </span>
-        </div>
-
-        <div className="flex w-full flex-col items-center gap-1 pt-1">
-          <button
-            className="flex h-[58px] w-[58px] items-center justify-center rounded-full bg-wizard-600 text-2xl text-white shadow-sm transition hover:bg-wizard-700 disabled:cursor-wait disabled:opacity-70"
-            disabled={isMerlinWorking}
-            onClick={() => {
-              if (input.trim()) void sendMessage(input);
-            }}
-            title="Envoyer le texte saisi"
-          >
-            <Icon
-              name={isMerlinWorking ? 'spark' : 'mic'}
-              className="h-7 w-7"
+        <div className="w-full rounded-lg bg-white/5 px-3 py-3">
+          <div className="flex items-center justify-between text-[11px] text-wizard-300">
+            <span>Création</span>
+            <span className="font-medium text-wizard-100">
+              {currentStepIndex + 1} / {SCENARIO_STEPS.length}
+            </span>
+          </div>
+          <div className="mt-2 h-[5px] overflow-hidden rounded-full bg-white/10">
+            <div
+              className="h-full rounded-full bg-wizard-400 transition-all"
+              style={{ width: `${progressPct}%` }}
             />
-          </button>
-          <p className="text-[11px] text-wizard-400">
-            {isMerlinWorking ? 'Merlin écrit…' : 'Appuie et parle bientôt'}
+          </div>
+          <p className="mt-2 text-[11px] leading-5 text-wizard-400">
+            {data.quete
+              ? `Objectif : ${data.quete}`
+              : 'Merlin construit le scénario étape par étape.'}
           </p>
         </div>
 
@@ -461,111 +439,45 @@ export function Create({
           variant="horizontal"
         />
 
-        <div className="flex-1 space-y-3 overflow-y-auto bg-white px-[18px] py-4">
-          {isMerlinWorking ? (
-            <div className="flex items-center gap-3 rounded-lg border border-wizard-200 bg-wizard-100 px-4 py-3 text-wizard-700">
-              <div className="flex gap-1" aria-hidden="true">
-                <span className="h-2 w-2 animate-bounce rounded-full bg-wizard-600 [animation-delay:-0.2s]" />
-                <span className="h-2 w-2 animate-bounce rounded-full bg-wizard-600 [animation-delay:-0.1s]" />
-                <span className="h-2 w-2 animate-bounce rounded-full bg-wizard-600" />
+        <div className="shrink-0 border-b border-black/10 bg-white px-[18px] py-3">
+          <div className="flex items-center gap-3">
+            <div className="flex min-w-[220px] flex-1 items-center gap-3 rounded-lg bg-[#f5f5f3] px-4 py-2">
+              <span className="whitespace-nowrap text-[12px] text-slate-500">
+                Avancement
+              </span>
+              <div className="h-[5px] flex-1 overflow-hidden rounded-full bg-black/10">
+                <div
+                  className="h-full rounded-full bg-wizard-600"
+                  style={{ width: `${progressPct}%` }}
+                />
               </div>
-              <div>
-                <p className="text-[13px] font-medium">
-                  Merlin consulte le grimoire…
-                </p>
-                <p className="text-[11px] text-wizard-500">
-                  Tu peux attendre ici, la réponse arrive automatiquement.
-                </p>
-              </div>
+              <span className="whitespace-nowrap text-[12px] font-medium text-wizard-600">
+                {currentStepIndex + 1} / {SCENARIO_STEPS.length}
+              </span>
             </div>
-          ) : null}
 
-          <div className="flex items-center gap-3 rounded-lg bg-[#f5f5f3] px-4 py-2">
-            <span className="whitespace-nowrap text-[12px] text-slate-500">
-              Avancement
-            </span>
-            <div className="h-[5px] flex-1 overflow-hidden rounded-full bg-black/10">
-              <div
-                className="h-full rounded-full bg-wizard-600"
-                style={{ width: `${progressPct}%` }}
+            <div className="grid min-w-[360px] grid-cols-3 gap-2">
+              <InfoCard icon="location" label="Lieu" value={data.lieu?.nom} />
+              <InfoCard icon="spark" label="Ambiance" value={data.ambiance} />
+              <InfoCard icon="skull" label="Méchant" value={data.antagoniste?.nom} />
+            </div>
+          </div>
+        </div>
+
+        <div className="flex-1 overflow-y-auto bg-[#faf9f5] px-[18px] py-4">
+          <div className="mx-auto flex max-w-[840px] flex-col gap-3">
+            <ChatThread messages={messages} isMerlinWorking={isMerlinWorking} />
+
+            <ScenarioDraftPreview scenario={activeScenario} />
+
+            {!isMerlinWorking ? (
+              <SuggestionPanel
+                onSelect={(suggestion) => void sendMessage(suggestion)}
+                suggestions={suggestions}
               />
-            </div>
-            <span className="whitespace-nowrap text-[12px] font-medium text-wizard-600">
-              {currentStepIndex + 1} / {SCENARIO_STEPS.length}
-            </span>
-          </div>
+            ) : null}
 
-          <div className="grid grid-cols-3 gap-2">
-            <InfoCard icon="location" label="Lieu" value={data.lieu?.nom} />
-            <InfoCard icon="spark" label="Ambiance" value={data.ambiance} />
-            <InfoCard icon="skull" label="Méchant" value={data.antagoniste?.nom} />
-          </div>
-
-          <ScenarioDraftPreview scenario={activeScenario} />
-
-          <div>
-            <div className="mb-2 text-[12px] font-medium text-slate-500">
-              {isMerlinWorking
-                ? 'Merlin travaille — réponse en cours'
-                : 'Merlin te suggère — choisis ou réponds librement'}
-            </div>
-            <div className="grid grid-cols-2 gap-2">
-              {suggestions.map((suggestion, index) => (
-                <button
-                  className={[
-                    'flex min-h-14 items-start gap-3 rounded-lg border px-3 py-2 text-left text-[12px] leading-5 transition disabled:opacity-60',
-                    index === 0
-                      ? 'border-wizard-300 bg-wizard-100 text-wizard-700'
-                      : 'border-black/10 bg-[#f5f5f3] text-slate-700 hover:border-black/25',
-                  ].join(' ')}
-                  disabled={isMerlinWorking}
-                  key={suggestion}
-                  onClick={() => void sendMessage(suggestion)}
-                >
-                  <span className="shrink-0 text-lg leading-none" aria-hidden="true">
-                    <Icon
-                      name={suggestionIcon(suggestion)}
-                      className="h-5 w-5"
-                    />
-                  </span>
-                  <span>
-                    <span className="block font-medium">{suggestion}</span>
-                    <span className="block text-[11px] text-slate-500">
-                      Merlin adapte la suite à ce choix.
-                    </span>
-                  </span>
-                </button>
-              ))}
-              <div className="col-span-2 text-center text-[11px] italic text-wizard-400">
-                ou écris une idée complète dans le champ du bas
-              </div>
-            </div>
-          </div>
-
-          <div className="rounded-lg border-l-[3px] border-wizard-600 bg-wizard-100 px-4 py-3 text-[12px] leading-6 text-wizard-700">
-            {data.quete
-              ? `Objectif retenu : ${data.quete}`
-              : 'Merlin garde le fil : ton, lieu, quête, antagoniste, PNJs, défis, actes, rencontres, durée, récap.'}
-          </div>
-
-          <div className="grid gap-2 md:grid-cols-2">
-            {messages.slice(-4).map((message, index) => (
-              <div
-                className={[
-                  'rounded-xl px-4 py-3 text-[12px] leading-5',
-                  message.role === 'assistant'
-                    ? 'bg-[#f5f5f3] text-slate-700'
-                    : 'bg-wizard-600 text-white',
-                ].join(' ')}
-                key={`${message.role}-${index}`}
-              >
-                {message.role === 'assistant' ? (
-                  <FormattedText text={message.content} />
-                ) : (
-                  message.content
-                )}
-              </div>
-            ))}
+            <div ref={chatEndRef} />
           </div>
         </div>
 
@@ -625,6 +537,137 @@ function InfoCard({
         {value ?? 'À définir'}
       </p>
     </div>
+  );
+}
+
+function ChatThread({
+  isMerlinWorking,
+  messages,
+}: {
+  isMerlinWorking: boolean;
+  messages: Message[];
+}) {
+  return (
+    <div className="space-y-3">
+      {messages.map((message, index) => (
+        <ChatMessageBubble
+          index={index}
+          key={`${message.role}-${index}-${message.content.slice(0, 24)}`}
+          message={message}
+        />
+      ))}
+
+      {isMerlinWorking ? <MerlinWorkingBubble /> : null}
+    </div>
+  );
+}
+
+function ChatMessageBubble({
+  index,
+  message,
+}: {
+  index: number;
+  message: Message;
+}) {
+  if (message.role === 'user') {
+    return (
+      <div className="flex justify-end">
+        <div className="max-w-[72%] rounded-2xl rounded-tr-sm bg-wizard-600 px-4 py-3 text-[13px] leading-6 text-white shadow-sm">
+          {message.content}
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="flex items-start gap-2">
+      <div className="mt-1 flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-wizard-600 text-wizard-100 shadow-sm">
+        <Icon name="magic" className="h-4 w-4" />
+      </div>
+      <div className="max-w-[84%] rounded-2xl rounded-tl-sm bg-white px-4 py-3 text-[13px] leading-6 text-slate-700 shadow-sm ring-1 ring-black/10">
+        <p className="mb-1 text-[10px] font-medium uppercase tracking-[0.16em] text-wizard-600">
+          {index === 0 ? 'Merlin démarre' : 'Merlin'}
+        </p>
+        <FormattedText text={message.content} />
+      </div>
+    </div>
+  );
+}
+
+function MerlinWorkingBubble() {
+  return (
+    <div className="flex items-start gap-2">
+      <div className="mt-1 flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-wizard-600 text-wizard-100 shadow-sm">
+        <Icon name="spark" className="h-4 w-4" />
+      </div>
+      <div className="rounded-2xl rounded-tl-sm bg-wizard-100 px-4 py-3 text-wizard-700 shadow-sm ring-1 ring-wizard-300/60">
+        <div className="flex items-center gap-3">
+          <div className="flex gap-1" aria-hidden="true">
+            <span className="h-2 w-2 animate-bounce rounded-full bg-wizard-600 [animation-delay:-0.2s]" />
+            <span className="h-2 w-2 animate-bounce rounded-full bg-wizard-600 [animation-delay:-0.1s]" />
+            <span className="h-2 w-2 animate-bounce rounded-full bg-wizard-600" />
+          </div>
+          <div>
+            <p className="text-[13px] font-medium">
+              Merlin consulte le grimoire…
+            </p>
+            <p className="text-[11px] text-wizard-500">
+              La réponse arrive automatiquement.
+            </p>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function SuggestionPanel({
+  onSelect,
+  suggestions,
+}: {
+  onSelect: (suggestion: string) => void;
+  suggestions: string[];
+}) {
+  if (suggestions.length === 0) {
+    return null;
+  }
+
+  return (
+    <section className="rounded-xl bg-white p-3 shadow-sm ring-1 ring-black/10">
+      <div className="mb-2 flex items-center justify-between gap-3">
+        <p className="text-[12px] font-medium text-slate-600">
+          Suggestions de réponse
+        </p>
+        <p className="text-[11px] italic text-wizard-400">
+          ou écris librement en bas
+        </p>
+      </div>
+      <div className="grid grid-cols-3 gap-2">
+        {suggestions.map((suggestion, index) => (
+          <button
+            className={[
+              'flex min-h-14 items-start gap-2 rounded-lg border px-3 py-2 text-left text-[12px] leading-5 transition',
+              index === 0
+                ? 'border-wizard-300 bg-wizard-100 text-wizard-700'
+                : 'border-black/10 bg-[#f5f5f3] text-slate-700 hover:border-black/25',
+            ].join(' ')}
+            key={`${suggestion}-${index}`}
+            onClick={() => onSelect(suggestion)}
+          >
+            <Icon
+              name={suggestionIcon(suggestion)}
+              className="mt-0.5 h-4 w-4 shrink-0"
+            />
+            <span>
+              <span className="block font-medium">{suggestion}</span>
+              <span className="block text-[11px] text-slate-500">
+                Merlin adapte la suite.
+              </span>
+            </span>
+          </button>
+        ))}
+      </div>
+    </section>
   );
 }
 

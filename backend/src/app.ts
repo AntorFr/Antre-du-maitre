@@ -13,6 +13,7 @@ import { registerSessionRoutes } from './routes/sessions.js';
 import { registerTodoRoutes } from './routes/todo.js';
 import { registerUserRoutes } from './routes/users.js';
 import { registerWorldRoutes } from './routes/world.js';
+import { registerStaticFrontend } from './services/static-frontend.js';
 
 export async function buildApp() {
   const app = Fastify({
@@ -46,6 +47,7 @@ export async function buildApp() {
   await registerSessionRoutes(app);
   await registerTodoRoutes(app);
   await registerWorldRoutes(app);
+  await registerStaticFrontend(app);
 
   return app;
 }

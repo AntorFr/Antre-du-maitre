@@ -1,0 +1,17 @@
+node_modules
+backend/dist
+frontend/dist
+packages/shared/dist
+.vite
+dist
+coverage
+*.tsbuildinfo
+.env
+.env.*
+!.env.example
+*.db
+*.db-journal
+*.db-wal
+*.db-shm
+.DS_Store
+*.log

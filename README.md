@@ -5,6 +5,7 @@ PWA iPad de création guidée de scénarios CoF Mini.
 ## Structure
 
 ```txt
+Dockerfile        Image unique : API Fastify + PWA React servie en statique
 backend/          API Fastify, Prisma, orchestration LLM
 frontend/         PWA React/Vite
 packages/shared/  Types partagés frontend/backend
@@ -46,6 +47,51 @@ Le seed crée par défaut deux comptes de développement :
 - `merlin / merlin12345`
 
 Ces identifiants sont configurables via les variables `DEV_*` de `.env`.
+
+En développement Vite, le frontend appelle par défaut
+`http://localhost:3001/api`. En build Docker/production, il appelle `/api`,
+servi par le même processus Fastify.
+
+## Docker unique
+
+L'image Docker unique construit le backend et le frontend, puis sert :
+
+- `/api/*` via Fastify
+- la PWA React pour toutes les autres routes
+
+Build :
+
+```bash
+docker build -t antre-du-maitre .
+```
+
+Run avec SQLite persisté dans un volume :
+
+```bash
+docker run --rm \
+  --name antre-du-maitre \
+  --env-file .env \
+  -e DATABASE_URL=file:/data/antre.db \
+  -p 3001:3001 \
+  -v antre-data:/data \
+  antre-du-maitre
+```
+
+Puis ouvrir :
+
+```txt
+http://localhost:3001
+```
+
+Sur iPad, utiliser l'adresse réseau du Mac, par exemple :
+
+```txt
+http://192.168.x.x:3001
+```
+
+Au démarrage du container, les migrations Prisma sont appliquées et le seed
+garantit les comptes admin/enfant. Le volume `antre-data` conserve la base
+SQLite entre deux lancements.
 
 ## LLM
 
