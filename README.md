@@ -72,6 +72,7 @@ docker run --rm \
   --name antre-du-maitre \
   --env-file .env \
   -e DATABASE_URL=file:/data/antre.db \
+  -e LLM_ERROR_LOG_DIR=/data/logs \
   -p 3001:3001 \
   -v antre-data:/data \
   antre-du-maitre
@@ -93,6 +94,18 @@ Au démarrage du container, les migrations Prisma sont appliquées et le seed
 garantit les comptes admin/enfant. Le volume `antre-data` conserve la base
 SQLite entre deux lancements.
 
+Les erreurs de réponse LLM invalide sont également conservées dans le volume :
+
+```txt
+/data/logs/llm-errors-YYYY-MM-DD.jsonl
+```
+
+Pour lire les derniers problèmes :
+
+```bash
+docker exec antre-du-maitre sh -lc 'tail -n 5 /data/logs/llm-errors-$(date +%F).jsonl'
+```
+
 ## LLM
 
 Le développement local utilise le mock par défaut :
@@ -111,6 +124,15 @@ ANTHROPIC_MODEL=claude-3-5-sonnet-latest
 
 Le provider réel répond en JSON strict pour conserver la machine d'état du
 scénario côté backend.
+
+Si le LLM renvoie un JSON mal formé ou un objet qui ne respecte pas le schéma,
+le backend écrit un log JSONL local avec le contexte, le prompt et la réponse
+brute :
+
+- dev local : `logs/llm-errors/llm-errors-YYYY-MM-DD.jsonl`
+- Docker : `/data/logs/llm-errors-YYYY-MM-DD.jsonl`
+
+Ces fichiers sont ignorés par Git.
 
 ## Bestiaire DRS
 

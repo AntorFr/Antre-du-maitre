@@ -29,6 +29,7 @@ WORKDIR /app
 ENV NODE_ENV=production
 ENV PORT=3001
 ENV DATABASE_URL=file:/data/antre.db
+ENV LLM_ERROR_LOG_DIR=/data/logs
 
 RUN apt-get update \
   && apt-get install -y --no-install-recommends ca-certificates openssl \

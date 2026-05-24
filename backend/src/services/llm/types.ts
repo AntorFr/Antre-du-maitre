@@ -8,6 +8,8 @@ import type {
 export interface ScenarioChatInput {
   message: string;
   voiceInput: boolean;
+  scenarioId?: string;
+  userId?: string;
   scenario: ScenarioData;
   worldSummary: string;
   monsterCatalog: MonsterSummary[];
@@ -15,6 +17,8 @@ export interface ScenarioChatInput {
 
 export interface SessionDebriefInput {
   message: string;
+  scenarioId?: string;
+  userId?: string;
   scenario: ScenarioData;
   sessionNumber: number;
   worldSummary: string;

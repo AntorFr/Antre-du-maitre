@@ -209,6 +209,8 @@ export async function registerSessionRoutes(app: FastifyInstance) {
 
       const response = await llmProvider.createSessionDebriefTurn({
         message: parsed.data.message,
+        scenarioId: scenario.id,
+        userId: scenario.userId,
         scenario: normalizeScenarioData(scenario.data),
         sessionNumber,
         worldSummary: buildWorldSummary(world.entities),

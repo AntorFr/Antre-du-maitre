@@ -91,6 +91,8 @@ export async function registerChatRoutes(app: FastifyInstance) {
       const response = await llmProvider.createScenarioTurn({
         message: parsed.data.message,
         voiceInput: parsed.data.voiceInput,
+        scenarioId: scenario.id,
+        userId: scenario.userId,
         scenario: currentData,
         worldSummary: buildWorldSummary(world.entities),
         monsterCatalog,

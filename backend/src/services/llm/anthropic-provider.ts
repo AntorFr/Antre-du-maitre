@@ -10,6 +10,7 @@ import { z } from 'zod';
 import { env } from '../../config/env.js';
 import { getAllBattleMatsSummaryForLLM } from '../../data/battle-mats/index.js';
 import { getNextScenarioStep } from '../../domain/scenario-state.js';
+import { writeLlmErrorLog } from '../llm-error-log.js';
 import type {
   LlmProvider,
   ScenarioChatInput,
@@ -56,19 +57,34 @@ export class AnthropicLlmProvider implements LlmProvider {
     input: ScenarioChatInput,
   ): Promise<ScenarioChatResponse> {
     const expectedNextStep = getNextScenarioStep(input.scenario.currentStep);
+    const prompt = buildScenarioUserPrompt(input, expectedNextStep);
     const raw = await this.createJsonMessage({
       system: SCENARIO_SYSTEM_PROMPT,
-      user: buildScenarioUserPrompt(input, expectedNextStep),
+      user: prompt,
       maxTokens: 2_400,
     });
-    const parsed = scenarioResponseSchema.parse(parseJsonObject(raw));
+    const parsed = await parseAndValidateLlmResponse({
+      kind: 'scenario-chat',
+      schema: scenarioResponseSchema,
+      raw,
+      prompt,
+      context: {
+        scenarioId: input.scenarioId,
+        userId: input.userId,
+        scenarioTitle: input.scenario.title,
+        currentStep: input.scenario.currentStep,
+        expectedNextStep,
+        userMessage: input.message,
+        voiceInput: input.voiceInput,
+      },
+    });
 
     return {
       reply: parsed.reply,
-      suggestions: toTriple(parsed.suggestions),
+      suggestions: toTriple(parsed.suggestions ?? []),
       scenarioUpdate: parsed.scenarioUpdate as Partial<ScenarioData> | null,
       proposedEntities: normalizeProposedEntities(
-        parsed.proposedEntities,
+        parsed.proposedEntities ?? [],
         'CREATION',
       ),
       stepComplete: parsed.stepComplete,
@@ -79,18 +95,32 @@ export class AnthropicLlmProvider implements LlmProvider {
   async createSessionDebriefTurn(
     input: SessionDebriefInput,
   ): Promise<SessionDebriefResponse> {
+    const prompt = buildDebriefUserPrompt(input);
     const raw = await this.createJsonMessage({
       system: DEBRIEF_SYSTEM_PROMPT,
-      user: buildDebriefUserPrompt(input),
+      user: prompt,
       maxTokens: 1_600,
     });
-    const parsed = debriefResponseSchema.parse(parseJsonObject(raw));
+    const parsed = await parseAndValidateLlmResponse({
+      kind: 'session-debrief',
+      schema: debriefResponseSchema,
+      raw,
+      prompt,
+      context: {
+        scenarioId: input.scenarioId,
+        userId: input.userId,
+        scenarioTitle: input.scenario.title,
+        currentStep: input.scenario.currentStep,
+        sessionNumber: input.sessionNumber,
+        userMessage: input.message,
+      },
+    });
 
     return {
       reply: parsed.reply,
-      suggestions: toTriple(parsed.suggestions),
+      suggestions: toTriple(parsed.suggestions ?? []),
       proposedEntities: normalizeProposedEntities(
-        parsed.proposedEntities,
+        parsed.proposedEntities ?? [],
         'DEBRIEF',
       ),
       debriefComplete: parsed.debriefComplete,
@@ -245,16 +275,41 @@ function parseJsonObject(text: string): unknown {
   }
 }
 
+async function parseAndValidateLlmResponse<T>(input: {
+  kind: 'scenario-chat' | 'session-debrief';
+  schema: z.ZodType<T>;
+  raw: string;
+  prompt: string;
+  context: Record<string, unknown>;
+}): Promise<T> {
+  try {
+    return input.schema.parse(parseJsonObject(input.raw));
+  } catch (error) {
+    await writeLlmErrorLog({
+      kind: input.kind,
+      provider: 'anthropic',
+      model: env.ANTHROPIC_MODEL,
+      error,
+      prompt: input.prompt,
+      rawResponse: input.raw,
+      context: input.context,
+    });
+
+    throw error;
+  }
+}
+
 function toTriple(values: string[]): [string, string, string] {
   return [values[0] ?? 'Continuer', values[1] ?? 'Changer un détail', values[2] ?? 'Aide-moi'];
 }
 
 function normalizeProposedEntities(
-  entities: ProposedWorldEntity[],
+  entities: Array<Omit<ProposedWorldEntity, 'tags'> & { tags?: string[] }>,
   source: ProposedWorldEntity['source'],
 ): ProposedWorldEntity[] {
   return entities.map((entity) => ({
     ...entity,
+    tags: entity.tags ?? [],
     source,
   }));
 }

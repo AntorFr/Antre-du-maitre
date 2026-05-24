@@ -33,6 +33,7 @@ export function App() {
     <Create
       token={session.token}
       onScenarioChange={setActiveScenario}
+      onOpenScenario={() => setActiveView('scenario')}
       onWorldProposal={() => setWorldRefreshKey((current) => current + 1)}
       onScenarioComplete={() => setActiveView('scenario')}
     />

@@ -14,6 +14,7 @@ import { ProgressSteps } from '../components/ProgressSteps';
 type CreateProps = {
   token: string;
   onScenarioChange: (scenario: ScenarioSummary | null) => void;
+  onOpenScenario: () => void;
   onWorldProposal: () => void;
   onScenarioComplete: () => void;
 };
@@ -37,6 +38,7 @@ const COMPLETE_SUGGESTIONS = [
 export function Create({
   token,
   onScenarioChange,
+  onOpenScenario,
   onWorldProposal,
   onScenarioComplete,
 }: CreateProps) {
@@ -468,7 +470,10 @@ export function Create({
           <div className="mx-auto flex max-w-[840px] flex-col gap-3">
             <ChatThread messages={messages} isMerlinWorking={isMerlinWorking} />
 
-            <ScenarioDraftPreview scenario={activeScenario} />
+            <ScenarioDraftPreview
+              onOpenScenario={onOpenScenario}
+              scenario={activeScenario}
+            />
 
             {!isMerlinWorking ? (
               <SuggestionPanel
@@ -671,7 +676,13 @@ function SuggestionPanel({
   );
 }
 
-function ScenarioDraftPreview({ scenario }: { scenario: ScenarioSummary }) {
+function ScenarioDraftPreview({
+  onOpenScenario,
+  scenario,
+}: {
+  onOpenScenario: () => void;
+  scenario: ScenarioSummary;
+}) {
   const { data } = scenario;
   const hasActs = data.actes.length > 0;
   const hasEncounters = data.rencontres.length > 0;
@@ -683,10 +694,19 @@ function ScenarioDraftPreview({ scenario }: { scenario: ScenarioSummary }) {
 
   return (
     <section className="rounded-lg border border-black/10 bg-[#f8f7f2] p-3">
-      <p className="flex items-center gap-2 text-[12px] font-medium text-slate-700">
-        <Icon name="spark" className="h-4 w-4 text-wizard-600" />
-        Ce que Merlin a préparé
-      </p>
+      <div className="flex items-center justify-between gap-3">
+        <p className="flex items-center gap-2 text-[12px] font-medium text-slate-700">
+          <Icon name="spark" className="h-4 w-4 text-wizard-600" />
+          Ce que Merlin a préparé
+        </p>
+        <button
+          className="flex shrink-0 items-center gap-1 rounded-full bg-wizard-600 px-3 py-1.5 text-[11px] font-medium text-white transition hover:bg-wizard-700"
+          onClick={onOpenScenario}
+        >
+          <Icon name="scenario" className="h-3.5 w-3.5" />
+          Voir le détail
+        </button>
+      </div>
 
       {hasEncounters ? (
         <div className="mt-3">
@@ -730,15 +750,24 @@ function ScenarioDraftPreview({ scenario }: { scenario: ScenarioSummary }) {
 
       {hasActs ? (
         <div className="mt-3">
-          <p className="mb-2 flex items-center gap-2 text-[11px] font-medium uppercase tracking-[0.12em] text-slate-500">
-            <Icon name="scenario" className="h-3.5 w-3.5" />
-            Actes retenus
-          </p>
+          <div className="mb-2 flex items-center justify-between gap-3">
+            <p className="flex items-center gap-2 text-[11px] font-medium uppercase tracking-[0.12em] text-slate-500">
+              <Icon name="scenario" className="h-3.5 w-3.5" />
+              Actes retenus
+            </p>
+            <button
+              className="text-[11px] font-medium text-wizard-600 transition hover:text-wizard-700"
+              onClick={onOpenScenario}
+            >
+              Lire tous les actes
+            </button>
+          </div>
           <div className="grid gap-2 md:grid-cols-2">
             {data.actes.slice(0, 4).map((acte) => (
-              <div
-                className="rounded-lg bg-white px-3 py-2 text-[11px] leading-5 ring-1 ring-black/10"
+              <button
+                className="rounded-lg bg-white px-3 py-2 text-left text-[11px] leading-5 ring-1 ring-black/10 transition hover:bg-wizard-100 hover:ring-wizard-300"
                 key={acte.numero}
+                onClick={onOpenScenario}
               >
                 <p className="font-medium text-slate-900">
                   Acte {acte.numero} · {acte.titre}
@@ -746,9 +775,16 @@ function ScenarioDraftPreview({ scenario }: { scenario: ScenarioSummary }) {
                 <p className="mt-0.5 line-clamp-2 text-slate-500">
                   {acte.description}
                 </p>
-              </div>
+              </button>
             ))}
           </div>
+          {data.actes.length > 4 ? (
+            <p className="mt-2 text-[11px] text-slate-500">
+              {data.actes.length - 4} acte
+              {data.actes.length - 4 > 1 ? 's' : ''} supplémentaire
+              {data.actes.length - 4 > 1 ? 's' : ''} dans l'onglet Scénario.
+            </p>
+          ) : null}
         </div>
       ) : null}
 

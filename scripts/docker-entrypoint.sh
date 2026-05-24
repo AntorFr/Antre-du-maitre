@@ -1,7 +1,7 @@
 #!/bin/sh
 set -eu
 
-mkdir -p /data
+mkdir -p /data /data/logs
 
 npx prisma migrate deploy --schema backend/prisma/schema.prisma
 node --import tsx backend/prisma/seed.ts
