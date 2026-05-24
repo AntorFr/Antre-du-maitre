@@ -50,6 +50,10 @@ Chaque entité conserve :
 - sa source (`CREATION`, `DEBRIEF`, `MANUAL`) ;
 - éventuellement le scénario et la session à l'origine de son apparition.
 
+Deux entités peuvent être fusionnées si elles représentent le même élément du
+monde. La fusion doit préserver les informations utiles, les tags et les liens
+de provenance.
+
 ### `WorldEntityProposal`
 
 Les propositions sont un sas avant écriture définitive :
@@ -63,6 +67,9 @@ Elles sont générées :
 - pendant la création ;
 - après chaque debrief ;
 - puis validées explicitement par l'utilisateur.
+
+Avant validation, une proposition doit pouvoir exposer des doublons probables
+par comparaison avec les entités existantes du même monde.
 
 ## Scénarios
 
@@ -86,6 +93,35 @@ Un scénario contient :
 
 - En V1, les changements passent par le chat.
 - Pas de formulaire d'édition libre de la fiche validée.
+
+### Détail des actes
+
+Un acte peut être enrichi après la création globale afin de guider le MJ à un
+niveau plus opérationnel.
+
+Les détails d'acte doivent couvrir :
+
+- scènes ou beats successifs ;
+- objectifs MJ ;
+- informations à révéler ;
+- choix et conséquences ;
+- transitions possibles ;
+- matériel à préparer ;
+- notes de rythme et d'improvisation.
+
+Ces détails alimentent ensuite le todo et l'export.
+
+### Fiches de combat PNJ
+
+Les PNJ narratifs peuvent rester descriptifs. Les PNJ susceptibles d'être
+combattus doivent pouvoir référencer ou embarquer une fiche de combat :
+
+- source `DRS_MONSTER` si la fiche est adaptée depuis une créature existante ;
+- source `LLM_GENERATED` si elle est générée sous contraintes de règles ;
+- source `MANUAL` si elle est saisie ou corrigée à la main.
+
+La fiche conserve sa provenance et les hypothèses utilisées afin de pouvoir
+être relue avant usage à table.
 
 ## Sessions
 

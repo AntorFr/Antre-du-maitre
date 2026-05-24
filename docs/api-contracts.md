@@ -30,6 +30,9 @@ GET    /scenarios/:id
 DELETE /scenarios/:id
 GET    /scenarios/:id/export.pdf
 POST   /scenarios/:id/chat
+GET    /scenarios/:id/acts/:number/detail
+POST   /scenarios/:id/acts/:number/detail/chat
+POST   /scenarios/:id/npcs/:name/combat-sheet
 ```
 
 ### `POST /scenarios/:id/chat`
@@ -47,6 +50,42 @@ type ScenarioChatResponse = {
   proposedEntities: ProposedWorldEntity[];
   stepComplete: boolean;
   nextStep: ScenarioStep | null;
+};
+```
+
+### Détail des actes
+
+Le détail des actes suit le même principe que la création globale : le backend
+pilote le workflow, le LLM propose, puis le backend valide avant persistance.
+
+```ts
+type ActDetailChatRequest = {
+  message: string;
+  voiceInput: boolean;
+};
+
+type ActDetailChatResponse = {
+  reply: string;
+  suggestions: string[];
+  actDetailUpdate: Partial<ActDetail> | null;
+  todoPreview: TodoItem[];
+  detailComplete: boolean;
+};
+```
+
+### Fiche de combat PNJ
+
+```ts
+type NpcCombatSheetRequest = {
+  expectedLevel?: number;
+  roleInFight?: string;
+  baseMonsterId?: string;
+};
+
+type NpcCombatSheetResponse = {
+  sheet: NpcCombatSheet;
+  source: 'DRS_MONSTER' | 'LLM_GENERATED' | 'MANUAL';
+  assumptions: string[];
 };
 ```
 
@@ -98,6 +137,9 @@ DELETE /world/entities/:id
 GET    /world/proposals
 POST   /world/proposals/:id/accept
 POST   /world/proposals/:id/reject
+GET    /world/proposals/:id/duplicates
+POST   /world/proposals/:id/merge/:entityId
+POST   /world/entities/:id/merge/:duplicateId
 ```
 
 ## Référentiels CoF

@@ -69,16 +69,21 @@ export function Todo({
   const [items, setItems] = useState<TodoItem[]>([]);
   const [activeCategory, setActiveCategory] =
     useState<TodoItem['category']>('FICHES_MONSTRES');
+  const [userSelectedCategory, setUserSelectedCategory] = useState(false);
   const [busyItemId, setBusyItemId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     if (!scenario) {
       setItems([]);
+      setActiveCategory(DEFAULT_CATEGORY);
+      setUserSelectedCategory(false);
       return;
     }
 
     let cancelled = false;
+    setActiveCategory(DEFAULT_CATEGORY);
+    setUserSelectedCategory(false);
 
     api
       .listTodo(token, scenario.id)
@@ -141,13 +146,20 @@ export function Todo({
     categoryStats.find((stat) => stat.total > 0)?.category ?? DEFAULT_CATEGORY;
 
   useEffect(() => {
+    if (userSelectedCategory) return;
+
     if (
       groupedItems[activeCategory].length === 0 &&
       firstAvailableCategory !== activeCategory
     ) {
       setActiveCategory(firstAvailableCategory);
     }
-  }, [activeCategory, firstAvailableCategory, groupedItems]);
+  }, [
+    activeCategory,
+    firstAvailableCategory,
+    groupedItems,
+    userSelectedCategory,
+  ]);
 
   const doneCount = items.filter((item) => item.done).length;
   const remainingCount = items.length - doneCount;
@@ -220,6 +232,11 @@ export function Todo({
     }
   }
 
+  function selectCategory(category: TodoItem['category']) {
+    setUserSelectedCategory(true);
+    setActiveCategory(category);
+  }
+
   return (
     <section className="flex h-full flex-col overflow-hidden bg-white">
       <header className="flex shrink-0 items-center gap-3 border-b border-black/10 px-[18px] py-3">
@@ -267,7 +284,7 @@ export function Todo({
               <CategoryButton
                 active={activeCategory === stat.category}
                 key={stat.category}
-                onClick={() => setActiveCategory(stat.category)}
+                onClick={() => selectCategory(stat.category)}
                 stat={stat}
               />
             ))}
@@ -283,7 +300,7 @@ export function Todo({
                   <button
                     className="flex w-full items-start gap-2 rounded-lg bg-[#f5f5f3] px-3 py-2 text-left transition hover:bg-wizard-50"
                     key={item.id}
-                    onClick={() => setActiveCategory(item.category)}
+                    onClick={() => selectCategory(item.category)}
                   >
                     <Icon
                       name={CATEGORY_META[item.category].icon}

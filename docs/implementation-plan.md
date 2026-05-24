@@ -80,6 +80,21 @@ Le reste de l'architecture est préparé dès le départ pour éviter les rééc
 - seed de démo ;
 - tests d'intégration.
 
+### Phase 8 — Profondeur MJ
+
+- workflow de détail par acte avant génération finale du todo ;
+- enrichissement LLM des actes : scènes, objectifs MJ, indices, conséquences, transitions ;
+- génération de fiches de combat pour PNJ combattables ;
+- suggestions de stat blocks à partir du bestiaire DRS et des règles CoF Mini / CoF ;
+- todo enrichi à partir des détails d'actes et des fiches de combat.
+
+### Phase 9 — Qualité du monde persistant
+
+- détection de doublons lors de la validation des propositions ;
+- choix explicite entre fusion, enrichissement ou création d'une nouvelle entité ;
+- fusion manuelle d'entités déjà validées ;
+- normalisation des noms pour limiter les doublons évidents.
+
 ## Première séquence de tickets
 
 1. Initialiser le monorepo.
@@ -97,3 +112,15 @@ Le reste de l'architecture est préparé dès le départ pour éviter les rééc
 13. Brancher le login.
 14. Construire l'écran de création.
 15. Générer le todo à la validation finale.
+
+## Tickets identifiés après test produit
+
+1. Ajouter une étape de détail des actes entre la création globale et le todo.
+2. Créer un assistant de détail par acte avec historique et validation structurée.
+3. Étendre `ScenarioData.actes` avec des détails MJ exploitables par le todo.
+4. Identifier les PNJ avec probabilité de combat.
+5. Générer ou associer une fiche de combat pour ces PNJ.
+6. Ajouter les fiches PNJ combattables au todo et à l'export PDF.
+7. Détecter les propositions de monde proches d'entités existantes.
+8. Ajouter une action de fusion lors de la validation d'une proposition.
+9. Ajouter une fusion manuelle d'entités dans l'écran Monde.

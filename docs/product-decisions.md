@@ -52,6 +52,37 @@ Le reste du produit doit être conçu dès le départ, mais il ne doit pas retar
 - Pour garder les prompts compacts, le backend récupère et injecte les fiches utiles à un instant donné au lieu d'envoyer tout le corpus brut à chaque appel.
 - Les données importées conservent leur provenance.
 
+## Améliorations identifiées
+
+### Détail des actes
+
+- Le flux de création produit une bonne structure globale, mais chaque acte doit ensuite pouvoir être approfondi avant de passer au todo.
+- Le produit doit proposer un workflow guidé par acte, proche du chat de création, pour préciser :
+  - déroulé scène par scène ;
+  - objectifs MJ ;
+  - indices, choix et conséquences ;
+  - rythme, transitions et points de relance ;
+  - besoins de préparation associés.
+- Le todo final doit être généré après cette passe de détail, pas seulement après le résumé global.
+
+### PNJ et fiches de combat
+
+- La préparation des PNJ doit distinguer les PNJ narratifs des PNJ susceptibles d'être combattus.
+- Pour les PNJ combattables, l'application doit aider à produire une fiche de combat utilisable :
+  - soit par association à une créature DRS proche ;
+  - soit par génération LLM contrainte par les règles CoF Mini / CoF ;
+  - avec provenance claire et possibilité de réviser.
+- Ces fiches doivent apparaître dans le todo et l'export MJ.
+
+### Déduplication du monde
+
+- La validation des propositions du monde doit détecter les doublons probables avant insertion.
+- Si une proposition ressemble à une entité existante, l'utilisateur doit pouvoir :
+  - fusionner avec l'entité existante ;
+  - remplacer / enrichir l'entité existante ;
+  - créer quand même une nouvelle entité.
+- Les doublons déjà validés doivent pouvoir être fusionnés depuis l'écran Monde.
+
 ## Non-objectifs V1
 
 - Fonctionnement hors ligne.
