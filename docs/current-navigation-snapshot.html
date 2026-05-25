@@ -1,0 +1,1114 @@
+<!doctype html>
+<html lang="fr">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>L'Antre du Maitre - Navigation actuelle</title>
+    <style>
+      :root {
+        --wizard-950: #171132;
+        --wizard-900: #24184f;
+        --wizard-700: #4b3bb0;
+        --wizard-600: #5c4bd1;
+        --wizard-100: #ece9ff;
+        --page: #f0eff5;
+        --soft: #f7f6f1;
+        --paper: #ffffff;
+        --ink: #0f172a;
+        --muted: #64748b;
+        --line: rgba(15, 23, 42, 0.12);
+        --ok-bg: #dcfce7;
+        --ok: #047857;
+        --warn-bg: #fef3c7;
+        --warn: #b45309;
+        --danger-bg: #ffe4e6;
+        --danger: #be123c;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        margin: 0;
+        min-height: 100vh;
+        background: var(--page);
+        color: var(--ink);
+        font-family:
+          Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont,
+          "Segoe UI", sans-serif;
+      }
+
+      button,
+      textarea,
+      input {
+        font: inherit;
+      }
+
+      .stage {
+        min-height: 100vh;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 24px;
+      }
+
+      .app {
+        width: min(1120px, 100%);
+        height: min(780px, calc(100vh - 48px));
+        min-height: 620px;
+        display: grid;
+        grid-template-rows: 48px minmax(0, 1fr);
+        overflow: hidden;
+        border: 1px solid var(--line);
+        border-radius: 20px;
+        background: var(--paper);
+        box-shadow: 0 4px 32px rgba(0, 0, 0, 0.1);
+      }
+
+      .topbar {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        background: var(--wizard-900);
+        color: var(--wizard-100);
+        padding: 0 16px;
+      }
+
+      .brand-mark {
+        width: 30px;
+        height: 30px;
+        display: grid;
+        place-items: center;
+        border: 1px solid #afa9ec;
+        border-radius: 999px;
+        background: var(--wizard-600);
+      }
+
+      .brand {
+        font-size: 15px;
+        font-weight: 650;
+        white-space: nowrap;
+      }
+
+      .brand small {
+        color: #afa9ec;
+        font-weight: 400;
+      }
+
+      .top-spacer {
+        flex: 1;
+      }
+
+      .top-context {
+        display: flex;
+        gap: 8px;
+        align-items: center;
+        color: #afa9ec;
+        font-size: 12px;
+      }
+
+      .status-chip {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        border-radius: 999px;
+        background: var(--wizard-600);
+        color: white;
+        padding: 5px 10px;
+        font-size: 11px;
+      }
+
+      .body {
+        min-height: 0;
+        display: grid;
+        grid-template-columns: 64px minmax(0, 1fr);
+      }
+
+      .global-nav {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 3px;
+        background: var(--wizard-950);
+        padding: 8px 0;
+      }
+
+      .nav-button {
+        width: 48px;
+        height: 52px;
+        border: 0;
+        border-radius: 10px;
+        background: transparent;
+        color: #8178de;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 3px;
+        cursor: pointer;
+        font-size: 9px;
+        transition: 0.15s ease;
+      }
+
+      .nav-button:hover {
+        background: rgba(255, 255, 255, 0.1);
+        color: white;
+      }
+
+      .nav-button.active {
+        background: var(--wizard-600);
+        color: white;
+      }
+
+      .nav-icon {
+        font-size: 18px;
+        line-height: 1;
+      }
+
+      .user-pill {
+        margin-top: auto;
+        width: 36px;
+        height: 36px;
+        border-radius: 10px;
+        display: grid;
+        place-items: center;
+        background: rgba(255, 255, 255, 0.06);
+        color: #afa9ec;
+        font-size: 10px;
+        font-weight: 800;
+      }
+
+      .logout {
+        width: 48px;
+        height: 44px;
+        border: 0;
+        border-radius: 10px;
+        background: transparent;
+        color: #afa9ec;
+        font-size: 9px;
+      }
+
+      .content {
+        min-width: 0;
+        min-height: 0;
+        overflow: hidden;
+      }
+
+      .view {
+        display: none;
+        height: 100%;
+        min-height: 0;
+        background: white;
+      }
+
+      .view.active {
+        display: block;
+      }
+
+      .eyebrow {
+        margin: 0;
+        color: var(--wizard-700);
+        font-size: 11px;
+        font-weight: 750;
+        letter-spacing: 0.16em;
+        text-transform: uppercase;
+      }
+
+      h1,
+      h2,
+      h3,
+      h4,
+      p {
+        margin-top: 0;
+      }
+
+      .muted {
+        color: var(--muted);
+      }
+
+      .card {
+        border: 1px solid var(--line);
+        border-radius: 12px;
+        background: white;
+        padding: 14px;
+      }
+
+      .pill {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        border-radius: 999px;
+        background: var(--soft);
+        padding: 4px 9px;
+        font-size: 11px;
+        font-weight: 750;
+        color: var(--muted);
+      }
+
+      .pill.ok {
+        background: var(--ok-bg);
+        color: var(--ok);
+      }
+
+      .pill.warn {
+        background: var(--warn-bg);
+        color: var(--warn);
+      }
+
+      .button {
+        border: 1px solid rgba(15, 23, 42, 0.18);
+        border-radius: 10px;
+        background: var(--soft);
+        color: #475569;
+        padding: 9px 13px;
+        font-size: 13px;
+        font-weight: 650;
+        cursor: pointer;
+      }
+
+      .button.primary {
+        border-color: var(--wizard-600);
+        background: var(--wizard-600);
+        color: white;
+      }
+
+      .button.danger {
+        border-color: var(--danger-bg);
+        background: var(--danger-bg);
+        color: var(--danger);
+      }
+
+      .create-layout {
+        height: 100%;
+        min-height: 0;
+        display: grid;
+        grid-template-columns: 300px minmax(0, 1fr);
+      }
+
+      .scenario-list {
+        min-height: 0;
+        overflow: auto;
+        border-right: 1px solid var(--line);
+        background: var(--soft);
+        padding: 18px;
+      }
+
+      .scenario-row {
+        width: 100%;
+        border: 1px solid var(--line);
+        border-radius: 12px;
+        background: white;
+        text-align: left;
+        padding: 12px;
+        margin-top: 10px;
+      }
+
+      .scenario-row.active {
+        border-color: #afa9ec;
+        box-shadow: 0 1px 8px rgba(92, 75, 209, 0.15);
+      }
+
+      .chat-workspace {
+        min-height: 0;
+        display: grid;
+        grid-template-rows: auto minmax(0, 1fr) auto;
+        background: white;
+      }
+
+      .progress-strip {
+        border-bottom: 1px solid var(--line);
+        background: #fbfbfd;
+        padding: 12px 18px;
+      }
+
+      .progress-row {
+        display: grid;
+        grid-template-columns: repeat(10, 1fr);
+        gap: 6px;
+      }
+
+      .step-dot {
+        min-height: 48px;
+        border-radius: 9px;
+        border: 1px solid var(--line);
+        background: white;
+        padding: 6px;
+        color: var(--muted);
+        font-size: 9px;
+        text-align: center;
+      }
+
+      .step-dot.active {
+        border-color: var(--wizard-600);
+        color: var(--wizard-700);
+        background: var(--wizard-100);
+        font-weight: 800;
+      }
+
+      .chat-scroll {
+        min-height: 0;
+        overflow: auto;
+        padding: 18px;
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+      }
+
+      .bubble {
+        max-width: 76%;
+        border-radius: 16px;
+        padding: 13px 15px;
+        line-height: 1.55;
+        font-size: 14px;
+      }
+
+      .bubble.assistant {
+        align-self: flex-start;
+        background: var(--wizard-100);
+        color: #24184f;
+      }
+
+      .bubble.user {
+        align-self: flex-end;
+        background: var(--soft);
+        color: var(--ink);
+      }
+
+      .suggestions {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+      }
+
+      .suggestions button {
+        border: 1px solid #d7d3ff;
+        border-radius: 999px;
+        background: white;
+        color: var(--wizard-700);
+        padding: 7px 10px;
+        font-size: 12px;
+      }
+
+      .chat-input {
+        border-top: 1px solid var(--line);
+        padding: 12px 18px;
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) auto;
+        gap: 10px;
+      }
+
+      .chat-input textarea {
+        min-height: 48px;
+        resize: none;
+        border: 1px solid var(--line);
+        border-radius: 12px;
+        padding: 10px 12px;
+        outline: none;
+      }
+
+      .scenario-layout {
+        height: 100%;
+        min-height: 0;
+        display: grid;
+        grid-template-columns: 360px minmax(0, 1fr);
+      }
+
+      .side-panel {
+        min-height: 0;
+        overflow: auto;
+        border-right: 1px solid var(--line);
+        background: var(--soft);
+        padding: 18px;
+      }
+
+      .main-panel {
+        min-height: 0;
+        display: grid;
+        grid-template-rows: auto minmax(0, 1fr) auto;
+      }
+
+      .main-header {
+        border-bottom: 1px solid var(--line);
+        padding: 14px 18px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 14px;
+      }
+
+      .segmented {
+        display: flex;
+        gap: 3px;
+        border-radius: 10px;
+        background: var(--soft);
+        padding: 4px;
+      }
+
+      .segmented button {
+        border: 0;
+        border-radius: 8px;
+        background: transparent;
+        padding: 7px 10px;
+        color: var(--muted);
+        font-size: 12px;
+        font-weight: 700;
+      }
+
+      .segmented button.active {
+        background: white;
+        color: var(--wizard-700);
+        box-shadow: 0 1px 4px rgba(0, 0, 0, 0.08);
+      }
+
+      .scroll {
+        min-height: 0;
+        overflow: auto;
+        padding: 18px;
+      }
+
+      .title-row {
+        display: flex;
+        justify-content: space-between;
+        gap: 12px;
+        align-items: flex-start;
+      }
+
+      .tile-grid {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 8px;
+        margin-top: 12px;
+      }
+
+      .tile {
+        border-radius: 10px;
+        background: var(--soft);
+        padding: 9px;
+      }
+
+      .tile span {
+        display: block;
+        color: var(--muted);
+        font-size: 10px;
+        font-weight: 700;
+        letter-spacing: 0.11em;
+        text-transform: uppercase;
+      }
+
+      .tile b {
+        display: block;
+        margin-top: 4px;
+        font-size: 13px;
+      }
+
+      .small-label {
+        display: flex;
+        gap: 6px;
+        align-items: center;
+        margin-bottom: 8px;
+        color: var(--muted);
+        font-size: 11px;
+        font-weight: 750;
+        letter-spacing: 0.13em;
+        text-transform: uppercase;
+      }
+
+      .act-card {
+        border: 1px solid var(--line);
+        border-radius: 12px;
+        padding: 14px;
+        margin-bottom: 12px;
+      }
+
+      .act-top {
+        display: flex;
+        justify-content: space-between;
+        gap: 12px;
+      }
+
+      .act-type {
+        color: var(--wizard-700);
+        font-size: 11px;
+        font-weight: 800;
+        letter-spacing: 0.14em;
+        text-transform: uppercase;
+      }
+
+      .duration {
+        border-radius: 999px;
+        background: var(--soft);
+        color: var(--muted);
+        padding: 5px 10px;
+        font-size: 11px;
+        font-weight: 750;
+      }
+
+      .tags {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 6px;
+        margin-top: 10px;
+      }
+
+      .tag {
+        border-radius: 999px;
+        background: #f1f5f9;
+        color: #475569;
+        padding: 5px 9px;
+        font-size: 11px;
+      }
+
+      .footer {
+        border-top: 1px solid var(--line);
+        padding: 12px 18px;
+        display: flex;
+        gap: 8px;
+        align-items: center;
+      }
+
+      .todo-layout {
+        height: 100%;
+        display: grid;
+        grid-template-rows: auto minmax(0, 1fr) auto;
+      }
+
+      .todo-header {
+        border-bottom: 1px solid var(--line);
+        padding: 14px 18px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 16px;
+      }
+
+      .todo-body {
+        min-height: 0;
+        display: grid;
+        grid-template-columns: 340px minmax(0, 1fr);
+      }
+
+      .progress-circle {
+        width: 56px;
+        height: 56px;
+        border-radius: 999px;
+        display: grid;
+        place-items: center;
+        background: var(--wizard-100);
+        color: var(--wizard-700);
+        font-weight: 850;
+      }
+
+      .category {
+        border: 1px solid var(--line);
+        border-radius: 12px;
+        background: white;
+        padding: 12px;
+        margin-bottom: 8px;
+      }
+
+      .category.active {
+        border-color: #afa9ec;
+        box-shadow: 0 1px 6px rgba(92, 75, 209, 0.15);
+      }
+
+      .task-grid {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 10px;
+      }
+
+      .task {
+        min-height: 88px;
+        display: flex;
+        gap: 10px;
+        border: 1px solid var(--line);
+        border-radius: 12px;
+        background: var(--soft);
+        padding: 12px;
+      }
+
+      .check {
+        width: 24px;
+        height: 24px;
+        flex: none;
+        border: 1px solid rgba(15, 23, 42, 0.25);
+        border-radius: 5px;
+        background: white;
+      }
+
+      .world-layout,
+      .admin-layout {
+        height: 100%;
+        min-height: 0;
+        display: grid;
+        grid-template-columns: 300px minmax(0, 1fr);
+      }
+
+      .table {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: 13px;
+      }
+
+      .table th,
+      .table td {
+        border-bottom: 1px solid var(--line);
+        padding: 10px;
+        text-align: left;
+        vertical-align: top;
+      }
+
+      .table th {
+        color: var(--muted);
+        font-size: 11px;
+        text-transform: uppercase;
+        letter-spacing: 0.1em;
+      }
+    </style>
+  </head>
+  <body>
+    <main class="stage">
+      <section class="app">
+        <header class="topbar">
+          <div class="brand-mark">✦</div>
+          <div class="brand">L'Antre du Maitre <small>· CoF Mini</small></div>
+          <div class="top-spacer"></div>
+          <div class="top-context" id="topContext">Aventure guidee</div>
+          <div class="status-chip" id="topStatus">✦ Création en cours</div>
+        </header>
+
+        <div class="body">
+          <nav class="global-nav" aria-label="Navigation actuelle">
+            <button class="nav-button active" data-view="create">
+              <span class="nav-icon">✦</span>
+              Créer
+            </button>
+            <button class="nav-button" data-view="scenario">
+              <span class="nav-icon">▣</span>
+              Scén.
+            </button>
+            <button class="nav-button" data-view="todo">
+              <span class="nav-icon">☑</span>
+              Todo
+            </button>
+            <button class="nav-button" data-view="world">
+              <span class="nav-icon">◎</span>
+              Monde
+            </button>
+            <button class="nav-button" data-view="admin">
+              <span class="nav-icon">⚙</span>
+              Admin
+            </button>
+            <div class="user-pill" title="merlin · CHILD">ME</div>
+            <button class="logout">⇥<br />Sortir</button>
+          </nav>
+
+          <section class="content">
+            <section class="view active" id="view-create">
+              <div class="create-layout">
+                <aside class="scenario-list">
+                  <p class="eyebrow">Creation / aventures</p>
+                  <h2>Scenarios</h2>
+                  <button class="button primary" style="width:100%; margin:12px 0">
+                    Nouvelle aventure
+                  </button>
+                  <button class="scenario-row active">
+                    <b>L'ecume du monde</b>
+                    <p class="muted" style="margin:6px 0 0">COMPLETE · 3 actes</p>
+                  </button>
+                  <button class="scenario-row">
+                    <b>La tour du corbeau</b>
+                    <p class="muted" style="margin:6px 0 0">DRAFT · creation en cours</p>
+                  </button>
+                </aside>
+
+                <main class="chat-workspace">
+                  <div class="progress-strip">
+                    <div class="progress-row">
+                      <div class="step-dot">Ambiance</div>
+                      <div class="step-dot">Lieu</div>
+                      <div class="step-dot">Quete</div>
+                      <div class="step-dot">Mechant</div>
+                      <div class="step-dot">PNJs</div>
+                      <div class="step-dot">Gameplay</div>
+                      <div class="step-dot">Actes</div>
+                      <div class="step-dot">Rencontres</div>
+                      <div class="step-dot">Duree</div>
+                      <div class="step-dot active">Recap</div>
+                    </div>
+                  </div>
+                  <div class="chat-scroll">
+                    <div class="bubble assistant">
+                      Cette aventure est prete. Si tu veux la modifier,
+                      decris-moi la retouche : je repasserai par le fil Merlin.
+                    </div>
+                    <div class="bubble user">
+                      Ajoute une pression avec la maree qui monte.
+                    </div>
+                    <div class="bubble assistant">
+                      Bonne idee. Je garde la montee des eaux comme menace de
+                      rythme pour la grotte et le final.
+                    </div>
+                    <div class="suggestions">
+                      <button>Renforcer le final</button>
+                      <button>Ajouter un indice</button>
+                      <button>Simplifier une rencontre</button>
+                    </div>
+                  </div>
+                  <div class="chat-input">
+                    <textarea>Decris une modification pour Merlin...</textarea>
+                    <button class="button primary">Envoyer</button>
+                  </div>
+                </main>
+              </div>
+            </section>
+
+            <section class="view" id="view-scenario">
+              <div class="scenario-layout">
+                <aside class="side-panel">
+                  <header class="card">
+                    <div class="title-row">
+                      <div>
+                        <p class="eyebrow">Fiche MJ</p>
+                        <h2>L'ecume du monde</h2>
+                      </div>
+                      <span class="pill ok">COMPLETE</span>
+                    </div>
+                    <div class="tile-grid">
+                      <div class="tile"><span>Ambiance</span><b>mystere</b></div>
+                      <div class="tile"><span>PNJs</span><b>3</b></div>
+                      <div class="tile"><span>Duree</span><b>~110 min</b></div>
+                    </div>
+                  </header>
+
+                  <article class="card" style="margin-top:12px">
+                    <div class="small-label">⌖ Lieu</div>
+                    <b>La Grotte des Soupirs</b>
+                    <p class="muted">
+                      Grotte creusee dans la falaise cotiere, accessible a maree basse.
+                    </p>
+                  </article>
+                  <article class="card" style="margin-top:12px">
+                    <div class="small-label">✦ Quete principale</div>
+                    Retrouver une broche disparue et comprendre ce qui se cache
+                    dans la grotte.
+                  </article>
+                  <article class="card" style="margin-top:12px">
+                    <div class="small-label">☠ Antagoniste</div>
+                    <b>Morrigan la Noyee</b>
+                    <p class="muted">
+                      Fantome d'une ancienne gardienne du phare, liee au Fanal
+                      des Abysses.
+                    </p>
+                  </article>
+                  <article class="card" style="margin-top:12px">
+                    <div class="small-label">☷ Sessions</div>
+                    <div class="tile">
+                      <span>Session 1</span>
+                      <b>Actes 1, 2, 3 · 110 min</b>
+                    </div>
+                  </article>
+                </aside>
+
+                <main class="main-panel">
+                  <header class="main-header">
+                    <div>
+                      <p class="eyebrow">Mode jeu</p>
+                      <p class="muted">
+                        Deroule lisible pendant la partie, puis debrief apres chaque session.
+                      </p>
+                    </div>
+                    <div class="segmented">
+                      <button class="active">Deroule</button>
+                      <button>Detail actes</button>
+                      <button>Sessions & debrief</button>
+                    </div>
+                  </header>
+                  <section class="scroll">
+                    <article class="act-card">
+                      <div class="act-top">
+                        <div>
+                          <div class="act-type">Acte 1 · enquete</div>
+                          <h3>Les murmures du village</h3>
+                        </div>
+                        <span class="duration">~45 min</span>
+                      </div>
+                      <p class="muted">
+                        Les heros arrivent au village cotier et cherchent les premiers indices.
+                      </p>
+                      <div class="tags">
+                        <span class="tag">Interroger le pecheur</span>
+                        <span class="tag">Trouver le carnet</span>
+                        <span class="tag">Convaincre Dame Ysolde</span>
+                      </div>
+                    </article>
+                    <article class="act-card">
+                      <div class="act-top">
+                        <div>
+                          <div class="act-type">Acte 2 · roleplay</div>
+                          <h3>La rencontre avec Dorian</h3>
+                        </div>
+                        <span class="duration">~35 min</span>
+                      </div>
+                      <p class="muted">
+                        Les heros trouvent Dorian, tetanise dans la grotte.
+                      </p>
+                    </article>
+                    <article class="act-card">
+                      <div class="act-top">
+                        <div>
+                          <div class="act-type">Acte 3 · combat</div>
+                          <h3>Le combat du Fanal</h3>
+                        </div>
+                        <span class="duration">~25 min</span>
+                      </div>
+                      <p class="muted">
+                        Morrigan attaque dans la chambre secrete. Les heros
+                        peuvent la vaincre ou l'apaiser.
+                      </p>
+                      <div class="tags">
+                        <span class="tag">1 x fantome</span>
+                        <span class="tag">Maree qui monte</span>
+                        <span class="tag">Issue roleplay possible</span>
+                      </div>
+                    </article>
+                  </section>
+                  <footer class="footer">
+                    <button class="button">Creation / aventures</button>
+                    <button class="button">Exporter PDF</button>
+                    <button class="button">Modifier via Merlin</button>
+                    <button class="button primary">Preparer la partie</button>
+                  </footer>
+                </main>
+              </div>
+            </section>
+
+            <section class="view" id="view-todo">
+              <div class="todo-layout">
+                <header class="todo-header">
+                  <div>
+                    <p class="eyebrow">Preparation de partie</p>
+                    <h2>L'ecume du monde</h2>
+                  </div>
+                  <div class="tile-grid" style="width:420px; margin:0">
+                    <div class="tile"><span>Progression</span><b>12%</b></div>
+                    <div class="tile"><span>Restant</span><b>14</b></div>
+                    <div class="tile"><span>Total</span><b>16</b></div>
+                  </div>
+                </header>
+                <div class="todo-body">
+                  <aside class="side-panel">
+                    <article class="card" style="display:flex; justify-content:space-between; align-items:center">
+                      <div>
+                        <div class="small-label">Checklist MJ</div>
+                        <span class="muted">Coche ce qui est pret avant la session.</span>
+                      </div>
+                      <div class="progress-circle">12%</div>
+                    </article>
+                    <div class="category">Monstres <span class="muted">0/3</span></div>
+                    <div class="category">PNJs <span class="muted">0/4</span></div>
+                    <div class="category active">Cartes Battle Mats <span class="muted">0/3</span></div>
+                    <div class="category">Deroulements & options <span class="muted">1/5</span></div>
+                    <div class="category">Autre <span class="muted">0/1</span></div>
+                  </aside>
+                  <main class="main-panel">
+                    <header class="main-header">
+                      <div>
+                        <p class="eyebrow">Cartes Battle Mats</p>
+                        <p class="muted">Volumes, pages et plans necessaires.</p>
+                      </div>
+                      <span class="pill">0 / 3</span>
+                    </header>
+                    <section class="scroll">
+                      <div class="task-grid">
+                        <div class="task">
+                          <div class="check"></div>
+                          <div>
+                            <b>Choisir une Battle Mat pour l'acte 1</b>
+                            <p class="muted">
+                              Suggestions : BM2-51-52 Marais cotier ; BM3-11-12 Tunnels.
+                            </p>
+                          </div>
+                        </div>
+                        <div class="task">
+                          <div class="check"></div>
+                          <div>
+                            <b>Choisir une Battle Mat pour l'acte 2</b>
+                            <p class="muted">Catacombes, donjon ou tunnels souterrains.</p>
+                          </div>
+                        </div>
+                        <div class="task">
+                          <div class="check"></div>
+                          <div>
+                            <b>Choisir une Battle Mat pour l'acte 3</b>
+                            <p class="muted">Salle inondee, port, grotte ou terrain rocheux.</p>
+                          </div>
+                        </div>
+                      </div>
+                    </section>
+                  </main>
+                </div>
+                <footer class="footer">
+                  <button class="button" data-go="scenario">Retour scenario</button>
+                  <button class="button" data-go="create">Creation / aventures</button>
+                </footer>
+              </div>
+            </section>
+
+            <section class="view" id="view-world">
+              <div class="world-layout">
+                <aside class="side-panel">
+                  <p class="eyebrow">Mon monde</p>
+                  <h2>Memoire persistante</h2>
+                  <div class="category active">Entites validees <span class="muted">6</span></div>
+                  <div class="category">Propositions <span class="muted">2</span></div>
+                  <div class="category">Lieux <span class="muted">2</span></div>
+                  <div class="category">PNJs <span class="muted">3</span></div>
+                </aside>
+                <main class="main-panel">
+                  <header class="main-header">
+                    <div>
+                      <p class="eyebrow">Entites du monde</p>
+                      <p class="muted">Elements persistants valides par l'utilisateur.</p>
+                    </div>
+                    <button class="button primary">Ajouter</button>
+                  </header>
+                  <section class="scroll">
+                    <table class="table">
+                      <thead>
+                        <tr>
+                          <th>Type</th>
+                          <th>Nom</th>
+                          <th>Description</th>
+                          <th>Source</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        <tr>
+                          <td>LIEU</td>
+                          <td>La Grotte des Soupirs</td>
+                          <td>Grotte cotiere hantee, accessible a maree basse.</td>
+                          <td>CREATION</td>
+                        </tr>
+                        <tr>
+                          <td>LIEU</td>
+                          <td>La Grotte des Soupirs</td>
+                          <td>Doublon valide apres proposition.</td>
+                          <td>CREATION</td>
+                        </tr>
+                        <tr>
+                          <td>PNJ</td>
+                          <td>Dorian le Filou</td>
+                          <td>Jeune voleur effraye cache dans la grotte.</td>
+                          <td>CREATION</td>
+                        </tr>
+                      </tbody>
+                    </table>
+                  </section>
+                </main>
+              </div>
+            </section>
+
+            <section class="view" id="view-admin">
+              <div class="admin-layout">
+                <aside class="side-panel">
+                  <p class="eyebrow">Administration</p>
+                  <h2>Lecture + modification</h2>
+                  <div class="category active">Utilisateurs</div>
+                  <div class="category">Scenarios</div>
+                  <div class="category">Mondes</div>
+                </aside>
+                <main class="main-panel">
+                  <header class="main-header">
+                    <div>
+                      <p class="eyebrow">Comptes</p>
+                      <p class="muted">Gestion familiale simple.</p>
+                    </div>
+                    <button class="button primary">Creer un utilisateur</button>
+                  </header>
+                  <section class="scroll">
+                    <table class="table">
+                      <thead>
+                        <tr>
+                          <th>Utilisateur</th>
+                          <th>Role</th>
+                          <th>Scenarios</th>
+                          <th>Actions</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        <tr>
+                          <td>admin</td>
+                          <td>ADMIN</td>
+                          <td>0</td>
+                          <td><button class="button">Mot de passe</button></td>
+                        </tr>
+                        <tr>
+                          <td>merlin</td>
+                          <td>CHILD</td>
+                          <td>1</td>
+                          <td><button class="button">Ouvrir scenarios</button></td>
+                        </tr>
+                      </tbody>
+                    </table>
+                  </section>
+                </main>
+              </div>
+            </section>
+          </section>
+        </div>
+      </section>
+    </main>
+
+    <script>
+      const meta = {
+        create: {
+          icon: "✦",
+          status: "Création en cours",
+          context: "Aventure guidée",
+        },
+        scenario: {
+          icon: "▣",
+          status: "Scénario",
+          context: "Fiche MJ",
+        },
+        todo: {
+          icon: "☑",
+          status: "Préparation",
+          context: "Todo de partie",
+        },
+        world: {
+          icon: "◎",
+          status: "Mon monde",
+          context: "Mémoire persistante",
+        },
+        admin: {
+          icon: "⚙",
+          status: "Administration",
+          context: "Lecture + modification",
+        },
+      };
+
+      function activate(view) {
+        document.querySelectorAll(".nav-button").forEach((button) => {
+          button.classList.toggle("active", button.dataset.view === view);
+        });
+        document.querySelectorAll(".view").forEach((panel) => {
+          panel.classList.toggle("active", panel.id === `view-${view}`);
+        });
+        document.getElementById("topContext").textContent = meta[view].context;
+        document.getElementById("topStatus").textContent =
+          `${meta[view].icon} ${meta[view].status}`;
+      }
+
+      document.querySelectorAll("[data-view]").forEach((button) => {
+        button.addEventListener("click", () => activate(button.dataset.view));
+      });
+
+      document.querySelectorAll("[data-go]").forEach((button) => {
+        button.addEventListener("click", () => activate(button.dataset.go));
+      });
+    </script>
+  </body>
+</html>
