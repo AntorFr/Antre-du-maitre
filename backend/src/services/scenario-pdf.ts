@@ -2,6 +2,7 @@ import type { Scenario, ScenarioSession, TodoItem } from '@prisma/client';
 import PDFDocument from 'pdfkit';
 
 import { normalizeScenarioData } from '../domain/scenario-state.js';
+import { ensureActDetails } from './act-details.js';
 import { readNumberArray } from '../utils/json-fields.js';
 
 export type ScenarioPdfInput = Scenario & {
@@ -42,7 +43,7 @@ export async function renderScenarioPdf(
 }
 
 function writeScenario(doc: PDFKit.PDFDocument, scenario: ScenarioPdfInput) {
-  const data = normalizeScenarioData(scenario.data);
+  const data = ensureActDetails(normalizeScenarioData(scenario.data));
 
   doc.font('Helvetica-Bold').fontSize(22).fillColor('#2A1F5C').text(scenario.title);
   doc
@@ -95,6 +96,25 @@ function writeScenario(doc: PDFKit.PDFDocument, scenario: ScenarioPdfInput) {
       }
       if (acte.notesMJ) {
         paragraph(doc, `Notes MJ : ${acte.notesMJ}`);
+      }
+      if (acte.detailsMJ) {
+        if (acte.detailsMJ.scenes.length > 0) {
+          paragraph(
+            doc,
+            `Scenes : ${acte.detailsMJ.scenes
+              .map((scene) => `${scene.titre} - ${scene.objectifMJ}`)
+              .join(' / ')}`,
+          );
+        }
+        if (acte.detailsMJ.indices.length > 0) {
+          paragraph(doc, `Indices : ${acte.detailsMJ.indices.join(' / ')}`);
+        }
+        if (acte.detailsMJ.preparation.length > 0) {
+          paragraph(
+            doc,
+            `Preparation : ${acte.detailsMJ.preparation.join(' / ')}`,
+          );
+        }
       }
     }
   }

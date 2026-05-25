@@ -124,6 +124,47 @@ function readPnjRole(value: unknown): ScenarioData['pnjs'][number]['role'] {
     : 'neutre';
 }
 
+function readGameplayType(value: unknown): NonNullable<
+  ScenarioData['actes'][number]['detailsMJ']
+>['objectif']['typePrincipal'] {
+  return value === 'enquete' ||
+    value === 'combat' ||
+    value === 'exploration' ||
+    value === 'roleplay' ||
+    value === 'enigme' ||
+    value === 'fuite' ||
+    value === 'infiltration'
+    ? value
+    : 'exploration';
+}
+
+function readGameplayTypeArray(value: unknown) {
+  return Array.isArray(value)
+    ? value.map(readGameplayType).filter(Boolean)
+    : [];
+}
+
+function readActDetailStatus(
+  value: unknown,
+): NonNullable<ScenarioData['actes'][number]['detailsMJ']>['status'] {
+  return value === 'TODO' || value === 'IN_PROGRESS' || value === 'VALIDATED'
+    ? value
+    : 'TODO';
+}
+
+function readActDetailStep(
+  value: unknown,
+): NonNullable<ScenarioData['actes'][number]['detailsMJ']>['currentStep'] {
+  return value === 'OBJECTIF' ||
+    value === 'VOIES' ||
+    value === 'MODULE' ||
+    value === 'SCENES' ||
+    value === 'TIMING' ||
+    value === 'VALIDATION'
+    ? value
+    : 'OBJECTIF';
+}
+
 function normalizeLieu(value: unknown): ScenarioData['lieu'] {
   if (!isRecord(value)) return undefined;
 
@@ -186,9 +227,122 @@ function normalizeActes(value: unknown): ScenarioData['actes'] {
         dureeEstimeeMin: readNumber(item.dureeEstimeeMin),
         pointDeCoupure: readBoolean(item.pointDeCoupure),
         notesMJ: readString(item.notesMJ),
+        detailsMJ: normalizeActDetail(item.detailsMJ),
       },
     ];
   });
+}
+
+function normalizeActDetail(
+  value: unknown,
+): ScenarioData['actes'][number]['detailsMJ'] {
+  if (!isRecord(value)) return undefined;
+  const objectif = isRecord(value.objectif) ? value.objectif : {};
+  const moduleSpecialise = isRecord(value.moduleSpecialise)
+    ? value.moduleSpecialise
+    : {};
+  const timing = isRecord(value.timing) ? value.timing : {};
+
+  const scenes = Array.isArray(value.scenes)
+    ? value.scenes.flatMap(
+        (item): NonNullable<
+          ScenarioData['actes'][number]['detailsMJ']
+        >['scenes'] => {
+          if (!isRecord(item)) return [];
+
+          return [
+            {
+              titre: readString(item.titre, 'Scene'),
+              type: readGameplayType(item.type),
+              statut:
+                item.statut === 'OBLIGATOIRE_SOUPLE' ||
+                item.statut === 'OPTIONNELLE' ||
+                item.statut === 'CONSEQUENCE'
+                  ? item.statut
+                  : 'OBLIGATOIRE_SOUPLE',
+              objectifMJ: readString(item.objectifMJ),
+              deroule: readString(item.deroule),
+              relanceAntiBlocage: readOptionalString(item.relanceAntiBlocage),
+            },
+          ];
+        },
+      )
+    : [];
+  const voies = Array.isArray(value.voies)
+    ? value.voies.flatMap(
+        (item): NonNullable<
+          ScenarioData['actes'][number]['detailsMJ']
+        >['voies'] => {
+          if (!isRecord(item)) return [];
+
+          return [
+            {
+              id: readString(item.id, 'voie'),
+              label: readString(item.label, 'Voie de gameplay'),
+              type: readGameplayType(item.type),
+              actionJoueurs: readString(item.actionJoueurs),
+              gain: readString(item.gain),
+              risque: readString(item.risque),
+              preparationMJ: readStringArray(item.preparationMJ),
+            },
+          ];
+        },
+      )
+    : [];
+  const moduleElements = Array.isArray(moduleSpecialise.elements)
+    ? moduleSpecialise.elements.flatMap(
+        (item): NonNullable<
+          ScenarioData['actes'][number]['detailsMJ']
+        >['moduleSpecialise']['elements'] => {
+          if (!isRecord(item)) return [];
+
+          return [
+            {
+              label: readString(item.label),
+              value: readString(item.value),
+            },
+          ];
+        },
+      )
+    : [];
+
+  return {
+    status: readActDetailStatus(value.status),
+    currentStep: readActDetailStep(value.currentStep),
+    objectif: {
+      principal: readString(objectif.principal),
+      enjeu: readString(objectif.enjeu),
+      typePrincipal: readGameplayType(objectif.typePrincipal),
+      typesSecondaires: readGameplayTypeArray(objectif.typesSecondaires),
+      dureeCibleMin: readNumber(objectif.dureeCibleMin),
+      reussiteComplete: readString(objectif.reussiteComplete),
+      reussitePartielle: readString(objectif.reussitePartielle),
+      echecInteressant: readString(objectif.echecInteressant),
+      bonusOptionnel: readString(objectif.bonusOptionnel),
+    },
+    voies,
+    moduleSpecialise: {
+      type: readGameplayType(moduleSpecialise.type),
+      focus: readString(moduleSpecialise.focus),
+      elements: moduleElements,
+    },
+    scenes,
+    indices: readStringArray(value.indices),
+    choixConsequences: readStringArray(value.choixConsequences),
+    transitions: readStringArray(value.transitions),
+    preparation: readStringArray(value.preparation),
+    notesImpro: readStringArray(value.notesImpro),
+    timing: {
+      ordreConseille: readStringArray(timing.ordreConseille),
+      versionCourte: readString(timing.versionCourte),
+      versionStandard: readString(timing.versionStandard),
+      versionLongue: readString(timing.versionLongue),
+      aCouperSiBesoin: readStringArray(timing.aCouperSiBesoin),
+      aGarderAbsolument: readStringArray(timing.aGarderAbsolument),
+    },
+    syntheseMJ: readString(value.syntheseMJ),
+    notesUtilisateur: readStringArray(value.notesUtilisateur),
+  };
 }
 
 function normalizeRencontres(value: unknown): ScenarioData['rencontres'] {

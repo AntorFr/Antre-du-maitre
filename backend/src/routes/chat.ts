@@ -15,6 +15,7 @@ import {
   authenticate,
   canAccessOwnedResource,
 } from '../middleware/auth.js';
+import { ensureActDetails } from '../services/act-details.js';
 import { createLlmProvider } from '../services/llm/index.js';
 import { searchMonsters } from '../services/monsters.js';
 import { generateMockTodoItems } from '../services/todo.js';
@@ -124,6 +125,13 @@ export async function registerChatRoutes(app: FastifyInstance) {
             ? response.nextStep
             : currentData.currentStep,
       });
+      const isCompletingScenario =
+        response.stepComplete &&
+        currentData.currentStep === 'STEP_10_RECAP' &&
+        response.nextStep === null;
+      const persistedData = isCompletingScenario
+        ? ensureActDetails(nextData)
+        : nextData;
 
       const now = new Date().toISOString();
       const nextHistory = [
@@ -148,13 +156,9 @@ export async function registerChatRoutes(app: FastifyInstance) {
             id: scenario.id,
           },
           data: {
-            data: nextData as unknown as Prisma.InputJsonValue,
+            data: persistedData as unknown as Prisma.InputJsonValue,
             chatHistory: nextHistory as unknown as Prisma.InputJsonValue,
-            ...(response.stepComplete &&
-            currentData.currentStep === 'STEP_10_RECAP' &&
-            response.nextStep === null
-              ? { status: 'COMPLETE' }
-              : {}),
+            ...(isCompletingScenario ? { status: 'COMPLETE' } : {}),
           },
         });
 
@@ -172,20 +176,16 @@ export async function registerChatRoutes(app: FastifyInstance) {
           });
         }
 
-        if (
-          response.stepComplete &&
-          currentData.currentStep === 'STEP_10_RECAP' &&
-          response.nextStep === null
-        ) {
+        if (isCompletingScenario) {
           await tx.scenarioSession.deleteMany({
             where: {
               scenarioId: scenario.id,
             },
           });
 
-          if (nextData.sessionning) {
+          if (persistedData.sessionning) {
             await tx.scenarioSession.createMany({
-              data: nextData.sessionning.sessions.map((session) => ({
+              data: persistedData.sessionning.sessions.map((session) => ({
                 scenarioId: scenario.id,
                 number: session.numero,
                 plannedActes: session.actesInclus,
@@ -202,7 +202,7 @@ export async function registerChatRoutes(app: FastifyInstance) {
           });
 
           await tx.todoItem.createMany({
-            data: generateMockTodoItems(nextData).map((item) => ({
+            data: generateMockTodoItems(persistedData).map((item) => ({
               scenarioId: scenario.id,
               ...item,
             })),

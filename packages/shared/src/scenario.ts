@@ -19,6 +19,89 @@ export type ScenarioStatus = 'DRAFT' | 'COMPLETE' | 'IN_PROGRESS' | 'PLAYED';
 
 export type PnjRole = 'allie' | 'neutre' | 'ennemi';
 
+export type GameplayType =
+  | 'enquete'
+  | 'combat'
+  | 'exploration'
+  | 'roleplay'
+  | 'enigme'
+  | 'fuite'
+  | 'infiltration';
+
+export type ActDetailStatus = 'TODO' | 'IN_PROGRESS' | 'VALIDATED';
+
+export type ActDetailStep =
+  | 'OBJECTIF'
+  | 'VOIES'
+  | 'MODULE'
+  | 'SCENES'
+  | 'TIMING'
+  | 'VALIDATION';
+
+export interface ActObjective {
+  principal: string;
+  enjeu: string;
+  typePrincipal: GameplayType;
+  typesSecondaires: GameplayType[];
+  dureeCibleMin: number;
+  reussiteComplete: string;
+  reussitePartielle: string;
+  echecInteressant: string;
+  bonusOptionnel: string;
+}
+
+export interface ActGameplayPath {
+  id: string;
+  label: string;
+  type: GameplayType;
+  actionJoueurs: string;
+  gain: string;
+  risque: string;
+  preparationMJ: string[];
+}
+
+export interface ActSpecializedModule {
+  type: GameplayType;
+  focus: string;
+  elements: Array<{
+    label: string;
+    value: string;
+  }>;
+}
+
+export interface ActTiming {
+  ordreConseille: string[];
+  versionCourte: string;
+  versionStandard: string;
+  versionLongue: string;
+  aCouperSiBesoin: string[];
+  aGarderAbsolument: string[];
+}
+
+export interface ActDetail {
+  status: ActDetailStatus;
+  currentStep: ActDetailStep;
+  objectif: ActObjective;
+  voies: ActGameplayPath[];
+  moduleSpecialise: ActSpecializedModule;
+  scenes: Array<{
+    titre: string;
+    type?: GameplayType;
+    statut?: 'OBLIGATOIRE_SOUPLE' | 'OPTIONNELLE' | 'CONSEQUENCE';
+    objectifMJ: string;
+    deroule: string;
+    relanceAntiBlocage?: string;
+  }>;
+  indices: string[];
+  choixConsequences: string[];
+  transitions: string[];
+  preparation: string[];
+  notesImpro: string[];
+  timing: ActTiming;
+  syntheseMJ: string;
+  notesUtilisateur: string[];
+}
+
 export interface ScenarioData {
   currentStep: ScenarioStep;
   title: string;
@@ -53,6 +136,7 @@ export interface ScenarioData {
     dureeEstimeeMin: number;
     pointDeCoupure: boolean;
     notesMJ: string;
+    detailsMJ?: ActDetail;
   }>;
   rencontres: Array<{
     monsterId: string;
@@ -106,6 +190,17 @@ export interface ScenarioDetail extends ScenarioSummary {
 export interface ScenarioChatRequest {
   message: string;
   voiceInput: boolean;
+}
+
+export interface ActDetailChatRequest {
+  message?: string;
+  action: 'ADVANCE' | 'VALIDATE' | 'REOPEN';
+}
+
+export interface ActDetailChatResponse {
+  reply: string;
+  suggestions: string[];
+  scenario: ScenarioDetail;
 }
 
 export interface CreateScenarioRequest {

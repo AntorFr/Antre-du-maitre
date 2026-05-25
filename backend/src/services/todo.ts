@@ -85,6 +85,27 @@ export function generateMockTodoItems(
     });
   }
 
+  for (const acte of scenario.actes) {
+    const details = acte.detailsMJ;
+    if (!details) continue;
+
+    for (const preparation of details.preparation) {
+      items.push({
+        category: 'DEROULEMENTS',
+        label: `Acte ${acte.numero} — ${preparation}`,
+        order: order++,
+      });
+    }
+
+    if (details.indices.length > 0) {
+      items.push({
+        category: 'DEROULEMENTS',
+        label: `Acte ${acte.numero} — Garder les indices prêts : ${details.indices.join(' / ')}`,
+        order: order++,
+      });
+    }
+  }
+
   if (scenario.gameplay?.types.includes('enquete')) {
     items.push({
       category: 'DEROULEMENTS',

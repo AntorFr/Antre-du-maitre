@@ -15,9 +15,47 @@ type ScenarioProps = {
   onPrepareTodo: () => void;
 };
 
-type ScenarioPanel = 'run' | 'sessions';
+type ScenarioPanel = 'run' | 'acts' | 'sessions';
 type ScenarioAct = ScenarioSummary['data']['actes'][number];
 type ScenarioEncounter = ScenarioSummary['data']['rencontres'][number];
+type ActWorkflowStep = NonNullable<ScenarioAct['detailsMJ']>['currentStep'];
+
+const ACT_WORKFLOW_STEPS: Array<{
+  step: ActWorkflowStep;
+  label: string;
+  helper: string;
+}> = [
+  {
+    step: 'OBJECTIF',
+    label: 'Objectif',
+    helper: "Pourquoi l'acte existe.",
+  },
+  {
+    step: 'VOIES',
+    label: 'Voies',
+    helper: 'Comment les joueurs avancent.',
+  },
+  {
+    step: 'MODULE',
+    label: 'Gameplay',
+    helper: 'Le module adapte au type.',
+  },
+  {
+    step: 'SCENES',
+    label: 'Scenes',
+    helper: 'Les moments jouables.',
+  },
+  {
+    step: 'TIMING',
+    label: 'Timing',
+    helper: 'Version courte ou longue.',
+  },
+  {
+    step: 'VALIDATION',
+    label: 'Validation',
+    helper: 'Synthese finale MJ.',
+  },
+];
 
 export function Scenario({
   token,
@@ -29,6 +67,16 @@ export function Scenario({
 }: ScenarioProps) {
   const [sessions, setSessions] = useState<ScenarioSession[]>([]);
   const [activePanel, setActivePanel] = useState<ScenarioPanel>('run');
+  const [selectedActNumber, setSelectedActNumber] = useState<number | null>(
+    null,
+  );
+  const [actDetailInputs, setActDetailInputs] = useState<Record<number, string>>(
+    {},
+  );
+  const [actDetailReplies, setActDetailReplies] = useState<Record<number, string>>(
+    {},
+  );
+  const [busyActNumber, setBusyActNumber] = useState<number | null>(null);
   const [debriefInputs, setDebriefInputs] = useState<Record<number, string>>(
     {},
   );
@@ -44,6 +92,7 @@ export function Scenario({
 
   useEffect(() => {
     setActivePanel('run');
+    setSelectedActNumber(scenario?.data.actes[0]?.numero ?? null);
     setError(null);
   }, [scenario?.id]);
 
@@ -220,6 +269,41 @@ export function Scenario({
     }
   }
 
+  async function submitActWorkflow(
+    actNumber: number,
+    action: 'ADVANCE' | 'VALIDATE' | 'REOPEN',
+  ) {
+    if (!scenario) return;
+
+    setError(null);
+    setBusyActNumber(actNumber);
+
+    try {
+      const response = await api.chatActDetail(token, scenario.id, actNumber, {
+        action,
+        message: actDetailInputs[actNumber]?.trim() || undefined,
+      });
+
+      onScenarioChange(response.scenario);
+      setActDetailReplies((current) => ({
+        ...current,
+        [actNumber]: response.reply,
+      }));
+      setActDetailInputs((current) => ({
+        ...current,
+        [actNumber]: '',
+      }));
+    } catch (caughtError) {
+      setError(
+        caughtError instanceof ApiError
+          ? caughtError.message
+          : "Impossible d'avancer le detail de cet acte.",
+      );
+    } finally {
+      setBusyActNumber(null);
+    }
+  }
+
   if (!scenario) {
     return (
       <EmptyState
@@ -238,6 +322,10 @@ export function Scenario({
   ).length;
   const encountersForAct = (actNumber: number) =>
     data.rencontres.filter((rencontre) => rencontre.acteNumero === actNumber);
+  const selectedAct =
+    data.actes.find((acte) => acte.numero === selectedActNumber) ??
+    data.actes[0] ??
+    null;
 
   return (
     <section className="flex h-full flex-col overflow-hidden bg-white">
@@ -399,6 +487,17 @@ export function Scenario({
                   Déroulé
                 </PanelButton>
                 <PanelButton
+                  active={activePanel === 'acts'}
+                  onClick={() => {
+                    setActivePanel('acts');
+                    setSelectedActNumber(
+                      selectedActNumber ?? data.actes[0]?.numero ?? null,
+                    );
+                  }}
+                >
+                  Détail actes
+                </PanelButton>
+                <PanelButton
                   active={activePanel === 'sessions'}
                   onClick={() => setActivePanel('sessions')}
                 >
@@ -439,6 +538,32 @@ export function Scenario({
                 </div>
               ) : null}
             </div>
+          ) : activePanel === 'acts' ? (
+            <ActWorkflowPanel
+              acts={data.actes}
+              busyActNumber={busyActNumber}
+              input={selectedAct ? (actDetailInputs[selectedAct.numero] ?? '') : ''}
+              onAdvance={(actNumber) =>
+                void submitActWorkflow(actNumber, 'ADVANCE')
+              }
+              onInputChange={(actNumber, value) =>
+                setActDetailInputs((current) => ({
+                  ...current,
+                  [actNumber]: value,
+                }))
+              }
+              onReopen={(actNumber) =>
+                void submitActWorkflow(actNumber, 'REOPEN')
+              }
+              onSelectAct={setSelectedActNumber}
+              onValidate={(actNumber) =>
+                void submitActWorkflow(actNumber, 'VALIDATE')
+              }
+              reply={
+                selectedAct ? actDetailReplies[selectedAct.numero] : undefined
+              }
+              selectedAct={selectedAct}
+            />
           ) : (
             <div className="min-h-0 flex-1 overflow-y-auto px-[18px] py-4">
               {sessions.length ? (
@@ -532,6 +657,498 @@ function PanelButton({
   );
 }
 
+function ActWorkflowPanel({
+  acts,
+  busyActNumber,
+  input,
+  onAdvance,
+  onInputChange,
+  onReopen,
+  onSelectAct,
+  onValidate,
+  reply,
+  selectedAct,
+}: {
+  acts: ScenarioAct[];
+  busyActNumber: number | null;
+  input: string;
+  onAdvance: (actNumber: number) => void;
+  onInputChange: (actNumber: number, value: string) => void;
+  onReopen: (actNumber: number) => void;
+  onSelectAct: (actNumber: number) => void;
+  onValidate: (actNumber: number) => void;
+  reply?: string;
+  selectedAct: ScenarioAct | null;
+}) {
+  const detail = selectedAct?.detailsMJ;
+  const [viewedStep, setViewedStep] = useState<ActWorkflowStep>(
+    detail?.currentStep ?? 'OBJECTIF',
+  );
+
+  useEffect(() => {
+    setViewedStep(detail?.currentStep ?? 'OBJECTIF');
+  }, [detail?.currentStep, selectedAct?.numero]);
+
+  if (!selectedAct) {
+    return <EmptyPanel text="Aucun acte à détailler." />;
+  }
+
+  const busy = busyActNumber === selectedAct.numero;
+  const validatedCount = acts.filter(
+    (acte) => acte.detailsMJ?.status === 'VALIDATED',
+  ).length;
+
+  return (
+    <div className="grid min-h-0 flex-1 grid-cols-[240px_minmax(0,1fr)] overflow-hidden bg-white">
+      <aside className="overflow-y-auto border-r border-black/10 bg-[#f7f6f1] px-[18px] py-4">
+        <p className="text-[11px] font-medium uppercase tracking-[0.16em] text-slate-400">
+          Workflow actes
+        </p>
+        <p className="mt-1 text-[12px] text-slate-500">
+          {validatedCount} / {acts.length} validés
+        </p>
+        <div className="mt-3 space-y-2">
+          {acts.map((acte) => (
+            <button
+              className={[
+                'w-full rounded-lg px-3 py-2 text-left ring-1 transition',
+                acte.numero === selectedAct.numero
+                  ? 'bg-white ring-wizard-300 shadow-sm'
+                  : 'bg-white/80 ring-black/10 hover:bg-white',
+              ].join(' ')}
+              key={acte.numero}
+              onClick={() => onSelectAct(acte.numero)}
+            >
+              <span className="block text-[12px] font-semibold text-slate-900">
+                Acte {acte.numero}
+              </span>
+              <span className="mt-0.5 line-clamp-2 block text-[11px] text-slate-500">
+                {acte.titre}
+              </span>
+              <span
+                className={[
+                  'mt-2 inline-flex rounded-full px-2 py-0.5 text-[10px]',
+                  acte.detailsMJ?.status === 'VALIDATED'
+                    ? 'bg-emerald-100 text-emerald-700'
+                    : acte.detailsMJ?.status === 'IN_PROGRESS'
+                      ? 'bg-amber-100 text-amber-700'
+                      : 'bg-slate-100 text-slate-500',
+                ].join(' ')}
+              >
+                {acte.detailsMJ?.status ?? 'TODO'}
+              </span>
+            </button>
+          ))}
+        </div>
+      </aside>
+
+      {detail ? (
+        <div className="grid min-h-0 grid-rows-[auto_auto_minmax(0,1fr)_auto] overflow-hidden">
+          <header className="border-b border-black/10 px-[18px] py-3">
+            <div className="flex items-start justify-between gap-3">
+              <div className="min-w-0">
+                <p className="text-[11px] font-medium uppercase tracking-[0.18em] text-wizard-600">
+                  Acte {selectedAct.numero} avec Merlin
+                </p>
+                <h3 className="mt-1 truncate text-[20px] font-semibold text-slate-950">
+                  {selectedAct.titre}
+                </h3>
+                <p className="mt-1 line-clamp-2 text-[13px] text-slate-500">
+                  {selectedAct.description}
+                </p>
+              </div>
+              <span
+                className={[
+                  'shrink-0 rounded-full px-3 py-1 text-[11px] font-medium',
+                  detail.status === 'VALIDATED'
+                    ? 'bg-emerald-100 text-emerald-700'
+                    : detail.status === 'IN_PROGRESS'
+                      ? 'bg-amber-100 text-amber-700'
+                      : 'bg-slate-100 text-slate-600',
+                ].join(' ')}
+              >
+                {detail.status}
+              </span>
+            </div>
+          </header>
+
+          <div className="border-b border-black/10 bg-[#f7f6f1] px-[18px] py-3">
+            <div className="grid grid-cols-6 gap-2">
+              {ACT_WORKFLOW_STEPS.map((stepMeta, index) => {
+                const active = viewedStep === stepMeta.step;
+                const current = detail.currentStep === stepMeta.step;
+                const reached =
+                  ACT_WORKFLOW_STEPS.findIndex(
+                    (item) => item.step === detail.currentStep,
+                  ) >= index || detail.status === 'VALIDATED';
+
+                return (
+                  <button
+                    className={[
+                      'min-h-[74px] rounded-lg px-2 py-2 text-left ring-1 transition',
+                      active
+                        ? 'bg-white ring-wizard-300 shadow-sm'
+                        : 'bg-white/70 ring-black/10 hover:bg-white',
+                    ].join(' ')}
+                    key={stepMeta.step}
+                    onClick={() => setViewedStep(stepMeta.step)}
+                  >
+                    <span
+                      className={[
+                        'flex h-5 w-5 items-center justify-center rounded-full text-[10px] font-semibold',
+                        current
+                          ? 'bg-wizard-600 text-white'
+                          : reached
+                            ? 'bg-emerald-100 text-emerald-700'
+                            : 'bg-slate-100 text-slate-400',
+                      ].join(' ')}
+                    >
+                      {index + 1}
+                    </span>
+                    <span className="mt-1 block text-[11px] font-semibold text-slate-900">
+                      {stepMeta.label}
+                    </span>
+                    <span className="mt-0.5 line-clamp-2 block text-[10px] leading-4 text-slate-500">
+                      {stepMeta.helper}
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
+          <div className="grid min-h-0 grid-cols-[minmax(0,1fr)_340px] overflow-hidden">
+            <main className="min-h-0 overflow-y-auto px-[18px] py-4">
+              <ActMerlinConversation
+                detail={detail}
+                reply={reply}
+                selectedAct={selectedAct}
+                viewedStep={viewedStep}
+              />
+            </main>
+            <aside className="min-h-0 overflow-y-auto border-l border-black/10 bg-[#f7f6f1] px-[18px] py-4">
+              <ActStepSummary detail={detail} step={viewedStep} />
+            </aside>
+          </div>
+
+          <footer className="border-t border-black/10 bg-white px-[18px] py-3">
+            <textarea
+              className="min-h-20 w-full resize-none rounded-lg border border-black/10 bg-white px-3 py-2 text-[13px] outline-none transition focus:border-wizard-400"
+              disabled={busy}
+              onChange={(event) =>
+                onInputChange(selectedAct.numero, event.target.value)
+              }
+              placeholder="Réponds à Merlin pour cet acte : ajoute une voie, rends le combat plus tactique, simplifie l'enquête..."
+              value={input}
+            />
+            <div className="mt-2 flex flex-wrap gap-2">
+              <button
+                className="rounded-lg border border-black/20 bg-white px-3 py-2 text-[12px] text-slate-700 disabled:opacity-60"
+                disabled={busy || detail.status === 'VALIDATED'}
+                onClick={() => onAdvance(selectedAct.numero)}
+              >
+                Avancer avec Merlin
+              </button>
+              <button
+                className="rounded-lg bg-wizard-600 px-3 py-2 text-[12px] font-medium text-white disabled:opacity-60"
+                disabled={busy}
+                onClick={() =>
+                  detail.status === 'VALIDATED'
+                    ? onReopen(selectedAct.numero)
+                    : onValidate(selectedAct.numero)
+                }
+              >
+                {detail.status === 'VALIDATED'
+                  ? "Réouvrir l'acte"
+                  : "Valider l'acte"}
+              </button>
+            </div>
+          </footer>
+        </div>
+      ) : (
+        <EmptyPanel text="Cet acte sera initialisé au prochain chargement." />
+      )}
+    </div>
+  );
+}
+
+function WorkflowSection({
+  children,
+  title,
+}: {
+  children: ReactNode;
+  title: string;
+}) {
+  return (
+    <section className="rounded-xl border border-black/10 bg-white p-4 shadow-sm">
+      <h4 className="text-[13px] font-semibold text-slate-950">{title}</h4>
+      <div className="mt-2">{children}</div>
+    </section>
+  );
+}
+
+function ActMerlinConversation({
+  detail,
+  reply,
+  selectedAct,
+  viewedStep,
+}: {
+  detail: NonNullable<ScenarioAct['detailsMJ']>;
+  reply?: string;
+  selectedAct: ScenarioAct;
+  viewedStep: ActWorkflowStep;
+}) {
+  const stepMeta =
+    ACT_WORKFLOW_STEPS.find((item) => item.step === viewedStep) ??
+    ACT_WORKFLOW_STEPS[0]!;
+
+  return (
+    <div className="mx-auto flex max-w-3xl flex-col gap-3">
+      <ChatBubble role="assistant">
+        <p className="text-[12px] font-semibold uppercase tracking-[0.14em] text-wizard-600">
+          Merlin · {stepMeta.label}
+        </p>
+        <p className="mt-2 text-[14px] leading-7 text-slate-800">
+          {getActStepPrompt(detail, selectedAct, viewedStep)}
+        </p>
+      </ChatBubble>
+
+      <ActStepContent detail={detail} step={viewedStep} />
+
+      {detail.notesUtilisateur.length ? (
+        <ChatBubble role="user">
+          <p className="text-[12px] font-semibold text-slate-900">
+            Notes données à Merlin
+          </p>
+          <ul className="mt-2 space-y-1">
+            {detail.notesUtilisateur.map((note, index) => (
+              <li className="text-[13px] leading-6 text-slate-700" key={`${note}-${index}`}>
+                {note}
+              </li>
+            ))}
+          </ul>
+        </ChatBubble>
+      ) : null}
+
+      {reply ? (
+        <ChatBubble role="assistant">
+          <p className="text-[14px] leading-7 text-slate-800">{reply}</p>
+        </ChatBubble>
+      ) : null}
+    </div>
+  );
+}
+
+function ChatBubble({
+  children,
+  role,
+}: {
+  children: ReactNode;
+  role: 'assistant' | 'user';
+}) {
+  return (
+    <div
+      className={[
+        'max-w-[88%] rounded-xl px-4 py-3 ring-1',
+        role === 'assistant'
+          ? 'self-start bg-wizard-50 ring-wizard-100'
+          : 'self-end bg-[#f5f5f3] ring-black/10',
+      ].join(' ')}
+    >
+      {children}
+    </div>
+  );
+}
+
+function ActStepContent({
+  detail,
+  step,
+}: {
+  detail: NonNullable<ScenarioAct['detailsMJ']>;
+  step: ActWorkflowStep;
+}) {
+  if (step === 'OBJECTIF') {
+    return (
+      <WorkflowSection title="Objectif de l'acte">
+        <p className="text-[13px] leading-6 text-slate-700">
+          {detail.objectif.principal}
+        </p>
+        <div className="mt-2 grid gap-2 md:grid-cols-2">
+          <InfoLine label="Réussite complète" value={detail.objectif.reussiteComplete} />
+          <InfoLine label="Réussite partielle" value={detail.objectif.reussitePartielle} />
+          <InfoLine label="Échec intéressant" value={detail.objectif.echecInteressant} />
+          <InfoLine label="Bonus optionnel" value={detail.objectif.bonusOptionnel} />
+        </div>
+      </WorkflowSection>
+    );
+  }
+
+  if (step === 'VOIES') {
+    return (
+      <WorkflowSection title="Voies possibles des joueurs">
+        <div className="grid gap-2 md:grid-cols-2">
+          {detail.voies.map((voie) => (
+            <div className="rounded-lg bg-[#f5f5f3] p-3" key={voie.id}>
+              <p className="text-[12px] font-semibold text-slate-900">
+                {voie.label}
+              </p>
+              <p className="mt-1 text-[11px] leading-5 text-slate-600">
+                {voie.actionJoueurs}
+              </p>
+              <p className="mt-1 text-[11px] text-emerald-700">
+                Gain : {voie.gain}
+              </p>
+              <p className="mt-1 text-[11px] text-amber-700">
+                Risque : {voie.risque}
+              </p>
+            </div>
+          ))}
+        </div>
+      </WorkflowSection>
+    );
+  }
+
+  if (step === 'MODULE') {
+    return (
+      <WorkflowSection title={`Module ${detail.moduleSpecialise.type}`}>
+        <p className="text-[13px] leading-6 text-slate-700">
+          {detail.moduleSpecialise.focus}
+        </p>
+        <div className="mt-2 grid gap-2 md:grid-cols-2">
+          {detail.moduleSpecialise.elements.map((element) => (
+            <InfoLine
+              key={`${element.label}-${element.value}`}
+              label={element.label}
+              value={element.value}
+            />
+          ))}
+        </div>
+      </WorkflowSection>
+    );
+  }
+
+  if (step === 'SCENES') {
+    return (
+      <WorkflowSection title="Scènes jouables">
+        <div className="space-y-2">
+          {detail.scenes.map((scene) => (
+            <div className="rounded-lg bg-[#f5f5f3] p-3" key={`${scene.titre}-${scene.objectifMJ}`}>
+              <p className="text-[12px] font-semibold text-slate-900">
+                {scene.titre}
+              </p>
+              <p className="mt-1 text-[11px] leading-5 text-slate-500">
+                {scene.objectifMJ}
+              </p>
+              <p className="mt-1 text-[12px] leading-5 text-slate-700">
+                {scene.deroule}
+              </p>
+              {scene.relanceAntiBlocage ? (
+                <p className="mt-2 rounded bg-white px-2 py-1 text-[11px] text-wizard-700">
+                  Relance : {scene.relanceAntiBlocage}
+                </p>
+              ) : null}
+            </div>
+          ))}
+        </div>
+      </WorkflowSection>
+    );
+  }
+
+  if (step === 'TIMING') {
+    return (
+      <WorkflowSection title="Timing MJ">
+        <div className="grid gap-2 md:grid-cols-3">
+          <InfoLine label="Court" value={detail.timing.versionCourte} />
+          <InfoLine label="Standard" value={detail.timing.versionStandard} />
+          <InfoLine label="Long" value={detail.timing.versionLongue} />
+        </div>
+      </WorkflowSection>
+    );
+  }
+
+  return (
+    <WorkflowSection title="Synthèse MJ">
+      <p className="text-[13px] leading-6 text-slate-700">
+        {detail.syntheseMJ}
+      </p>
+    </WorkflowSection>
+  );
+}
+
+function ActStepSummary({
+  detail,
+  step,
+}: {
+  detail: NonNullable<ScenarioAct['detailsMJ']>;
+  step: ActWorkflowStep;
+}) {
+  const items =
+    step === 'OBJECTIF'
+      ? [
+          detail.objectif.reussiteComplete,
+          detail.objectif.reussitePartielle,
+          detail.objectif.echecInteressant,
+        ]
+      : step === 'VOIES'
+        ? detail.voies.map((voie) => voie.label)
+        : step === 'MODULE'
+          ? detail.moduleSpecialise.elements.map((element) => element.label)
+          : step === 'SCENES'
+            ? detail.scenes.map((scene) => scene.titre)
+            : step === 'TIMING'
+              ? detail.timing.aGarderAbsolument
+              : [detail.syntheseMJ];
+
+  return (
+    <div>
+      <p className="text-[11px] font-medium uppercase tracking-[0.16em] text-slate-400">
+        À vérifier
+      </p>
+      <ul className="mt-3 space-y-2">
+        {items.map((item) => (
+          <li className="rounded-lg bg-white px-3 py-2 text-[12px] leading-5 text-slate-600 ring-1 ring-black/10" key={item}>
+            {item}
+          </li>
+        ))}
+      </ul>
+    </div>
+  );
+}
+
+function getActStepPrompt(
+  detail: NonNullable<ScenarioAct['detailsMJ']>,
+  selectedAct: ScenarioAct,
+  step: ActWorkflowStep,
+) {
+  const prompts: Record<ActWorkflowStep, string> = {
+    OBJECTIF:
+      `On commence par clarifier l'objectif de l'acte "${selectedAct.titre}". Dis-moi si tu veux une réussite plus héroïque, plus dangereuse, ou plus mystérieuse.`,
+    VOIES:
+      "Regardons les différentes voies possibles. Les joueurs doivent pouvoir réussir complètement, partiellement, ou avancer avec un coût.",
+    MODULE:
+      `Cet acte est surtout ${detail.moduleSpecialise.type}. On peut renforcer les mécaniques propres à ce type de gameplay.`,
+    SCENES:
+      "On transforme les voies en scènes jouables. Chaque scène doit avoir une relance si les joueurs bloquent.",
+    TIMING:
+      "Maintenant on prépare le rythme : version courte, standard, longue, et ce qu'il faut couper si la partie ralentit.",
+    VALIDATION:
+      "Dernière repasse : vérifie que tu saurais lancer l'acte, improviser si les joueurs partent ailleurs, et le conclure.",
+  };
+
+  return prompts[step];
+}
+
+function InfoLine({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="rounded-lg bg-[#f5f5f3] px-3 py-2">
+      <p className="text-[10px] font-medium uppercase tracking-[0.12em] text-slate-400">
+        {label}
+      </p>
+      <p className="mt-1 text-[12px] leading-5 text-slate-700">{value}</p>
+    </div>
+  );
+}
+
 function ActCard({
   act,
   encounters,
@@ -578,6 +1195,8 @@ function ActCard({
         </div>
       ) : null}
 
+      {act.detailsMJ ? <ActDetailPanel detail={act.detailsMJ} /> : null}
+
       {encounters.length ? (
         <div className="mt-3 grid gap-2 md:grid-cols-2">
           {encounters.map((rencontre, index) => (
@@ -592,6 +1211,66 @@ function ActCard({
         </p>
       ) : null}
     </article>
+  );
+}
+
+function ActDetailPanel({
+  detail,
+}: {
+  detail: NonNullable<ScenarioAct['detailsMJ']>;
+}) {
+  return (
+    <div className="mt-3 grid gap-2 lg:grid-cols-[minmax(0,1.2fr)_minmax(0,1fr)]">
+      {detail.scenes.length ? (
+        <div className="rounded-lg bg-[#f5f5f3] p-3">
+          <p className="text-[11px] font-medium uppercase tracking-[0.12em] text-slate-400">
+            Scenes MJ
+          </p>
+          <div className="mt-2 space-y-2">
+            {detail.scenes.map((scene) => (
+              <div key={`${scene.titre}-${scene.objectifMJ}`}>
+                <p className="text-[12px] font-semibold text-slate-900">
+                  {scene.titre}
+                </p>
+                <p className="mt-0.5 text-[11px] leading-5 text-slate-500">
+                  {scene.objectifMJ}
+                </p>
+                <p className="mt-1 text-[12px] leading-5 text-slate-700">
+                  {scene.deroule}
+                </p>
+              </div>
+            ))}
+          </div>
+        </div>
+      ) : null}
+
+      <div className="space-y-2">
+        <ActDetailList title="Indices" items={detail.indices} />
+        <ActDetailList title="Choix" items={detail.choixConsequences} />
+        <ActDetailList title="Transitions" items={detail.transitions} />
+        <ActDetailList title="Preparation" items={detail.preparation} />
+        <ActDetailList title="Impro" items={detail.notesImpro} />
+      </div>
+    </div>
+  );
+}
+
+function ActDetailList({ items, title }: { items: string[]; title: string }) {
+  if (items.length === 0) return null;
+
+  return (
+    <div className="rounded-lg border border-black/10 bg-white px-3 py-2">
+      <p className="text-[10px] font-medium uppercase tracking-[0.12em] text-slate-400">
+        {title}
+      </p>
+      <ul className="mt-1 space-y-1">
+        {items.map((item) => (
+          <li className="text-[11px] leading-5 text-slate-600" key={item}>
+            {item}
+          </li>
+        ))}
+      </ul>
+    </div>
   );
 }
 

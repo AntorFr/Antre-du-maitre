@@ -1,5 +1,7 @@
 import type {
   AuthUser,
+  ActDetailChatRequest,
+  ActDetailChatResponse,
   CreateScenarioRequest,
   EntityType,
   LoginRequest,
@@ -159,6 +161,22 @@ export const api = {
   chat(token: string, scenarioId: string, input: ScenarioChatRequest) {
     return request<ScenarioChatResponse>(
       `/scenarios/${scenarioId}/chat`,
+      {
+        method: 'POST',
+        body: JSON.stringify(input),
+      },
+      token,
+    );
+  },
+
+  chatActDetail(
+    token: string,
+    scenarioId: string,
+    actNumber: number,
+    input: ActDetailChatRequest,
+  ) {
+    return request<ActDetailChatResponse>(
+      `/scenarios/${scenarioId}/acts/${actNumber}/detail/chat`,
       {
         method: 'POST',
         body: JSON.stringify(input),

@@ -2,17 +2,29 @@ import { Prisma } from '@prisma/client';
 import { z } from 'zod';
 import type { FastifyInstance } from 'fastify';
 
-import { createEmptyScenarioData } from '../domain/scenario-state.js';
+import {
+  createEmptyScenarioData,
+  normalizeScenarioData,
+} from '../domain/scenario-state.js';
 import { prisma } from '../lib/prisma.js';
 import {
   authenticate,
   canAccessOwnedResource,
 } from '../middleware/auth.js';
+import {
+  ensureActDetails,
+  needsActDetails,
+  runActDetailWorkflow,
+} from '../services/act-details.js';
 import { renderScenarioPdf } from '../services/scenario-pdf.js';
 import { toScenarioDetail, toScenarioSummary } from '../utils/scenarios.js';
 
 const createScenarioSchema = z.object({
   title: z.string().trim().min(1).max(120).optional(),
+});
+const actDetailChatSchema = z.object({
+  message: z.string().trim().max(2_000).optional(),
+  action: z.enum(['ADVANCE', 'VALIDATE', 'REOPEN']),
 });
 
 export async function registerScenarioRoutes(app: FastifyInstance) {
@@ -144,8 +156,97 @@ export async function registerScenarioRoutes(app: FastifyInstance) {
         });
       }
 
+      const normalizedData = normalizeScenarioData(scenario.data);
+      const detailedData =
+        scenario.status === 'DRAFT'
+          ? normalizedData
+          : ensureActDetails(normalizedData);
+      const scenarioDetail = {
+        ...toScenarioDetail(scenario),
+        data: detailedData,
+      };
+
+      if (scenario.status !== 'DRAFT' && needsActDetails(normalizedData)) {
+        await prisma.scenario.update({
+          where: {
+            id: scenario.id,
+          },
+          data: {
+            data: detailedData as unknown as Prisma.InputJsonValue,
+          },
+        });
+      }
+
       return {
-        scenario: toScenarioDetail(scenario),
+        scenario: scenarioDetail,
+      };
+    },
+  );
+
+  app.post(
+    '/api/scenarios/:id/acts/:number/detail/chat',
+    {
+      preHandler: authenticate,
+    },
+    async (request, reply) => {
+      const { id, number } = request.params as { id: string; number: string };
+      const actNumber = Number(number);
+      const parsed = actDetailChatSchema.safeParse(request.body ?? {});
+
+      if (!parsed.success || !Number.isInteger(actNumber)) {
+        return reply.code(400).send({
+          message: 'Invalid act detail payload.',
+          issues: parsed.success ? [] : parsed.error.issues,
+        });
+      }
+
+      const scenario = await prisma.scenario.findUnique({
+        where: {
+          id,
+        },
+      });
+
+      if (!scenario) {
+        return reply.code(404).send({
+          message: 'Scenario not found.',
+        });
+      }
+
+      if (!canAccessOwnedResource(request.user, scenario.userId)) {
+        return reply.code(403).send({
+          message: 'You cannot update this act detail.',
+        });
+      }
+
+      let result;
+      try {
+        result = runActDetailWorkflow({
+          scenario: normalizeScenarioData(scenario.data),
+          actNumber,
+          request: parsed.data,
+        });
+      } catch (error) {
+        return reply.code(404).send({
+          message:
+            error instanceof Error ? error.message : 'Act detail not found.',
+        });
+      }
+      const updatedScenario = await prisma.scenario.update({
+        where: {
+          id: scenario.id,
+        },
+        data: {
+          data: result.scenario as unknown as Prisma.InputJsonValue,
+        },
+      });
+
+      return {
+        reply: result.reply,
+        suggestions: result.suggestions,
+        scenario: {
+          ...toScenarioDetail(updatedScenario),
+          data: result.scenario,
+        },
       };
     },
   );

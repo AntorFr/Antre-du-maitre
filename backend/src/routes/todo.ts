@@ -8,6 +8,7 @@ import {
   authenticate,
   canAccessOwnedResource,
 } from '../middleware/auth.js';
+import { ensureActDetails } from '../services/act-details.js';
 import { generateMockTodoItems } from '../services/todo.js';
 
 const updateTodoItemSchema = z.object({
@@ -142,7 +143,7 @@ async function ensureGeneratedTodoItems(scenario: Scenario) {
     existingItems.reduce((highest, item) => Math.max(highest, item.order), 0) +
     1;
   const generatedItems = generateMockTodoItems(
-    normalizeScenarioData(scenario.data),
+    ensureActDetails(normalizeScenarioData(scenario.data)),
   );
   const missingItems = [];
 
