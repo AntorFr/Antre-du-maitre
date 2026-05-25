@@ -21,7 +21,7 @@ export function ScenarioSummaryPanel({
       <div className="grid gap-3">
         <SummaryRow label="Ambiance" value={data.ambiance} />
         <SummaryRow label="Lieu" value={data.lieu?.nom} />
-        <SummaryRow label="Quête" value={data.quete} />
+        <SummaryRow label="Quête" value={data.quete?.phraseSimple} />
         <SummaryRow label="Antagoniste" value={data.antagoniste?.nom} />
         <SummaryRow
           label="PNJs"
@@ -50,4 +50,3 @@ function SummaryRow({
     </div>
   );
 }
-

@@ -367,7 +367,42 @@ export function Scenario({
           </SmallCard>
 
           <SmallCard icon="spark" label="Quête principale">
-            {data.quete ?? 'Pas encore définie.'}
+            {data.quete ? (
+              <div>
+                <p className="font-medium text-slate-900">
+                  {data.quete.phraseSimple}
+                </p>
+                <dl className="mt-2 space-y-1.5 text-slate-500">
+                  <QuestLine label="Ce qui ne va pas" value={data.quete.ceQuiNeVaPas} />
+                  <QuestLine label="Pourquoi c'est grave" value={data.quete.pourquoiCestGrave} />
+                  <QuestLine label="Pourquoi maintenant" value={data.quete.pourquoiMaintenant} />
+                  <QuestLine
+                    label="Si personne n'agit"
+                    value={data.quete.ceQuiArriveSiPersonneNagit}
+                  />
+                </dl>
+              </div>
+            ) : (
+              'Pas encore définie.'
+            )}
+          </SmallCard>
+
+          <SmallCard icon="star" label="Objectif des héros">
+            {data.objectifDesHeros ? (
+              <div>
+                <p className="font-medium text-slate-900">
+                  {data.objectifDesHeros.phraseSimple}
+                </p>
+                <p className="mt-1 text-slate-500">
+                  {data.objectifDesHeros.objectifVisible}
+                </p>
+                <p className="mt-1 text-slate-500">
+                  Réussite : {data.objectifDesHeros.signeDeReussite}
+                </p>
+              </div>
+            ) : (
+              'Pas encore défini.'
+            )}
           </SmallCard>
 
           <SmallCard icon="skull" label="Antagoniste">
@@ -377,8 +412,19 @@ export function Scenario({
                   {data.antagoniste.nom}
                 </p>
                 <p className="mt-1 text-slate-500">
-                  {data.antagoniste.nature} · {data.antagoniste.motivation}
+                  {[
+                    data.antagoniste.type,
+                    data.antagoniste.nature,
+                    data.antagoniste.motivation,
+                  ]
+                    .filter(Boolean)
+                    .join(' · ')}
                 </p>
+                {data.antagoniste.faiblesseOuSolution ? (
+                  <p className="mt-1 text-slate-500">
+                    Solution : {data.antagoniste.faiblesseOuSolution}
+                  </p>
+                ) : null}
               </div>
             ) : (
               'Pas encore défini.'
@@ -414,12 +460,17 @@ export function Scenario({
                     <p className="text-[12px] font-medium text-slate-900">
                       {pnj.nom}{' '}
                       <span className="font-normal text-slate-400">
-                        · {pnj.role}
+                        · {pnj.fonctionNarrative ?? pnj.role}
                       </span>
                     </p>
                     <p className="mt-0.5 text-[11px] leading-5 text-slate-500">
                       {pnj.description}
                     </p>
+                    {pnj.particularite ? (
+                      <p className="mt-0.5 text-[11px] leading-5 text-slate-500">
+                        Particularité : {pnj.particularite}
+                      </p>
+                    ) : null}
                   </div>
                 ))}
               </div>
@@ -1416,6 +1467,17 @@ function SmallCard({
       </p>
       {children}
     </article>
+  );
+}
+
+function QuestLine({ label, value }: { label: string; value?: string }) {
+  if (!value) return null;
+
+  return (
+    <div>
+      <dt className="font-medium text-slate-600">{label}</dt>
+      <dd>{value}</dd>
+    </div>
   );
 }
 

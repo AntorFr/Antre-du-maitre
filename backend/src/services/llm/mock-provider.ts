@@ -3,7 +3,6 @@ import type {
   SessionDebriefResponse,
 } from '@antre-du-maitre/shared';
 
-import { suggestBattleMatsForEncounter } from '../../data/battle-mats/index.js';
 import { getNextScenarioStep } from '../../domain/scenario-state.js';
 import type {
   LlmProvider,
@@ -19,19 +18,23 @@ export class MockLlmProvider implements LlmProvider {
     const nextStep = getNextScenarioStep(currentStep);
     const trimmedMessage = input.message.trim();
 
-    if (currentStep === 'STEP_1_AMBIANCE') {
+    if (currentStep === 'STEP_1_SENSATION') {
       const lowerMessage = trimmedMessage.toLowerCase();
-      const ambiance = lowerMessage.includes('humour')
+      const ambiance = lowerMessage.includes('humour') || lowerMessage.includes('drôle')
         ? 'humour'
         : lowerMessage.includes('action')
           ? 'action'
-          : lowerMessage.includes('frisson')
+          : lowerMessage.includes('frisson') || lowerMessage.includes('inqui')
             ? 'frisson'
-            : 'mystere';
+            : lowerMessage.includes('merveille')
+              ? 'merveilleux'
+              : lowerMessage.includes('explor')
+                ? 'exploration'
+                : 'mystere';
 
       return {
-        reply: `Parfait, partons sur une ambiance ${ambiance} ! Où se passe l'aventure ?`,
-        suggestions: ['Une forêt ancienne', 'Un village enneigé', 'Des ruines oubliées'],
+        reply: `Très bien, ton aventure aura une sensation ${ambiance}. Maintenant, inventons un lieu fort : son nom, son image, son danger et son secret.`,
+        suggestions: ['Une grotte qui chante', 'Un village dans la brume', 'Une forêt aux chemins mouvants'],
         scenarioUpdate: {
           ambiance,
         },
@@ -43,12 +46,17 @@ export class MockLlmProvider implements LlmProvider {
 
     if (currentStep === 'STEP_2_LIEU') {
       return {
-        reply: `Très bon lieu ! Quelle mission les héros doivent-ils accomplir là-bas ?`,
-        suggestions: ['Retrouver un objet perdu', 'Sauver un ami', 'Résoudre un mystère'],
+        reply: `Ce lieu donne envie de jouer. Quel est le problème central : qu'est-ce qui ne va pas, pourquoi c'est grave et pourquoi agir maintenant ?`,
+        suggestions: ['Un objet magique a disparu', 'Une créature bloque le village', 'Une magie se dérègle ce soir'],
         scenarioUpdate: {
           lieu: {
             nom: trimmedMessage,
-            description: `Un lieu important nommé ${trimmedMessage}.`,
+            type: 'autre',
+            imageForte: `Un lieu marquant nommé ${trimmedMessage}.`,
+            particulariteMagique: 'Quelque chose d’étrange y arrive quand les héros approchent.',
+            dangerPrincipal: 'Un danger simple oblige les héros à rester attentifs.',
+            endroitSecret: 'Un passage caché peut révéler la vérité.',
+            description: `Un lieu important nommé ${trimmedMessage}, avec un danger clair et un secret à découvrir.`,
           },
         },
         proposedEntities: [
@@ -67,31 +75,15 @@ export class MockLlmProvider implements LlmProvider {
 
     if (currentStep === 'STEP_3_QUETE') {
       return {
-        reply: `Quelle aventure ! Qui s'oppose aux héros ?`,
-        suggestions: ['Une sorcière', 'Un gobelin rusé', 'Un esprit ancien'],
+        reply: `On sent bien l'urgence. Maintenant, cherchons la cause du problème : méchant, malentendu, créature incomprise ou magie déréglée ?`,
+        suggestions: ['Une créature incomprise', 'Une malédiction', 'Un rival jaloux'],
         scenarioUpdate: {
-          quete: trimmedMessage,
-        },
-        proposedEntities: [],
-        stepComplete: true,
-        nextStep,
-      };
-    }
-
-    if (currentStep === 'STEP_4_MECHANT') {
-      const selectedMonster = input.monsterCatalog[0];
-
-      return {
-        reply: `Voilà un vrai adversaire ! Qui les héros rencontreront-ils en chemin ?`,
-        suggestions: ['Une herboriste alliée', 'Un marchand bavard', 'Un garde inquiet'],
-        scenarioUpdate: {
-          antagoniste: {
-            nom: trimmedMessage,
-            nature: selectedMonster
-              ? `inspiré de ${selectedMonster.name}`
-              : 'antagoniste inventé',
-            monsterId: selectedMonster?.id,
-            motivation: 'Empêcher les héros de réussir leur quête.',
+          quete: {
+            phraseSimple: trimmedMessage,
+            ceQuiNeVaPas: trimmedMessage,
+            pourquoiCestGrave: 'Les habitants ou le lieu risquent de perdre quelque chose d’important.',
+            pourquoiMaintenant: 'Le problème doit être réglé avant la fin de la journée.',
+            ceQuiArriveSiPersonneNagit: 'La situation empire et l’aventure devient beaucoup plus difficile.',
           },
         },
         proposedEntities: [],
@@ -100,18 +92,127 @@ export class MockLlmProvider implements LlmProvider {
       };
     }
 
-    if (currentStep === 'STEP_5_PNJS') {
+    if (currentStep === 'STEP_4_ANTAGONISTE') {
+      const selectedMonster = input.monsterCatalog[0];
+
       return {
-        reply: `Excellent personnage ! Choisissons maintenant les types de défis.`,
-        suggestions: ['Enquête + énigme', 'Combat + fuite', 'Exploration + négociation'],
+        reply: `La cause du problème est claire. Résumons maintenant ce que les héros doivent réussir en une phrase simple.`,
+        suggestions: ['Retrouver l’objet avant la nuit', 'Apaiser la créature', 'Stopper la magie déréglée'],
+        scenarioUpdate: {
+          antagoniste: {
+            type: 'creature_incomprise',
+            nom: trimmedMessage,
+            nature: selectedMonster
+              ? `inspiré de ${selectedMonster.name}`
+              : 'antagoniste inventé',
+            description: `La cause principale du problème : ${trimmedMessage}.`,
+            monsterId: selectedMonster?.id,
+            motivation: 'Il agit pour une raison compréhensible, même s’il crée un problème.',
+            ceQuIlVeut: 'Obtenir ce qui lui manque ou protéger son secret.',
+            faiblesseOuSolution: 'Comprendre sa motivation permet de trouver une solution sans tout régler par la force.',
+          },
+        },
+        proposedEntities: [],
+        stepComplete: true,
+        nextStep,
+      };
+    }
+
+    if (currentStep === 'STEP_5_OBJECTIF_HEROS') {
+      return {
+        reply: `Parfait, le MJ saura toujours quoi rappeler aux joueurs. Construisons maintenant les 3 à 5 grandes étapes de l'aventure.`,
+        suggestions: ['Départ, exploration, révélation, final', 'Un début très fort', 'Un final spectaculaire'],
+        scenarioUpdate: {
+          objectifDesHeros: {
+            phraseSimple: trimmedMessage,
+            objectifVisible: trimmedMessage,
+            signeDeReussite: 'Le problème est résolu et tout le monde voit clairement que les héros ont réussi.',
+          },
+        },
+        proposedEntities: [],
+        stepComplete: true,
+        nextStep,
+      };
+    }
+
+    if (currentStep === 'STEP_6_ACTES') {
+      return {
+        reply: `La colonne vertébrale est prête. Ajoutons maintenant quelques PNJs importants, sans en mettre trop.`,
+        suggestions: ['Quelqu’un qui demande de l’aide', 'Un guide amusant', 'Quelqu’un qui bloque les héros'],
+        scenarioUpdate: {
+          actes: [
+            {
+              numero: 1,
+              titre: 'Le problème apparaît',
+              type: 'depart',
+              roleDansLHistoire: 'depart',
+              description: trimmedMessage,
+              obstaclePrincipal: 'Les héros doivent comprendre ce qui se passe.',
+              options: ['Observer', 'Questionner', 'Suivre une première piste'],
+              dureeEstimeeMin: 20,
+              pointDeCoupure: false,
+              notesMJ: 'Donner un objectif visible rapidement.',
+            },
+            {
+              numero: 2,
+              titre: 'La piste principale',
+              type: 'exploration',
+              roleDansLHistoire: 'exploration',
+              description: 'Les héros explorent et trouvent une piste importante.',
+              obstaclePrincipal: 'Le lieu complique leur progression.',
+              options: ['Chercher des indices', 'Prendre un raccourci risqué'],
+              dureeEstimeeMin: 25,
+              pointDeCoupure: true,
+              notesMJ: 'Prévoir une relance si les joueurs bloquent.',
+            },
+            {
+              numero: 3,
+              titre: 'La vérité',
+              type: 'revelation',
+              roleDansLHistoire: 'revelation',
+              description: 'Les héros comprennent la vraie cause du problème.',
+              informationApprise: 'Le problème peut être résolu autrement que par la force.',
+              options: ['Comprendre', 'Négocier', 'Préparer le final'],
+              dureeEstimeeMin: 20,
+              pointDeCoupure: false,
+              notesMJ: 'Rendre la révélation claire.',
+            },
+            {
+              numero: 4,
+              titre: 'La résolution',
+              type: 'confrontation',
+              roleDansLHistoire: 'confrontation',
+              description: 'Les héros règlent le problème dans une scène finale visuelle.',
+              obstaclePrincipal: 'La situation presse.',
+              options: ['Agir vite', 'Parler', 'Prendre un risque héroïque'],
+              dureeEstimeeMin: 25,
+              pointDeCoupure: false,
+              notesMJ: 'Finir sur une image forte.',
+            },
+          ],
+        },
+        proposedEntities: [],
+        stepComplete: true,
+        nextStep,
+      };
+    }
+
+    if (currentStep === 'STEP_7_PNJS') {
+      return {
+        reply: `Ces personnages seront faciles à jouer. Choisissons maintenant la durée et l'équilibre entre les actes.`,
+        suggestions: ['Une session de 90 minutes', 'Deux sessions courtes', 'Raccourcir le milieu'],
         scenarioUpdate: {
           pnjs: [
             ...input.scenario.pnjs,
             {
               nom: trimmedMessage,
               role: 'allie',
-              description: 'Un personnage utile rencontré pendant l’aventure.',
-              motivation: 'Aider les héros.',
+              fonctionNarrative: 'aide',
+              description: 'Un personnage important rencontré pendant l’aventure.',
+              motivation: 'Aider les héros à avancer.',
+              attitude: 'curieux et encourageant',
+              particularite: 'Il a un détail amusant facile à jouer.',
+              informationOuService: 'Il donne une piste utile.',
             },
           ],
         },
@@ -121,110 +222,10 @@ export class MockLlmProvider implements LlmProvider {
       };
     }
 
-    if (currentStep === 'STEP_6_GAMEPLAY') {
+    if (currentStep === 'STEP_8_DUREE') {
       return {
-        reply: `Très bon mélange ! Construisons maintenant les grands actes de l'aventure.`,
-        suggestions: ['Début calme puis mystère', 'Action dès le départ', 'Voyage puis révélation'],
-        scenarioUpdate: {
-          gameplay: {
-            types: ['enquete', 'enigme', 'combat'],
-            notes: trimmedMessage,
-          },
-        },
-        proposedEntities: [],
-        stepComplete: true,
-        nextStep,
-      };
-    }
-
-    if (currentStep === 'STEP_7_ACTES') {
-      return {
-        reply: `Les actes tiennent bien debout ! Plaçons maintenant les rencontres.`,
-        suggestions: ['Une embuscade', 'Un obstacle magique', 'Un combat final'],
-        scenarioUpdate: {
-          actes: [
-            {
-              numero: 1,
-              titre: 'L’appel de l’aventure',
-              type: 'enquete',
-              description: trimmedMessage,
-              options: ['Suivre les indices', 'Interroger un témoin'],
-              dureeEstimeeMin: 20,
-              pointDeCoupure: false,
-              notesMJ: 'Laisser plusieurs chemins possibles.',
-            },
-            {
-              numero: 2,
-              titre: 'La découverte',
-              type: 'enigme',
-              description: 'Les héros comprennent ce qui se trame.',
-              options: ['Résoudre l’énigme', 'Trouver un détour'],
-              dureeEstimeeMin: 20,
-              pointDeCoupure: true,
-              notesMJ: 'Donner un indice si les joueurs bloquent.',
-            },
-            {
-              numero: 3,
-              titre: 'La confrontation',
-              type: 'combat',
-              description: 'Les héros affrontent l’antagoniste.',
-              options: ['Combattre', 'Négocier avant le combat'],
-              dureeEstimeeMin: 25,
-              pointDeCoupure: false,
-              notesMJ: 'Rendre la fin spectaculaire.',
-            },
-          ],
-        },
-        proposedEntities: [],
-        stepComplete: true,
-        nextStep,
-      };
-    }
-
-    if (currentStep === 'STEP_8_RENCONTRES') {
-      const selectedMonster =
-        input.monsterCatalog.find(
-          (monster) => monster.id === input.scenario.antagoniste?.monsterId,
-        ) ?? input.monsterCatalog[0];
-      const suggestedMap = suggestBattleMatsForEncounter({
-        typeDefi: 'combat',
-        ambiance: input.scenario.ambiance ?? 'mystere',
-      })[0];
-
-      return {
-        reply: `Parfait pour les rencontres ! Vérifions maintenant la durée.`,
-        suggestions: ['Garder ce rythme', 'Raccourcir un acte', 'Prévoir deux sessions'],
-        scenarioUpdate: {
-          rencontres: selectedMonster
-            ? [
-                {
-                  monsterId: selectedMonster.id,
-                  nombre: selectedMonster.nc === '0' ? 3 : 1,
-                  acteNumero: 3,
-                  contexte: `Rencontre avec ${selectedMonster.name} liée à l'antagoniste.`,
-                  carteBattleMat: suggestedMap
-                    ? {
-                        id: suggestedMap.id,
-                        volume: suggestedMap.volume,
-                        pages: suggestedMap.pages,
-                        nom: suggestedMap.nomFr,
-                        description: suggestedMap.description,
-                      }
-                    : undefined,
-                },
-              ]
-            : [],
-        },
-        proposedEntities: [],
-        stepComplete: true,
-        nextStep,
-      };
-    }
-
-    if (currentStep === 'STEP_9_DUREE') {
-      return {
-        reply: `L'aventure rentre bien dans une session. Relisons tout ensemble !`,
-        suggestions: ['Valider', 'Changer un détail', 'Réentendre le résumé'],
+        reply: `Le rythme est posé. Imaginons maintenant une fin satisfaisante et visuelle.`,
+        suggestions: ['Une fête au village', 'Une surprise magique', 'Une récompense amusante'],
         scenarioUpdate: {
           sessionning: {
             dureeTotaleEstimeeMin: 90,
@@ -232,12 +233,31 @@ export class MockLlmProvider implements LlmProvider {
             sessions: [
               {
                 numero: 1,
-                actesInclus: [1, 2, 3],
+                actesInclus: input.scenario.actes.map((acte) => acte.numero),
                 dureeEstimeeMin: 90,
-                resumeAccroche: 'Les héros commencent leur aventure.',
+                resumeAccroche: 'Une session centrée sur le problème, la révélation et la résolution.',
               },
             ],
           },
+        },
+        proposedEntities: [],
+        stepComplete: true,
+        nextStep,
+      };
+    }
+
+    if (currentStep === 'STEP_9_FIN') {
+      return {
+        reply: `Jolie fin. Relisons tout ensemble avant de préparer la partie.`,
+        suggestions: ['Valider', 'Changer un détail', 'Réentendre le résumé'],
+        scenarioUpdate: {
+          fin: {
+            conditionDeVictoire: trimmedMessage,
+            sceneDeResolution: 'Le problème se résout dans une scène claire, positive et visuelle.',
+            recompense: 'Les héros reçoivent une récompense utile ou amusante.',
+            petiteSurpriseFinale: 'Un petit détail final donne envie de sourire.',
+          },
+          recompense: 'Les héros reçoivent une récompense utile ou amusante.',
         },
         proposedEntities: [],
         stepComplete: true,

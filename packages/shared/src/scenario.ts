@@ -1,23 +1,66 @@
 export const SCENARIO_STEPS = [
-  'STEP_1_AMBIANCE',
+  'STEP_1_SENSATION',
   'STEP_2_LIEU',
   'STEP_3_QUETE',
-  'STEP_4_MECHANT',
-  'STEP_5_PNJS',
-  'STEP_6_GAMEPLAY',
-  'STEP_7_ACTES',
-  'STEP_8_RENCONTRES',
-  'STEP_9_DUREE',
+  'STEP_4_ANTAGONISTE',
+  'STEP_5_OBJECTIF_HEROS',
+  'STEP_6_ACTES',
+  'STEP_7_PNJS',
+  'STEP_8_DUREE',
+  'STEP_9_FIN',
   'STEP_10_RECAP',
 ] as const;
 
 export type ScenarioStep = (typeof SCENARIO_STEPS)[number];
 
-export type Ambiance = 'mystere' | 'humour' | 'action' | 'frisson';
+export type Ambiance =
+  | 'mystere'
+  | 'humour'
+  | 'action'
+  | 'frisson'
+  | 'merveilleux'
+  | 'exploration';
 
 export type ScenarioStatus = 'DRAFT' | 'COMPLETE' | 'IN_PROGRESS' | 'PLAYED';
 
 export type PnjRole = 'allie' | 'neutre' | 'ennemi';
+
+export type LieuType =
+  | 'village'
+  | 'foret'
+  | 'chateau'
+  | 'grotte'
+  | 'ruines'
+  | 'ile'
+  | 'montagne'
+  | 'marais'
+  | 'autre';
+
+export type AntagonisteType =
+  | 'mechant'
+  | 'creature_incomprise'
+  | 'accident_magique'
+  | 'malediction'
+  | 'catastrophe'
+  | 'malentendu'
+  | 'rival';
+
+export type FonctionNarrativePnj =
+  | 'demandeur'
+  | 'aide'
+  | 'opposition'
+  | 'temoin'
+  | 'victime'
+  | 'guide'
+  | 'neutre';
+
+export type RoleDansLHistoire =
+  | 'depart'
+  | 'exploration'
+  | 'probleme'
+  | 'revelation'
+  | 'confrontation'
+  | 'resolution';
 
 export type GameplayType =
   | 'enquete'
@@ -108,20 +151,44 @@ export interface ScenarioData {
   ambiance?: Ambiance;
   lieu?: {
     nom: string;
+    type?: LieuType;
+    imageForte?: string;
+    particulariteMagique?: string;
+    dangerPrincipal?: string;
+    endroitSecret?: string;
     description: string;
   };
-  quete?: string;
+  quete?: {
+    phraseSimple: string;
+    ceQuiNeVaPas: string;
+    pourquoiCestGrave: string;
+    pourquoiMaintenant: string;
+    ceQuiArriveSiPersonneNagit: string;
+  };
   antagoniste?: {
+    type?: AntagonisteType;
     nom: string;
     nature: string;
+    description?: string;
     monsterId?: string;
     motivation: string;
+    ceQuIlVeut?: string;
+    faiblesseOuSolution?: string;
+  };
+  objectifDesHeros?: {
+    phraseSimple: string;
+    objectifVisible: string;
+    signeDeReussite: string;
   };
   pnjs: Array<{
     nom: string;
     role: PnjRole;
+    fonctionNarrative?: FonctionNarrativePnj;
     description: string;
     motivation: string;
+    attitude?: string;
+    particularite?: string;
+    informationOuService?: string;
   }>;
   gameplay?: {
     types: string[];
@@ -131,7 +198,11 @@ export interface ScenarioData {
     numero: number;
     titre: string;
     type: string;
+    roleDansLHistoire?: RoleDansLHistoire;
     description: string;
+    lieu?: string;
+    obstaclePrincipal?: string;
+    informationApprise?: string;
     options: string[];
     dureeEstimeeMin: number;
     pointDeCoupure: boolean;
@@ -163,6 +234,12 @@ export interface ScenarioData {
     }>;
   };
   recompense?: string;
+  fin?: {
+    conditionDeVictoire: string;
+    sceneDeResolution: string;
+    recompense: string;
+    petiteSurpriseFinale?: string;
+  };
   notesMJ?: string;
 }
 

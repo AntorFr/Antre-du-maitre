@@ -12,7 +12,7 @@ const scenarioStepOrder = new Map(
 
 export function createEmptyScenarioData(): ScenarioData {
   return {
-    currentStep: 'STEP_1_AMBIANCE',
+    currentStep: 'STEP_1_SENSATION',
     title: '',
     pnjs: [],
     actes: [],
@@ -29,13 +29,15 @@ export function normalizeScenarioData(value: unknown): ScenarioData {
     title: readString(candidate.title),
     ambiance: readAmbiance(candidate.ambiance),
     lieu: normalizeLieu(candidate.lieu),
-    quete: readOptionalString(candidate.quete),
+    quete: normalizeQuete(candidate.quete),
     antagoniste: normalizeAntagoniste(candidate.antagoniste),
+    objectifDesHeros: normalizeObjectifDesHeros(candidate.objectifDesHeros),
     pnjs: normalizePnjs(candidate.pnjs),
     gameplay: normalizeGameplay(candidate.gameplay),
     actes: normalizeActes(candidate.actes),
     rencontres: normalizeRencontres(candidate.rencontres),
     recompense: readOptionalString(candidate.recompense),
+    fin: normalizeFin(candidate.fin),
     notesMJ: readOptionalString(candidate.notesMJ),
   };
 
@@ -103,17 +105,76 @@ function readNumberArray(value: unknown): number[] {
 }
 
 function readScenarioStep(value: unknown): ScenarioStep {
-  return typeof value === 'string' &&
-    (SCENARIO_STEPS as readonly string[]).includes(value)
-    ? (value as ScenarioStep)
-    : 'STEP_1_AMBIANCE';
+  if (typeof value !== 'string') return 'STEP_1_SENSATION';
+  if ((SCENARIO_STEPS as readonly string[]).includes(value)) {
+    return value as ScenarioStep;
+  }
+
+  return 'STEP_1_SENSATION';
 }
 
 function readAmbiance(value: unknown): ScenarioData['ambiance'] {
   return value === 'mystere' ||
     value === 'humour' ||
     value === 'action' ||
-    value === 'frisson'
+    value === 'frisson' ||
+    value === 'merveilleux' ||
+    value === 'exploration'
+    ? value
+    : undefined;
+}
+
+function readLieuType(value: unknown): NonNullable<ScenarioData['lieu']>['type'] {
+  return value === 'village' ||
+    value === 'foret' ||
+    value === 'chateau' ||
+    value === 'grotte' ||
+    value === 'ruines' ||
+    value === 'ile' ||
+    value === 'montagne' ||
+    value === 'marais' ||
+    value === 'autre'
+    ? value
+    : undefined;
+}
+
+function readAntagonisteType(
+  value: unknown,
+): NonNullable<ScenarioData['antagoniste']>['type'] {
+  return value === 'mechant' ||
+    value === 'creature_incomprise' ||
+    value === 'accident_magique' ||
+    value === 'malediction' ||
+    value === 'catastrophe' ||
+    value === 'malentendu' ||
+    value === 'rival'
+    ? value
+    : undefined;
+}
+
+function readFonctionNarrative(
+  value: unknown,
+): ScenarioData['pnjs'][number]['fonctionNarrative'] {
+  return value === 'demandeur' ||
+    value === 'aide' ||
+    value === 'opposition' ||
+    value === 'temoin' ||
+    value === 'victime' ||
+    value === 'guide' ||
+    value === 'neutre'
+    ? value
+    : undefined;
+}
+
+function readRoleDansLHistoire(
+  value: unknown,
+): ScenarioData['actes'][number]['roleDansLHistoire'] {
+  return value === 'depart' ||
+    value === 'exploration' ||
+    value === 'probleme' ||
+    value === 'revelation' ||
+    value === 'confrontation' ||
+    value === 'resolution'
     ? value
     : undefined;
 }
@@ -168,20 +229,73 @@ function readActDetailStep(
 function normalizeLieu(value: unknown): ScenarioData['lieu'] {
   if (!isRecord(value)) return undefined;
 
+  const description = readString(value.description);
+
   return {
     nom: readString(value.nom, 'Lieu sans nom'),
-    description: readString(value.description),
+    type: readLieuType(value.type),
+    imageForte: readOptionalString(value.imageForte),
+    particulariteMagique: readOptionalString(value.particulariteMagique),
+    dangerPrincipal: readOptionalString(value.dangerPrincipal),
+    endroitSecret: readOptionalString(value.endroitSecret),
+    description:
+      description ||
+      [
+        readOptionalString(value.imageForte),
+        readOptionalString(value.particulariteMagique),
+        readOptionalString(value.dangerPrincipal),
+      ]
+        .filter(Boolean)
+        .join(' '),
+  };
+}
+
+function normalizeQuete(value: unknown): ScenarioData['quete'] {
+  if (!isRecord(value)) return undefined;
+
+  const ceQuiNeVaPas = readString(value.ceQuiNeVaPas);
+  const phraseSimple = readString(value.phraseSimple, ceQuiNeVaPas);
+
+  if (!phraseSimple && !ceQuiNeVaPas) return undefined;
+
+  return {
+    phraseSimple,
+    ceQuiNeVaPas: ceQuiNeVaPas || phraseSimple,
+    pourquoiCestGrave: readString(value.pourquoiCestGrave),
+    pourquoiMaintenant: readString(value.pourquoiMaintenant),
+    ceQuiArriveSiPersonneNagit: readString(value.ceQuiArriveSiPersonneNagit),
   };
 }
 
 function normalizeAntagoniste(value: unknown): ScenarioData['antagoniste'] {
   if (!isRecord(value)) return undefined;
 
+  const description = readOptionalString(value.description);
+  const nature = readString(value.nature, description ?? '');
+
   return {
+    type: readAntagonisteType(value.type),
     nom: readString(value.nom, 'Antagoniste sans nom'),
-    nature: readString(value.nature),
+    nature,
+    description,
     monsterId: readOptionalString(value.monsterId),
     motivation: readString(value.motivation),
+    ceQuIlVeut: readOptionalString(value.ceQuIlVeut),
+    faiblesseOuSolution: readOptionalString(value.faiblesseOuSolution),
+  };
+}
+
+function normalizeObjectifDesHeros(
+  value: unknown,
+): ScenarioData['objectifDesHeros'] {
+  if (!isRecord(value)) return undefined;
+  const phraseSimple = readString(value.phraseSimple);
+  if (!phraseSimple) return undefined;
+
+  return {
+    phraseSimple,
+    objectifVisible: readString(value.objectifVisible),
+    signeDeReussite: readString(value.signeDeReussite),
   };
 }
 
@@ -195,8 +309,12 @@ function normalizePnjs(value: unknown): ScenarioData['pnjs'] {
       {
         nom: readString(item.nom, 'PNJ sans nom'),
         role: readPnjRole(item.role),
+        fonctionNarrative: readFonctionNarrative(item.fonctionNarrative),
         description: readString(item.description),
         motivation: readString(item.motivation),
+        attitude: readOptionalString(item.attitude),
+        particularite: readOptionalString(item.particularite),
+        informationOuService: readOptionalString(item.informationOuService),
       },
     ];
   });
@@ -222,7 +340,11 @@ function normalizeActes(value: unknown): ScenarioData['actes'] {
         numero: readNumber(item.numero, index + 1),
         titre: readString(item.titre, `Acte ${index + 1}`),
         type: readString(item.type),
+        roleDansLHistoire: readRoleDansLHistoire(item.roleDansLHistoire),
         description: readString(item.description),
+        lieu: readOptionalString(item.lieu),
+        obstaclePrincipal: readOptionalString(item.obstaclePrincipal),
+        informationApprise: readOptionalString(item.informationApprise),
         options: readStringArray(item.options),
         dureeEstimeeMin: readNumber(item.dureeEstimeeMin),
         pointDeCoupure: readBoolean(item.pointDeCoupure),
@@ -231,6 +353,26 @@ function normalizeActes(value: unknown): ScenarioData['actes'] {
       },
     ];
   });
+}
+
+function normalizeFin(value: unknown): ScenarioData['fin'] {
+  if (!isRecord(value)) return undefined;
+
+  const recompense = readString(value.recompense);
+  if (
+    !readString(value.conditionDeVictoire) &&
+    !readString(value.sceneDeResolution) &&
+    !recompense
+  ) {
+    return undefined;
+  }
+
+  return {
+    conditionDeVictoire: readString(value.conditionDeVictoire),
+    sceneDeResolution: readString(value.sceneDeResolution),
+    recompense,
+    petiteSurpriseFinale: readOptionalString(value.petiteSurpriseFinale),
+  };
 }
 
 function normalizeActDetail(

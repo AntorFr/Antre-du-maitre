@@ -75,12 +75,12 @@ export function formatBattleMatForDisplay(mat: BattleMat): string {
 
 /**
  * Suggestions de cartes pour une rencontre donnée
- * Utilisé à l'étape STEP_8_RENCONTRES du chat de création
+ * Utilisé pour préparer les cartes dans les workflows d'acte et la todo.
  * Retourne max 3 cartes pertinentes
  */
 export function suggestBattleMatsForEncounter(options: {
   typeDefi: string;
-  ambiance: string;  // 'mystere' | 'humour' | 'action' | 'frisson'
+  ambiance: string;  // 'mystere' | 'humour' | 'action' | 'frisson' | 'merveilleux' | 'exploration'
   tags?: BattleMatTag[];
 }): BattleMat[] {
   const ambianceTagMap: Record<string, BattleMatTag[]> = {
@@ -88,6 +88,8 @@ export function suggestBattleMatsForEncounter(options: {
     humour:   ['village', 'batiment', 'exterieur', 'taverne'],
     action:   ['plaine', 'combat', 'montagne', 'exterieur'],
     frisson:  ['donjon', 'souterrain', 'lave', 'marais', 'glace'],
+    merveilleux: ['temple', 'foret', 'eau', 'jour'],
+    exploration: ['exploration', 'voyage', 'souterrain', 'exterieur'],
   };
 
   const ambianceTags = ambianceTagMap[options.ambiance] ?? [];

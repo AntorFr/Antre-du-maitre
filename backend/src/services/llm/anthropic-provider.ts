@@ -8,7 +8,6 @@ import type {
 import { z } from 'zod';
 
 import { env } from '../../config/env.js';
-import { getAllBattleMatsSummaryForLLM } from '../../data/battle-mats/index.js';
 import { getNextScenarioStep } from '../../domain/scenario-state.js';
 import { writeLlmErrorLog } from '../llm-error-log.js';
 import type {
@@ -166,10 +165,10 @@ Contraintes produit :
 - Réponds en français, ton simple et encourageant sans être bébé.
 - Tu peux utiliser quelques emojis dans le texte de reply ou les suggestions si cela rend le ton plus vivant, sans en abuser.
 - Une étape de création à la fois. Ne saute pas plusieurs étapes.
-- Tu peux piocher librement dans le bestiaire CoF DRS fourni dans le contexte.
-- Si tu proposes une carte Battle Mat, utilise uniquement un ID fourni dans le contexte.
+- Tu peux piocher dans le bestiaire CoF DRS fourni quand l'étape parle de l'antagoniste.
+- Ne prépare pas les Battle Mats dans ce workflow : elles seront choisies dans les workflows d'acte et la todo.
 - Les entités durables du monde doivent être proposées, pas ajoutées silencieusement.
-- Après validation finale, le scénario doit contenir actes, rencontres, durée et sessions.
+- Après validation finale, le scénario doit contenir une sensation, un lieu riche, une quête structurée, un antagoniste/cause, un objectif héros, des actes, quelques PNJs, une durée et une fin.
 
 Tu dois répondre uniquement avec un objet JSON valide, sans markdown, sans texte autour.
 Schéma :
@@ -208,11 +207,6 @@ function buildScenarioUserPrompt(
   input: ScenarioChatInput,
   expectedNextStep: ScenarioChatResponse['nextStep'],
 ) {
-  const maybeBattleMats =
-    input.scenario.currentStep === 'STEP_8_RENCONTRES'
-      ? `\nCatalogue Battle Mats autorisé :\n${getAllBattleMatsSummaryForLLM()}`
-      : '';
-
   return `Message utilisateur : ${input.message}
 Entrée vocale : ${input.voiceInput ? 'oui' : 'non'}
 Étape actuelle : ${input.scenario.currentStep}
@@ -225,19 +219,19 @@ Résumé du monde persistant :
 ${input.worldSummary || 'Aucune entité validée pour le moment.'}
 
 Candidats monstres CoF DRS disponibles pour cette étape :
-${safeStringify(input.monsterCatalog)}${maybeBattleMats}
+${safeStringify(input.monsterCatalog)}
 
 Règles par étape :
-- STEP_1_AMBIANCE : choisir ambiance parmi mystere, humour, action, frisson.
-- STEP_2_LIEU : créer lieu {nom, description} et proposer une entité LIEU.
-- STEP_3_QUETE : définir quete.
-- STEP_4_MECHANT : définir antagoniste {nom, nature, monsterId optionnel, motivation}. Utilise un monsterId si pertinent.
-- STEP_5_PNJS : ajouter 1 à 3 PNJs utiles.
-- STEP_6_GAMEPLAY : définir gameplay.types et gameplay.notes.
-- STEP_7_ACTES : produire 3 à 5 actes courts, avec options et durée estimée.
-- STEP_8_RENCONTRES : produire des rencontres concrètes dans scenarioUpdate.rencontres avec monsterId, nombre, acteNumero, contexte et, si utile, carteBattleMat canonique. Ta reply doit lister clairement chaque rencontre proposée avant de demander confirmation.
-- STEP_9_DUREE : produire sessionning réaliste pour 1 à 3 sessions.
-- STEP_10_RECAP : finaliser notesMJ/récompense, ne pas inventer un nouveau scénario.
+- STEP_1_SENSATION : choisir ambiance parmi mystere, humour, action, frisson, merveilleux, exploration. Question à poser : "Quelle sensation veux-tu donner à ton aventure ? Elle peut être mystérieuse, drôle, pleine d’action, un peu inquiétante, merveilleuse ou héroïque." Propose les choix : Mystère, Humour, Action, Frisson doux, Merveilleux, Exploration.
+- STEP_2_LIEU : créer un lieu riche {nom, type, imageForte, particulariteMagique, dangerPrincipal, endroitSecret optionnel, description} et proposer une entité LIEU.
+- STEP_3_QUETE : définir quete comme problème central structuré {phraseSimple, ceQuiNeVaPas, pourquoiCestGrave, pourquoiMaintenant, ceQuiArriveSiPersonneNagit}. L'urgence doit rester douce et adaptée aux enfants.
+- STEP_4_ANTAGONISTE : définir antagoniste comme cause du problème {type, nom, description, nature, monsterId optionnel, motivation, ceQuIlVeut, faiblesseOuSolution}. Ne force pas un méchant classique : créature incomprise, malentendu ou magie déréglée sont bienvenus.
+- STEP_5_OBJECTIF_HEROS : définir objectifDesHeros {phraseSimple, objectifVisible, signeDeReussite}.
+- STEP_6_ACTES : produire 3 à 5 grandes étapes dans actes, avec roleDansLHistoire, description, lieu optionnel, obstaclePrincipal ou informationApprise, options et durée estimée. Ne détaille pas encore les mécaniques de combat ou les Battle Mats.
+- STEP_7_PNJS : ajouter jusqu'à 3 PNJs importants dans pnjs. Chaque PNJ a nom, role parmi allie/neutre/ennemi, fonctionNarrative, attitude, motivation, particularite, informationOuService.
+- STEP_8_DUREE : produire sessionning réaliste et équilibrer actes[].dureeEstimeeMin.
+- STEP_9_FIN : produire fin {conditionDeVictoire, sceneDeResolution, recompense, petiteSurpriseFinale optionnel} et recopier recompense si utile.
+- STEP_10_RECAP : finaliser notesMJ, ne pas inventer un nouveau scénario. Gameplay détaillé, rencontres, stats blocks et Battle Mats seront préparés ensuite dans les workflows d'acte et la todo.
 
 Si le message suffit, stepComplete=true. Sinon stepComplete=false et scenarioUpdate=null ou partiel minimal.`;
 }

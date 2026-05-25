@@ -25,8 +25,15 @@ type Message = {
 };
 
 const WELCOME_MESSAGE =
-  "Bonjour ! Quelle ambiance veux-tu pour cette aventure : mystère, humour, action ou frisson doux ?";
-const DEFAULT_SUGGESTIONS = ['Mystère', 'Humour', 'Action'];
+  "Quelle sensation veux-tu donner à ton aventure ? Elle peut être mystérieuse, drôle, pleine d’action, un peu inquiétante, merveilleuse ou héroïque.";
+const DEFAULT_SUGGESTIONS = [
+  'Mystère',
+  'Humour',
+  'Action',
+  'Frisson doux',
+  'Merveilleux',
+  'Exploration',
+];
 const COMPLETE_MESSAGE =
   "Cette aventure est prête. Si tu veux la modifier, décris-moi la retouche : je repasserai par le fil Merlin.";
 const COMPLETE_SUGGESTIONS = [
@@ -368,7 +375,7 @@ export function Create({
           </div>
           <p className="mt-2 text-[11px] leading-5 text-wizard-400">
             {data.quete
-              ? `Objectif : ${data.quete}`
+              ? `Objectif : ${data.quete.phraseSimple}`
               : 'Merlin construit le scénario étape par étape.'}
           </p>
         </div>
@@ -809,6 +816,8 @@ function suggestionIcon(suggestion: string): IconName {
   if (lower.includes('enquête') || lower.includes('mystère')) return 'search';
   if (lower.includes('humour')) return 'spark';
   if (lower.includes('frisson')) return 'moon';
+  if (lower.includes('merveille')) return 'spark';
+  if (lower.includes('explor')) return 'map';
   if (lower.includes('sauver')) return 'shield';
   if (lower.includes('objet')) return 'gem';
   return 'spark';

@@ -1,0 +1,1210 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>L'Antre du Maître — Maquette v3 (nouvelle navigation)</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/tabler-icons.min.css">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --p-dark:#2A1F5C;
+  --p-mid:#534AB7;
+  --p-light:#AFA9EC;
+  --p-bg:#EEEDFE;
+  --p-deep:#1a1440;
+  --p-card:#3C3489;
+  --color-bg:#f0eff5;
+  --color-surface:#ffffff;
+  --color-surface-2:#f5f5f3;
+  --color-surface-3:#f7f6f1;
+  --color-border:rgba(0,0,0,0.12);
+  --color-border-md:rgba(0,0,0,0.22);
+  --color-text:#1a1a1a;
+  --color-text-2:#475569;
+  --color-text-3:#64748b;
+  --color-text-4:#94a3b8;
+  --r-md:8px;
+  --r-lg:12px;
+  --font:system-ui,-apple-system,sans-serif;
+}
+body{font-family:var(--font);background:var(--color-bg);min-height:100vh;display:flex;align-items:flex-start;justify-content:center;padding:24px;color:#020617}
+
+/* ── iPad shell ── */
+.ipad-wrap{width:100%;max-width:1120px;display:flex;flex-direction:column;gap:12px}
+.screen-switcher{display:flex;gap:6px;justify-content:center;flex-wrap:wrap}
+.switcher-btn{background:var(--color-surface);border:0.5px solid var(--color-border);border-radius:var(--r-md);padding:8px 14px;font-size:12px;color:var(--color-text-3);cursor:pointer;font-family:var(--font);display:inline-flex;align-items:center;gap:6px}
+.switcher-btn i{font-size:14px}
+.switcher-btn.active{background:var(--p-mid);color:#fff;border-color:var(--p-mid)}
+.switcher-btn:hover:not(.active){background:var(--p-bg);color:var(--p-card);border-color:var(--p-light)}
+.ipad{width:100%;height:calc(100vh - 96px);min-height:600px;background:var(--color-surface);border-radius:20px;border:1px solid var(--color-border);overflow:hidden;display:flex;flex-direction:column;box-shadow:0 4px 32px rgba(0,0,0,0.10)}
+
+/* ══════════════════════════════════════
+   TOPBAR
+══════════════════════════════════════ */
+.topbar{background:var(--p-dark);height:52px;display:flex;align-items:center;padding:0 14px;gap:10px;flex-shrink:0}
+.topbar-brand{display:flex;align-items:center;gap:8px}
+.topbar-brand-icon{width:30px;height:30px;border-radius:50%;background:var(--p-mid);border:1.5px solid var(--p-light);display:flex;align-items:center;justify-content:center;color:#EEEDFE;flex-shrink:0}
+.topbar-brand-icon i{font-size:14px}
+.topbar-title{color:#EEEDFE;font-size:14px;font-weight:600}
+.topbar-sub{color:var(--p-light);font-size:11px;margin-left:2px}
+.topbar-back{display:inline-flex;align-items:center;gap:6px;background:rgba(255,255,255,0.06);border:0.5px solid rgba(255,255,255,0.12);border-radius:var(--r-md);padding:6px 11px;color:var(--p-light);font-size:12px;cursor:pointer;font-family:var(--font);min-height:34px;margin-left:6px}
+.topbar-back:hover{background:rgba(255,255,255,0.12);color:#fff}
+.topbar-back i{font-size:14px}
+.topbar-context{display:flex;align-items:center;gap:8px;padding-left:8px;border-left:1px solid rgba(255,255,255,0.12);margin-left:4px}
+.topbar-context i{color:var(--p-light);font-size:15px}
+.topbar-context-name{color:#EEEDFE;font-size:14px;font-weight:600}
+.topbar-spacer{flex:1}
+.topbar-badge{background:rgba(20,98,77,0.25);border:0.5px solid rgba(159,225,203,0.4);border-radius:20px;padding:3px 10px;color:#9FE1CB;font-size:11px;display:flex;align-items:center;gap:5px;white-space:nowrap;font-weight:500}
+.topbar-badge.draft{background:rgba(180,83,9,0.25);border-color:rgba(252,211,77,0.4);color:#FCD34D}
+.topbar-icon-btn{width:34px;height:34px;border-radius:var(--r-md);background:transparent;border:0.5px solid rgba(255,255,255,0.15);color:var(--p-light);display:flex;align-items:center;justify-content:center;cursor:pointer}
+.topbar-icon-btn:hover{background:rgba(255,255,255,0.07);color:#fff}
+.topbar-icon-btn i{font-size:15px}
+
+/* User menu */
+.user-menu-wrap{position:relative}
+.user-avatar{width:34px;height:34px;border-radius:50%;background:var(--p-mid);border:1.5px solid var(--p-light);color:#EEEDFE;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:600;cursor:pointer;font-family:var(--font)}
+.user-avatar:hover{border-color:#fff}
+.user-menu{position:absolute;top:calc(100% + 6px);right:0;background:var(--color-surface);border:0.5px solid var(--color-border);border-radius:var(--r-md);box-shadow:0 8px 32px rgba(0,0,0,0.16);min-width:240px;padding:6px;z-index:50;display:none}
+.user-menu.open{display:block}
+.user-menu-header{padding:10px 12px 9px;border-bottom:0.5px solid var(--color-border);margin-bottom:6px}
+.user-menu-name{font-size:13px;font-weight:600;color:#0f172a}
+.user-menu-role{font-size:11px;color:var(--color-text-3);margin-top:2px}
+.user-menu-item{display:flex;align-items:center;gap:10px;padding:9px 10px;border-radius:var(--r-md);font-size:13px;color:#0f172a;cursor:pointer;background:transparent;border:none;font-family:var(--font);width:100%;text-align:left;min-height:36px}
+.user-menu-item i{font-size:16px;color:var(--color-text-3)}
+.user-menu-item:hover{background:var(--p-bg);color:var(--p-card)}
+.user-menu-item:hover i{color:var(--p-mid)}
+.user-menu-divider{height:0.5px;background:var(--color-border);margin:4px 0}
+
+/* ══════════════════════════════════════
+   BODY + TABS + SCREEN
+══════════════════════════════════════ */
+.body{display:flex;flex-direction:column;overflow:hidden;flex:1;min-height:0}
+.screen{display:none;flex:1;overflow:hidden;flex-direction:column;min-height:0}
+.screen.active{display:flex}
+
+/* Tabs */
+.tabs{display:flex;align-items:center;background:var(--color-surface);border-bottom:1px solid rgba(0,0,0,0.1);padding:0 16px;flex-shrink:0}
+.tab{background:transparent;border:none;border-bottom:2px solid transparent;padding:11px 14px;font-size:13px;color:var(--color-text-3);cursor:pointer;font-family:var(--font);display:flex;align-items:center;gap:6px;margin-bottom:-1px;min-height:44px;font-weight:500}
+.tab i{font-size:15px}
+.tab.active{border-bottom-color:var(--p-mid);color:var(--p-card)}
+.tab:hover:not(.active){color:#0f172a}
+.tab-badge{font-size:10px;padding:2px 7px;border-radius:99px;background:var(--color-surface-2);color:var(--color-text-3);margin-left:2px;font-weight:600}
+.tab-badge.warn{background:#fef3c7;color:#b45309}
+.tabs-spacer{flex:1}
+.tab-action{display:inline-flex;align-items:center;gap:6px;background:var(--p-mid);border:none;border-radius:var(--r-md);padding:7px 13px;color:#fff;font-size:12px;font-weight:600;cursor:pointer;font-family:var(--font);margin:6px 0;min-height:34px}
+.tab-action:hover{background:var(--p-card)}
+.tab-action i{font-size:14px}
+.tab-icon-btn{display:inline-flex;align-items:center;gap:5px;background:transparent;border:0.5px solid var(--color-border-md);border-radius:var(--r-md);padding:6px 11px;color:var(--color-text-3);font-size:12px;cursor:pointer;font-family:var(--font);margin:6px 4px 6px 0;min-height:34px;font-weight:500}
+.tab-icon-btn:hover{background:var(--p-bg);color:var(--p-card);border-color:var(--p-light)}
+.tab-icon-btn i{font-size:14px}
+
+/* Breadcrumb */
+.breadcrumb{display:flex;align-items:center;gap:6px;padding:8px 18px;background:var(--color-surface-3);border-bottom:1px solid rgba(0,0,0,0.08);flex-shrink:0}
+.breadcrumb-back{display:inline-flex;align-items:center;gap:5px;background:transparent;border:none;color:var(--color-text-3);font-size:12px;cursor:pointer;font-family:var(--font);padding:4px 8px;border-radius:5px;font-weight:500}
+.breadcrumb-back:hover{color:var(--p-mid);background:rgba(83,74,183,0.06)}
+.breadcrumb-back i{font-size:13px}
+.breadcrumb-sep{color:var(--color-text-4);font-size:11px}
+.breadcrumb-current{font-size:12px;color:#0f172a;font-weight:500}
+
+/* ══════════════════════════════════════
+   HUB
+══════════════════════════════════════ */
+.hub-layout{flex:1;display:grid;grid-template-columns:220px minmax(0,1fr);min-height:0;overflow:hidden}
+.hub-sidebar{background:var(--color-surface-3);border-right:1px solid rgba(0,0,0,0.08);padding:18px 14px;display:flex;flex-direction:column;gap:4px;overflow-y:auto}
+.hub-nav-item{display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:var(--r-md);font-size:13px;color:#0f172a;cursor:pointer;background:transparent;border:none;font-family:var(--font);text-align:left;min-height:40px;font-weight:500}
+.hub-nav-item i{font-size:18px;color:var(--color-text-3)}
+.hub-nav-item.active{background:#fff;color:var(--p-card);box-shadow:0 0 0 1px var(--p-light),0 1px 4px rgba(83,74,183,0.12)}
+.hub-nav-item.active i{color:var(--p-mid)}
+.hub-nav-item:not(.active):hover{background:rgba(255,255,255,0.6)}
+.hub-nav-count{margin-left:auto;font-size:11px;color:var(--color-text-4);font-weight:600}
+.hub-nav-item.active .hub-nav-count{color:var(--p-mid)}
+
+.hub-sidebar-card{margin-top:16px;background:#fff;border-radius:var(--r-lg);padding:14px;box-shadow:0 0 0 1px rgba(0,0,0,0.08)}
+.hub-sidebar-card-kicker{font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:0.16em;color:var(--p-mid)}
+.hub-sidebar-card-title{font-size:13px;font-weight:600;color:#0f172a;margin-top:4px}
+.hub-sidebar-card-help{font-size:11px;line-height:1.5;color:var(--color-text-3);margin-top:6px}
+.hub-sidebar-card-cta{margin-top:10px;display:inline-flex;align-items:center;gap:5px;background:var(--p-mid);border:none;border-radius:var(--r-md);padding:7px 12px;color:#fff;font-size:12px;font-weight:600;cursor:pointer;font-family:var(--font)}
+.hub-sidebar-card-cta i{font-size:13px}
+
+.hub-content{padding:20px 24px;overflow-y:auto;display:flex;flex-direction:column;gap:18px;flex:1;min-height:0;background:#fff}
+.hub-content-header{display:flex;justify-content:space-between;align-items:flex-end;gap:16px;flex-shrink:0}
+.hub-kicker{font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:0.16em;color:var(--p-mid)}
+.hub-content-header h2{font-size:20px;font-weight:600;color:#020617;margin-top:3px}
+.hub-content-header p{font-size:13px;color:var(--color-text-3);margin-top:4px}
+.hub-search{position:relative;width:300px;flex-shrink:0}
+.hub-search input{width:100%;background:var(--color-surface-2);border:1px solid rgba(0,0,0,0.1);border-radius:var(--r-md);padding:10px 14px 10px 38px;font-size:13px;color:#0f172a;font-family:var(--font);min-height:40px;outline:none;transition:border-color .15s,background .15s}
+.hub-search input::placeholder{color:var(--color-text-4)}
+.hub-search input:focus{border-color:var(--p-mid);background:#fff;box-shadow:0 0 0 3px rgba(83,74,183,0.12)}
+.hub-search i{position:absolute;left:13px;top:50%;transform:translateY(-50%);font-size:16px;color:var(--color-text-3);pointer-events:none}
+
+.scenarios-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:14px}
+.scenario-card{background:#fff;border-radius:var(--r-lg);padding:16px;cursor:pointer;display:flex;flex-direction:column;gap:8px;box-shadow:0 0 0 1px rgba(0,0,0,0.1),0 1px 2px rgba(0,0,0,0.05);transition:box-shadow .15s,transform .15s;min-height:160px}
+.scenario-card:hover{box-shadow:0 0 0 1px var(--p-light),0 4px 12px rgba(83,74,183,0.12);transform:translateY(-1px)}
+.scenario-card-top{display:flex;justify-content:space-between;align-items:flex-start;gap:10px}
+.scenario-card-kicker{font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:0.14em;color:var(--p-mid)}
+.scenario-card-title{font-size:15px;font-weight:600;color:#020617;margin-top:3px;line-height:1.3}
+.scenario-card-status{font-size:10px;padding:3px 9px;border-radius:99px;flex-shrink:0;letter-spacing:0.05em;text-transform:uppercase;font-weight:700}
+.scenario-card-status.complete{background:#dcfce7;color:#047857}
+.scenario-card-status.draft{background:#fef3c7;color:#b45309}
+.scenario-card-desc{font-size:12px;color:var(--color-text-3);line-height:1.55;flex:1}
+.scenario-card-foot{display:flex;align-items:center;gap:14px;font-size:11px;color:var(--color-text-4);margin-top:6px;padding-top:10px;border-top:1px solid rgba(0,0,0,0.08);font-weight:500}
+.scenario-card-foot span{display:inline-flex;align-items:center;gap:4px}
+.scenario-card-foot i{font-size:13px}
+
+.scenario-card.new{background:linear-gradient(135deg,#EEEDFE 0%,#fff 100%);box-shadow:0 0 0 1.5px var(--p-light);align-items:center;justify-content:center;text-align:center;min-height:160px;gap:8px}
+.scenario-card.new:hover{box-shadow:0 0 0 1.5px var(--p-mid),0 4px 12px rgba(83,74,183,0.18)}
+.scenario-card-new-icon{width:48px;height:48px;border-radius:50%;background:var(--p-mid);color:#fff;display:flex;align-items:center;justify-content:center;border:2px solid var(--p-light)}
+.scenario-card-new-icon i{font-size:22px}
+.scenario-card.new .scenario-card-title{color:var(--p-card);margin-top:0}
+.scenario-card.new .scenario-card-desc{color:var(--p-mid);text-align:center;flex:none}
+
+/* ══════════════════════════════════════
+   OVERVIEW (vue d'ensemble du scénario)
+══════════════════════════════════════ */
+.overview-scroll{flex:1;overflow-y:auto;background:#faf9f5}
+.overview-inner{max-width:1000px;margin:0 auto;padding:20px 24px;display:flex;flex-direction:column;gap:22px}
+
+.overview-hero{background:#fff;border-radius:var(--r-lg);padding:20px 22px;box-shadow:0 0 0 1px rgba(0,0,0,0.08),0 1px 3px rgba(0,0,0,0.04);display:grid;grid-template-columns:1fr auto;gap:20px;align-items:flex-end}
+.overview-hero-left{min-width:0}
+.overview-hero-kicker{font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:0.16em;color:var(--p-mid)}
+.overview-hero h1{font-size:22px;font-weight:700;color:#020617;margin-top:6px;line-height:1.2}
+.overview-hero-desc{font-size:13px;line-height:1.6;color:var(--color-text-3);margin-top:8px;max-width:600px}
+.overview-metrics{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;min-width:380px}
+.metric-box{background:var(--color-surface-2);border-radius:var(--r-md);padding:10px 14px;text-align:right;min-width:0}
+.metric-label{font-size:10px;color:var(--color-text-4);text-transform:uppercase;letter-spacing:0.12em;font-weight:600}
+.metric-value{font-size:15px;font-weight:700;color:#020617;margin-top:2px}
+
+.section{display:flex;flex-direction:column;gap:12px}
+.section-head{display:flex;justify-content:space-between;align-items:flex-end;gap:12px}
+.section-head-left{min-width:0}
+.section-kicker{font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:0.16em;color:var(--p-mid)}
+.section-title{font-size:16px;font-weight:600;color:#020617;margin-top:3px}
+.section-help{font-size:12px;color:var(--color-text-3);margin-top:3px;line-height:1.5}
+.section-cta{display:inline-flex;align-items:center;gap:5px;background:#fff;border:1px solid rgba(0,0,0,0.12);border-radius:var(--r-md);padding:7px 12px;font-size:12px;color:#0f172a;cursor:pointer;font-family:var(--font);min-height:34px;font-weight:500;box-shadow:0 1px 2px rgba(0,0,0,0.04)}
+.section-cta:hover{background:var(--p-bg);border-color:var(--p-light);color:var(--p-card)}
+.section-cta i{font-size:14px;color:var(--p-mid)}
+
+/* Fondations */
+.fondations-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+.foundation-card{background:#fff;border-radius:var(--r-lg);padding:14px 16px;cursor:pointer;display:flex;flex-direction:column;gap:8px;box-shadow:0 0 0 1px rgba(0,0,0,0.08);transition:box-shadow .15s}
+.foundation-card:hover{box-shadow:0 0 0 1px var(--p-light),0 2px 8px rgba(83,74,183,0.10)}
+.foundation-head{display:flex;align-items:center;gap:8px}
+.foundation-icon{width:32px;height:32px;border-radius:var(--r-md);display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.foundation-icon i{font-size:16px}
+.foundation-icon.lieu{background:#dcfce7;color:#047857}
+.foundation-icon.quete{background:#ede9fe;color:#6d28d9}
+.foundation-icon.antago{background:#fee2e2;color:#b91c1c}
+.foundation-icon.ambiance{background:#fef3c7;color:#b45309}
+.foundation-lbl{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.12em;color:var(--color-text-4)}
+.foundation-name{font-size:14px;font-weight:600;color:#020617;margin-top:1px}
+.foundation-desc{font-size:12px;color:var(--color-text-3);line-height:1.55}
+.foundation-empty{font-size:12px;color:var(--color-text-4);font-style:italic;line-height:1.55}
+
+/* PNJs */
+.pnj-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
+.pnj-card{background:#fff;border-radius:var(--r-md);padding:11px 13px;cursor:pointer;display:flex;align-items:center;gap:11px;box-shadow:0 0 0 1px rgba(0,0,0,0.08);transition:box-shadow .15s;min-height:64px}
+.pnj-card:hover{box-shadow:0 0 0 1px var(--p-light),0 2px 6px rgba(83,74,183,0.10)}
+.pnj-avatar{width:38px;height:38px;border-radius:50%;background:linear-gradient(135deg,var(--p-mid),var(--p-card));color:#fff;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;flex-shrink:0;border:1.5px solid var(--p-light);box-shadow:0 1px 3px rgba(83,74,183,0.25)}
+.pnj-info{flex:1;min-width:0}
+.pnj-name{font-size:13px;font-weight:600;color:#020617;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.pnj-role{font-size:11px;color:var(--color-text-3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-top:2px}
+
+/* Actes */
+.actes-list{display:flex;flex-direction:column;gap:10px}
+.acte-card{background:#fff;border-radius:var(--r-lg);padding:14px 16px;cursor:pointer;box-shadow:0 0 0 1px rgba(0,0,0,0.08);transition:box-shadow .15s,transform .15s;display:flex;gap:14px;align-items:flex-start}
+.acte-card:hover{box-shadow:0 0 0 1px var(--p-light),0 4px 12px rgba(83,74,183,0.10);transform:translateY(-1px)}
+.acte-number{width:38px;height:38px;border-radius:50%;background:var(--p-bg);color:var(--p-card);display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:700;flex-shrink:0;border:1.5px solid var(--p-light)}
+.acte-body{flex:1;min-width:0}
+.acte-top{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;margin-bottom:5px}
+.acte-eyebrow{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.12em;color:var(--p-mid)}
+.acte-title{font-size:14px;font-weight:600;color:#020617;margin-top:2px}
+.acte-duration{display:inline-flex;align-items:center;gap:4px;background:var(--color-surface-2);color:var(--color-text-2);font-size:11px;padding:4px 10px;border-radius:99px;flex-shrink:0;font-weight:600}
+.acte-duration i{font-size:12px}
+.acte-desc{font-size:12.5px;color:var(--color-text-3);line-height:1.55}
+.acte-tags{display:flex;flex-wrap:wrap;gap:5px;margin-top:8px}
+.acte-tag{font-size:10px;padding:3px 8px;border-radius:99px;background:var(--color-surface-2);color:var(--color-text-3);font-weight:600}
+
+/* ══════════════════════════════════════
+   FICHE PNJ
+══════════════════════════════════════ */
+.pnj-hero{background:#fff;border-bottom:1px solid rgba(0,0,0,0.08);padding:22px 28px;display:flex;align-items:center;gap:18px;flex-shrink:0}
+.pnj-hero-avatar{width:76px;height:76px;border-radius:50%;background:linear-gradient(135deg,var(--p-mid),var(--p-card));color:#fff;display:flex;align-items:center;justify-content:center;font-size:24px;font-weight:700;flex-shrink:0;border:2.5px solid var(--p-light);box-shadow:0 4px 12px rgba(83,74,183,0.25)}
+.pnj-hero-meta{flex:1;min-width:0}
+.pnj-hero-kicker{font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:0.16em;color:var(--p-mid)}
+.pnj-hero-meta h1{font-size:22px;font-weight:700;color:#020617;margin-top:4px;line-height:1.2}
+.pnj-hero-sub{display:flex;align-items:center;gap:14px;margin-top:6px}
+.pnj-hero-sub-item{display:inline-flex;align-items:center;gap:5px;font-size:12px;color:var(--color-text-3);font-weight:500}
+.pnj-hero-sub-item i{font-size:13px;color:var(--color-text-4)}
+.pnj-hero-edit{display:inline-flex;align-items:center;gap:7px;background:var(--p-mid);border:none;border-radius:var(--r-md);padding:11px 18px;color:#fff;font-size:13px;font-weight:600;cursor:pointer;font-family:var(--font);min-height:42px;white-space:nowrap;box-shadow:0 2px 6px rgba(83,74,183,0.25)}
+.pnj-hero-edit:hover{background:var(--p-card)}
+.pnj-hero-edit i{font-size:16px}
+
+.pnj-content{flex:1;overflow-y:auto;background:#faf9f5;padding:22px 28px;display:flex;flex-direction:column;gap:18px}
+.pnj-fields-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px}
+.pnj-field{background:#fff;border-radius:var(--r-lg);padding:16px 18px;box-shadow:0 0 0 1px rgba(0,0,0,0.08),0 1px 2px rgba(0,0,0,0.03)}
+.pnj-field.full{grid-column:1/-1}
+.pnj-field-head{display:flex;align-items:center;gap:8px;margin-bottom:9px}
+.pnj-field-icon{width:26px;height:26px;border-radius:6px;background:var(--p-bg);color:var(--p-mid);display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.pnj-field-icon i{font-size:14px}
+.pnj-field-lbl{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.14em;color:var(--p-mid)}
+.pnj-field-val{font-size:13px;color:#0f172a;line-height:1.65}
+
+.pnj-relation{background:#fff;border-radius:var(--r-lg);padding:16px 18px;box-shadow:0 0 0 1px rgba(0,0,0,0.08)}
+.pnj-relation-kicker{font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:0.16em;color:var(--p-mid);display:flex;align-items:center;gap:6px}
+.pnj-relation-list{display:flex;gap:10px;margin-top:10px;flex-wrap:wrap}
+.pnj-relation-pill{display:inline-flex;align-items:center;gap:6px;background:var(--color-surface-2);border-radius:99px;padding:5px 11px 5px 5px;font-size:12px;color:#0f172a;font-weight:500;cursor:pointer;transition:background .15s}
+.pnj-relation-pill:hover{background:var(--p-bg);color:var(--p-card)}
+.pnj-relation-pill-avatar{width:22px;height:22px;border-radius:50%;background:var(--p-mid);color:#fff;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700}
+.pnj-relation-pill-acte{background:var(--p-bg);color:var(--p-card);padding:5px 11px}
+
+.pnj-hint{background:linear-gradient(135deg,#EEEDFE 0%,#fff 100%);border-radius:var(--r-md);padding:12px 16px;display:flex;align-items:flex-start;gap:10px;box-shadow:0 0 0 1px var(--p-light)}
+.pnj-hint i{font-size:18px;color:var(--p-mid);flex-shrink:0;margin-top:1px}
+.pnj-hint p{font-size:12px;color:var(--p-card);line-height:1.6}
+.pnj-hint b{font-weight:600}
+
+/* ══════════════════════════════════════
+   FICHE ACTE
+══════════════════════════════════════ */
+.acte-hero{background:#fff;border-bottom:1px solid rgba(0,0,0,0.08);padding:22px 28px;display:grid;grid-template-columns:auto 1fr auto;gap:20px;align-items:center;flex-shrink:0}
+.acte-hero-number{width:76px;height:76px;border-radius:50%;background:linear-gradient(135deg,var(--p-mid),var(--p-card));color:#fff;display:flex;align-items:center;justify-content:center;font-size:28px;font-weight:700;flex-shrink:0;border:2.5px solid var(--p-light);box-shadow:0 4px 12px rgba(83,74,183,0.25)}
+.acte-hero-meta{min-width:0}
+.acte-hero-kicker{font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:0.16em;color:var(--p-mid)}
+.acte-hero-meta h1{font-size:22px;font-weight:700;color:#020617;margin-top:4px;line-height:1.2}
+.acte-hero-sub{display:flex;align-items:center;gap:14px;margin-top:8px;flex-wrap:wrap}
+.acte-hero-sub-item{display:inline-flex;align-items:center;gap:5px;font-size:12px;color:var(--color-text-3);font-weight:500}
+.acte-hero-sub-item i{font-size:13px;color:var(--color-text-4)}
+.acte-hero-sub-item.lieu i{color:#047857}
+.acte-hero-sub-tag{display:inline-flex;align-items:center;gap:5px;background:var(--p-bg);color:var(--p-card);font-size:11px;padding:3px 10px;border-radius:99px;font-weight:600}
+.acte-hero-edit{display:inline-flex;align-items:center;gap:7px;background:var(--p-mid);border:none;border-radius:var(--r-md);padding:11px 18px;color:#fff;font-size:13px;font-weight:600;cursor:pointer;font-family:var(--font);min-height:42px;white-space:nowrap;box-shadow:0 2px 6px rgba(83,74,183,0.25)}
+.acte-hero-edit:hover{background:var(--p-card)}
+.acte-hero-edit i{font-size:16px}
+
+.acte-content{flex:1;overflow-y:auto;background:#faf9f5;padding:22px 28px;display:flex;flex-direction:column;gap:20px}
+
+.acte-section{display:flex;flex-direction:column;gap:10px}
+.acte-section-head{display:flex;align-items:center;justify-content:space-between;gap:10px}
+.acte-section-head-left{display:flex;align-items:center;gap:8px}
+.acte-section-icon{width:28px;height:28px;border-radius:7px;background:var(--p-bg);color:var(--p-mid);display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.acte-section-icon i{font-size:15px}
+.acte-section-kicker{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.14em;color:var(--p-mid)}
+.acte-section-help{font-size:12px;color:var(--color-text-3);font-weight:400;margin-left:6px}
+
+/* Objectif card (large) */
+.acte-objectif{background:#fff;border-radius:var(--r-lg);padding:18px 22px;box-shadow:0 0 0 1px rgba(0,0,0,0.08),0 1px 3px rgba(0,0,0,0.04);border-left:4px solid var(--p-mid)}
+.acte-objectif-kicker{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.14em;color:var(--p-mid);display:flex;align-items:center;gap:6px}
+.acte-objectif-kicker i{font-size:14px}
+.acte-objectif-text{font-size:15px;color:#020617;line-height:1.6;margin-top:8px;font-weight:500}
+.acte-objectif-enjeu{font-size:13px;color:var(--color-text-3);line-height:1.6;margin-top:10px;padding-top:10px;border-top:1px solid rgba(0,0,0,0.08);font-style:italic}
+
+/* Voies */
+.voies-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}
+.voie-card{background:#fff;border-radius:var(--r-lg);padding:14px 16px;box-shadow:0 0 0 1px rgba(0,0,0,0.08);display:flex;flex-direction:column;gap:6px;min-height:120px;position:relative}
+.voie-card-num{position:absolute;top:-8px;left:14px;width:22px;height:22px;border-radius:50%;background:var(--p-mid);color:#fff;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;border:2.5px solid #faf9f5}
+.voie-card-head{display:flex;align-items:center;gap:7px;margin-top:6px}
+.voie-card-icon{width:24px;height:24px;border-radius:5px;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.voie-card-icon.investigate{background:#dbeafe;color:#1d4ed8}
+.voie-card-icon.diplomatic{background:#fce7f3;color:#be185d}
+.voie-card-icon.direct{background:#fee2e2;color:#b91c1c}
+.voie-card-icon i{font-size:13px}
+.voie-card-title{font-size:13px;font-weight:600;color:#020617;line-height:1.3}
+.voie-card-desc{font-size:12px;color:var(--color-text-3);line-height:1.55}
+
+/* Rencontres */
+.rencontres-list{display:flex;flex-direction:column;gap:10px}
+.rencontre-card{background:#fff;border-radius:var(--r-lg);padding:14px 16px;box-shadow:0 0 0 1px rgba(0,0,0,0.08);display:grid;grid-template-columns:auto 1fr auto;gap:14px;align-items:center}
+.rencontre-icon{width:42px;height:42px;border-radius:10px;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.rencontre-icon.combat{background:#fee2e2;color:#b91c1c}
+.rencontre-icon.enigme{background:#ede9fe;color:#6d28d9}
+.rencontre-icon.roleplay{background:#dbeafe;color:#1d4ed8}
+.rencontre-icon i{font-size:20px}
+.rencontre-body{min-width:0}
+.rencontre-type{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.12em;color:var(--color-text-4)}
+.rencontre-title{font-size:13.5px;font-weight:600;color:#020617;margin-top:2px}
+.rencontre-desc{font-size:12px;color:var(--color-text-3);line-height:1.55;margin-top:4px}
+.rencontre-meta{display:flex;flex-direction:column;gap:4px;font-size:11px;color:var(--color-text-3);text-align:right;font-weight:500;white-space:nowrap}
+.rencontre-meta-item{display:inline-flex;align-items:center;gap:4px;justify-content:flex-end}
+.rencontre-meta-item i{font-size:12px}
+
+/* Scènes (timeline) */
+.scenes-timeline{background:#fff;border-radius:var(--r-lg);padding:16px 18px;box-shadow:0 0 0 1px rgba(0,0,0,0.08);display:flex;flex-direction:column;gap:0;position:relative}
+.scene-row{display:grid;grid-template-columns:auto 1fr;gap:14px;padding:10px 0;position:relative}
+.scene-row:not(:last-child)::after{content:"";position:absolute;left:13px;top:32px;bottom:-10px;width:1.5px;background:var(--p-light);opacity:0.5}
+.scene-marker{width:26px;height:26px;border-radius:50%;background:var(--p-bg);color:var(--p-card);display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;flex-shrink:0;border:1.5px solid var(--p-light);z-index:1;position:relative}
+.scene-content{padding-top:2px;min-width:0}
+.scene-title{font-size:13px;font-weight:600;color:#020617}
+.scene-desc{font-size:12px;color:var(--color-text-3);line-height:1.55;margin-top:3px}
+.scene-time{font-size:10px;color:var(--color-text-4);margin-left:8px;font-weight:500}
+
+/* Timing & coupes */
+.timing-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}
+.timing-box{background:#fff;border-radius:var(--r-md);padding:12px 14px;box-shadow:0 0 0 1px rgba(0,0,0,0.08);text-align:center}
+.timing-box-icon{color:var(--p-mid);display:flex;justify-content:center;margin-bottom:6px}
+.timing-box-icon i{font-size:18px}
+.timing-box-label{font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:0.12em;color:var(--color-text-4)}
+.timing-box-value{font-size:14px;font-weight:700;color:#020617;margin-top:3px}
+.timing-coupe{background:linear-gradient(135deg,#fef3c7 0%,#fff 100%);border-radius:var(--r-md);padding:11px 14px;display:flex;align-items:flex-start;gap:9px;box-shadow:0 0 0 1px rgba(180,83,9,0.2)}
+.timing-coupe i{font-size:16px;color:#b45309;flex-shrink:0;margin-top:1px}
+.timing-coupe-body{flex:1;min-width:0}
+.timing-coupe-label{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.14em;color:#b45309}
+.timing-coupe-text{font-size:12px;color:#78350f;line-height:1.55;margin-top:3px;font-weight:500}
+
+/* PNJs présents */
+.pnj-presents-row{display:flex;gap:10px;flex-wrap:wrap}
+.pnj-present-pill{display:inline-flex;align-items:center;gap:7px;background:#fff;border-radius:99px;padding:5px 12px 5px 5px;box-shadow:0 0 0 1px rgba(0,0,0,0.08);font-size:12.5px;color:#020617;font-weight:500;cursor:pointer;transition:box-shadow .15s,background .15s}
+.pnj-present-pill:hover{background:var(--p-bg);color:var(--p-card);box-shadow:0 0 0 1px var(--p-light)}
+.pnj-present-pill-avatar{width:26px;height:26px;border-radius:50%;background:linear-gradient(135deg,var(--p-mid),var(--p-card));color:#fff;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;border:1.5px solid var(--p-light)}
+
+/* ══════════════════════════════════════
+   WORKFLOW MERLIN (full-screen)
+══════════════════════════════════════ */
+.wf-body{flex:1;display:flex;overflow:hidden;min-height:0}
+
+/* LEFT PANEL — Merlin avatar + bubble */
+.wf-left{width:260px;background:var(--p-deep);display:flex;flex-direction:column;align-items:center;padding:18px 16px;gap:14px;flex-shrink:0;border-right:0.5px solid rgba(255,255,255,0.07)}
+.wf-wizard-wrap{position:relative;display:flex;align-items:center;justify-content:center;width:100px;height:100px;margin-top:6px}
+.wf-ring{position:absolute;width:82px;height:82px;border-radius:50%;border:1.5px solid #7F77DD;opacity:0.4;animation:wfpulse 2s ease-in-out infinite}
+.wf-ring2{position:absolute;width:100px;height:100px;border-radius:50%;border:1px solid var(--p-mid);opacity:0.2;animation:wfpulse 2s ease-in-out infinite .4s}
+@keyframes wfpulse{0%,100%{transform:scale(1);opacity:.4}50%{transform:scale(1.08);opacity:.1}}
+.wf-wizard{width:68px;height:68px;border-radius:50%;background:var(--p-mid);border:2px solid var(--p-light);display:flex;align-items:center;justify-content:center;color:#EEEDFE}
+.wf-wizard i{font-size:30px}
+
+.wf-bubble{background:var(--p-card);border-radius:var(--r-lg);padding:12px 14px;width:100%;border-top-left-radius:4px}
+.wf-bubble p{color:#EEEDFE;font-size:13px;line-height:1.55;text-align:center}
+.wf-bubble .hint{color:var(--p-light);font-size:11px;margin-top:6px;text-align:center;font-style:italic}
+
+.wf-context-box{background:rgba(83,74,183,0.20);border-radius:var(--r-md);padding:10px 12px;width:100%;border-left:2.5px solid var(--p-mid)}
+.wf-context-kicker{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.14em;color:var(--p-light);margin-bottom:4px}
+.wf-context-target{font-size:13px;color:#EEEDFE;font-weight:600}
+.wf-context-sub{font-size:11px;color:var(--p-light);margin-top:2px}
+
+.wf-back-link{margin-top:auto;width:100%;display:inline-flex;align-items:center;justify-content:center;gap:6px;background:transparent;border:0.5px solid rgba(255,255,255,0.18);border-radius:var(--r-md);padding:9px 12px;color:var(--p-light);font-size:12px;font-weight:500;cursor:pointer;font-family:var(--font);min-height:36px}
+.wf-back-link:hover{background:rgba(255,255,255,0.06);color:#fff}
+.wf-back-link i{font-size:14px}
+
+/* RIGHT PANEL — Stepper + content */
+.wf-right{flex:1;display:flex;flex-direction:column;overflow:hidden;min-width:0;background:#faf9f5}
+
+/* Stepper bar */
+.wf-steps-bar{background:#fff;border-bottom:0.5px solid var(--color-border);padding:14px 22px;display:flex;align-items:center;flex-shrink:0;gap:6px}
+.wf-step{display:flex;flex-direction:column;align-items:center;gap:4px;cursor:pointer;min-width:0}
+.wf-step-dot{width:26px;height:26px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;border:1.5px solid var(--color-border)}
+.wf-step-dot.done{background:#dcfce7;color:#047857;border-color:#86efac}
+.wf-step-dot.active{background:var(--p-mid);color:#EEEDFE;border-color:var(--p-mid);box-shadow:0 0 0 4px rgba(83,74,183,0.15)}
+.wf-step-dot.todo{background:#f1f5f9;color:#94a3b8;border-color:#e2e8f0}
+.wf-step-lbl{font-size:10px;color:var(--color-text-3);white-space:nowrap;font-weight:500;max-width:80px;overflow:hidden;text-overflow:ellipsis}
+.wf-step.active .wf-step-lbl{color:var(--p-mid);font-weight:700}
+.wf-step.done .wf-step-lbl{color:#047857}
+.wf-step-line{flex:1;height:1.5px;background:var(--color-border);margin-bottom:18px;min-width:18px;border-radius:99px}
+.wf-step-line.done{background:#86efac}
+
+/* Content scroll */
+.wf-content{flex:1;overflow-y:auto;padding:24px 28px;display:flex;flex-direction:column;gap:18px}
+.wf-content-inner{max-width:760px;width:100%;margin:0 auto;display:flex;flex-direction:column;gap:18px}
+
+/* Chat thread */
+.wf-chat{display:flex;flex-direction:column;gap:14px}
+.wf-chat-row{display:flex;align-items:flex-start;gap:10px}
+.wf-chat-row.user{justify-content:flex-end}
+.wf-chat-avatar{margin-top:4px;width:32px;height:32px;border-radius:50%;background:var(--p-mid);color:var(--p-bg);display:flex;align-items:center;justify-content:center;flex-shrink:0;box-shadow:0 1px 2px rgba(0,0,0,0.08)}
+.wf-chat-avatar i{font-size:16px}
+.wf-chat-bubble{max-width:82%;border-radius:16px;background:#fff;padding:12px 16px;font-size:13px;line-height:1.6;color:#334155;box-shadow:0 1px 2px rgba(0,0,0,0.05);border:1px solid rgba(0,0,0,0.08)}
+.wf-chat-bubble.merlin{border-top-left-radius:4px}
+.wf-chat-bubble.user{max-width:72%;border:0;border-top-right-radius:4px;background:var(--p-mid);color:#fff}
+.wf-chat-kicker{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.16em;color:var(--p-mid);margin-bottom:4px}
+
+/* Current value box (édition mode) */
+.wf-current{background:linear-gradient(135deg,#fef3c7 0%,#fff 100%);border-radius:var(--r-md);padding:12px 14px;box-shadow:0 0 0 1px #fcd34d}
+.wf-current-kicker{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.14em;color:#b45309;display:flex;align-items:center;gap:5px;margin-bottom:4px}
+.wf-current-kicker i{font-size:13px}
+.wf-current-val{font-size:13px;color:#0f172a;line-height:1.55}
+
+/* Suggestions */
+.wf-suggestions{background:#fff;border-radius:var(--r-lg);padding:14px;box-shadow:0 1px 2px rgba(0,0,0,0.05),0 0 0 1px rgba(0,0,0,0.08)}
+.wf-suggestions-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px}
+.wf-suggestions-title{font-size:12px;font-weight:600;color:#475569}
+.wf-suggestions-hint{font-size:11px;font-style:italic;color:var(--p-mid)}
+.wf-suggestions-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+.wf-suggestion{min-height:80px;border:1px solid rgba(0,0,0,0.1);border-radius:var(--r-md);background:var(--color-surface-2);padding:11px 14px;display:flex;flex-direction:column;gap:5px;text-align:left;font-family:var(--font);cursor:pointer;transition:all .15s}
+.wf-suggestion:hover{border-color:var(--p-light);background:var(--p-bg)}
+.wf-suggestion.active{border-color:var(--p-mid);background:var(--p-bg);box-shadow:0 0 0 1px var(--p-mid)}
+.wf-suggestion-head{display:flex;align-items:center;gap:6px;font-size:12.5px;font-weight:600;color:#0f172a}
+.wf-suggestion-head i{font-size:14px;color:var(--p-mid)}
+.wf-suggestion.active .wf-suggestion-head{color:var(--p-card)}
+.wf-suggestion-desc{font-size:11.5px;line-height:1.45;color:var(--color-text-3)}
+.wf-suggestion-keep{background:#fff;border:1.5px dashed var(--p-light)}
+.wf-suggestion-keep .wf-suggestion-head i{color:#b45309}
+.wf-suggestion-custom{background:#fff;border:1px dashed rgba(0,0,0,0.2);grid-column:1/-1;min-height:auto;padding:10px 14px;align-items:center;flex-direction:row;justify-content:center;gap:6px;color:var(--color-text-3);font-size:12px}
+.wf-suggestion-custom:hover{border-color:var(--p-light);background:var(--p-bg);color:var(--p-card)}
+.wf-suggestion-custom i{font-size:14px}
+
+/* Input area */
+.wf-input-area{background:#fff;border-top:1px solid rgba(0,0,0,0.1);padding:12px 22px;display:flex;align-items:center;gap:10px;flex-shrink:0}
+.wf-input{flex:1;min-height:44px;border:1px solid rgba(0,0,0,0.15);border-radius:var(--r-md);background:#f5f5f3;padding:0 16px;font-size:13px;outline:none;font-family:var(--font);color:#0f172a}
+.wf-input:focus{border-color:var(--p-mid);background:#fff;box-shadow:0 0 0 3px rgba(83,74,183,0.12)}
+.wf-input::placeholder{color:var(--color-text-4)}
+.wf-send{border:0;border-radius:var(--r-md);background:var(--p-mid);color:#fff;padding:0 22px;font-size:13px;font-weight:600;font-family:var(--font);min-height:44px;cursor:pointer;display:inline-flex;align-items:center;gap:6px}
+.wf-send:hover{background:var(--p-card)}
+.wf-send i{font-size:15px}
+
+.wf-actions{display:flex;gap:10px;background:#fff;border-top:1px solid rgba(0,0,0,0.1);padding:12px 22px;flex-shrink:0}
+.wf-btn-back{padding:11px 18px;border-radius:var(--r-md);border:1px solid rgba(0,0,0,0.15);background:#fff;font-size:13px;cursor:pointer;color:#475569;display:flex;align-items:center;gap:6px;min-height:44px;font-family:var(--font);font-weight:500}
+.wf-btn-back:hover{background:var(--color-surface-2)}
+.wf-btn-next{flex:1;padding:11px 18px;border-radius:var(--r-md);border:none;background:var(--p-mid);font-size:13px;cursor:pointer;color:#EEEDFE;display:flex;align-items:center;justify-content:center;gap:6px;min-height:44px;font-weight:600;font-family:var(--font);box-shadow:0 2px 6px rgba(83,74,183,0.25)}
+.wf-btn-next:hover{background:var(--p-card)}
+
+/* ── Recap mode (overview of all steps) ── */
+.wf-recap-intro{background:#fff;border-radius:var(--r-lg);padding:18px 20px;box-shadow:0 0 0 1px rgba(0,0,0,0.08);display:flex;gap:14px;align-items:flex-start}
+.wf-recap-intro-icon{width:44px;height:44px;border-radius:50%;background:var(--p-bg);color:var(--p-mid);display:flex;align-items:center;justify-content:center;flex-shrink:0;border:1.5px solid var(--p-light)}
+.wf-recap-intro-icon i{font-size:20px}
+.wf-recap-intro-body{flex:1;min-width:0}
+.wf-recap-intro-kicker{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.16em;color:var(--p-mid)}
+.wf-recap-intro h2{font-size:17px;font-weight:600;color:#020617;margin-top:4px}
+.wf-recap-intro p{font-size:13px;color:var(--color-text-3);line-height:1.55;margin-top:6px}
+
+.wf-recap-list{display:flex;flex-direction:column;gap:10px}
+.wf-recap-step{background:#fff;border-radius:var(--r-md);padding:14px 16px;box-shadow:0 0 0 1px rgba(0,0,0,0.08);cursor:pointer;display:flex;align-items:flex-start;gap:14px;transition:box-shadow .15s,transform .15s}
+.wf-recap-step:hover{box-shadow:0 0 0 1px var(--p-light),0 2px 8px rgba(83,74,183,0.10);transform:translateY(-1px)}
+.wf-recap-step-num{width:30px;height:30px;border-radius:50%;background:var(--p-bg);color:var(--p-card);display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;flex-shrink:0;border:1.5px solid var(--p-light)}
+.wf-recap-step-body{flex:1;min-width:0}
+.wf-recap-step-lbl{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.12em;color:var(--p-mid)}
+.wf-recap-step-val{font-size:13px;color:#0f172a;line-height:1.55;margin-top:3px}
+.wf-recap-step-edit{display:inline-flex;align-items:center;gap:5px;background:transparent;border:0.5px solid rgba(0,0,0,0.15);border-radius:var(--r-md);padding:6px 10px;color:var(--color-text-3);font-size:11px;cursor:pointer;font-family:var(--font);font-weight:500;flex-shrink:0;min-height:30px}
+.wf-recap-step-edit:hover{background:var(--p-bg);border-color:var(--p-light);color:var(--p-card)}
+.wf-recap-step-edit i{font-size:13px}
+
+.wf-recap-finish{margin-top:6px;background:linear-gradient(135deg,#EEEDFE 0%,#fff 100%);border-radius:var(--r-md);padding:14px 18px;display:flex;align-items:center;gap:12px;box-shadow:0 0 0 1px var(--p-light)}
+.wf-recap-finish-text{flex:1;font-size:13px;color:var(--p-card);line-height:1.5}
+.wf-recap-finish-text b{font-weight:700}
+.wf-recap-finish-cta{display:inline-flex;align-items:center;gap:6px;background:var(--p-mid);border:none;border-radius:var(--r-md);padding:10px 16px;color:#fff;font-size:13px;font-weight:600;cursor:pointer;font-family:var(--font);min-height:40px;box-shadow:0 2px 6px rgba(83,74,183,0.25)}
+.wf-recap-finish-cta:hover{background:var(--p-card)}
+.wf-recap-finish-cta i{font-size:15px}
+</style>
+</head>
+<body>
+
+<div class="ipad-wrap">
+  <div class="screen-switcher">
+    <button class="switcher-btn" onclick="showScreen('hub')"><i class="ti ti-layout-grid"></i> Hub</button>
+    <button class="switcher-btn active" onclick="showScreen('overview')"><i class="ti ti-book-2"></i> Vue d'ensemble</button>
+    <button class="switcher-btn" onclick="showScreen('pnj-detail')"><i class="ti ti-user-circle"></i> Fiche PNJ</button>
+    <button class="switcher-btn" onclick="showScreen('acte-detail')"><i class="ti ti-stack-2"></i> Fiche Acte</button>
+  </div>
+
+  <div class="ipad">
+
+    <!-- ═══════ SCREEN — HUB ═══════ -->
+    <div class="screen" id="screen-hub">
+      <div class="topbar">
+        <div class="topbar-brand">
+          <div class="topbar-brand-icon"><i class="ti ti-wand"></i></div>
+          <div>
+            <span class="topbar-title">L'Antre du Maître</span>
+            <span class="topbar-sub">· CoF Mini</span>
+          </div>
+        </div>
+        <div class="topbar-spacer"></div>
+        <button class="topbar-icon-btn" title="Aide"><i class="ti ti-help"></i></button>
+        <div class="user-menu-wrap">
+          <button class="user-avatar" onclick="toggleUserMenu(event)" title="Mon compte">ME</button>
+          <div class="user-menu" id="user-menu-1">
+            <div class="user-menu-header">
+              <div class="user-menu-name">Merlin</div>
+              <div class="user-menu-role">Enfant · famille Antor</div>
+            </div>
+            <button class="user-menu-item"><i class="ti ti-users"></i> Famille</button>
+            <button class="user-menu-item"><i class="ti ti-settings"></i> Réglages</button>
+            <div class="user-menu-divider"></div>
+            <button class="user-menu-item"><i class="ti ti-logout"></i> Se déconnecter</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="hub-layout">
+        <aside class="hub-sidebar">
+          <button class="hub-nav-item active"><i class="ti ti-books"></i> Mes scénarios <span class="hub-nav-count">2</span></button>
+          <button class="hub-nav-item"><i class="ti ti-map"></i> Mon monde <span class="hub-nav-count">7</span></button>
+
+          <div class="hub-sidebar-card">
+            <div class="hub-sidebar-card-kicker">Astuce du jour</div>
+            <div class="hub-sidebar-card-title">Reprends ta création</div>
+            <p class="hub-sidebar-card-help">Tu as une aventure en brouillon. Tu peux la reprendre là où tu t'étais arrêté.</p>
+            <button class="hub-sidebar-card-cta"><i class="ti ti-player-play"></i> Continuer</button>
+          </div>
+        </aside>
+
+        <main class="hub-content">
+          <header class="hub-content-header">
+            <div>
+              <div class="hub-kicker">Bibliothèque</div>
+              <h2>Mes scénarios</h2>
+              <p>Les aventures que tu as créées ou commencées avec Merlin.</p>
+            </div>
+            <div class="hub-search">
+              <i class="ti ti-search"></i>
+              <input type="text" placeholder="Rechercher une aventure…">
+            </div>
+          </header>
+
+          <div class="scenarios-grid">
+            <button class="scenario-card new">
+              <div class="scenario-card-new-icon"><i class="ti ti-wand"></i></div>
+              <div class="scenario-card-title">Créer une aventure</div>
+              <div class="scenario-card-desc">Avec l'aide de Merlin, en 10 étapes guidées.</div>
+            </button>
+
+            <div class="scenario-card">
+              <div class="scenario-card-top">
+                <div>
+                  <div class="scenario-card-kicker">Côtier · Mystère</div>
+                  <div class="scenario-card-title">L'écume du monde</div>
+                </div>
+                <span class="scenario-card-status complete">Complet</span>
+              </div>
+              <div class="scenario-card-desc">Une enquête à la Grotte des Soupirs, hantée par le fantôme de Morrigan la Noyée.</div>
+              <div class="scenario-card-foot">
+                <span><i class="ti ti-clock"></i> ~110 min</span>
+                <span><i class="ti ti-stack-2"></i> 3 actes</span>
+                <span><i class="ti ti-users"></i> 3 PNJs</span>
+              </div>
+            </div>
+
+            <div class="scenario-card">
+              <div class="scenario-card-top">
+                <div>
+                  <div class="scenario-card-kicker">Sombre · Tour</div>
+                  <div class="scenario-card-title">La tour du corbeau</div>
+                </div>
+                <span class="scenario-card-status draft">Brouillon</span>
+              </div>
+              <div class="scenario-card-desc">Création en cours · étape 4/10 (Méchant). Reprends quand tu veux !</div>
+              <div class="scenario-card-foot">
+                <span><i class="ti ti-progress"></i> Étape 4/10</span>
+                <span><i class="ti ti-calendar"></i> Hier</span>
+              </div>
+            </div>
+          </div>
+        </main>
+      </div>
+    </div>
+
+    <!-- ═══════ SCREEN — VUE D'ENSEMBLE ═══════ -->
+    <div class="screen active" id="screen-overview">
+      <div class="topbar">
+        <div class="topbar-brand">
+          <div class="topbar-brand-icon"><i class="ti ti-wand"></i></div>
+        </div>
+        <button class="topbar-back" onclick="showScreen('hub')"><i class="ti ti-arrow-left"></i> Accueil</button>
+        <div class="topbar-context">
+          <i class="ti ti-book-2"></i>
+          <span class="topbar-context-name">L'écume du monde</span>
+        </div>
+        <span class="topbar-badge"><i class="ti ti-check"></i> Complet</span>
+        <div class="topbar-spacer"></div>
+        <button class="topbar-icon-btn" title="Retoucher le scénario avec Merlin"><i class="ti ti-wand"></i></button>
+        <div class="user-menu-wrap">
+          <button class="user-avatar" onclick="toggleUserMenu(event)" title="Mon compte">ME</button>
+          <div class="user-menu" id="user-menu-2">
+            <div class="user-menu-header">
+              <div class="user-menu-name">Merlin</div>
+              <div class="user-menu-role">Enfant · famille Antor</div>
+            </div>
+            <button class="user-menu-item"><i class="ti ti-users"></i> Famille</button>
+            <button class="user-menu-item"><i class="ti ti-settings"></i> Réglages</button>
+            <div class="user-menu-divider"></div>
+            <button class="user-menu-item"><i class="ti ti-logout"></i> Se déconnecter</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="tabs">
+        <button class="tab active"><i class="ti ti-layout-grid"></i> Vue d'ensemble</button>
+        <button class="tab"><i class="ti ti-checklist"></i> Préparation <span class="tab-badge warn">12%</span></button>
+        <button class="tab"><i class="ti ti-history"></i> Sessions <span class="tab-badge">0</span></button>
+        <div class="tabs-spacer"></div>
+        <button class="tab-icon-btn" title="On a joué cette aventure"><i class="ti ti-star"></i> Marquer comme joué</button>
+        <button class="tab-action"><i class="ti ti-file-download"></i> Générer le PDF</button>
+      </div>
+
+      <div class="overview-scroll">
+        <div class="overview-inner">
+
+          <!-- HERO -->
+          <section class="overview-hero">
+            <div class="overview-hero-left">
+              <div class="overview-hero-kicker">Aventure côtière · Mystère</div>
+              <h1>L'écume du monde</h1>
+              <p class="overview-hero-desc">Une enquête côtière qui mène les héros jusqu'à la Grotte des Soupirs, hantée par le fantôme de Morrigan la Noyée. Marée qui monte, secrets de phare, et une broche disparue.</p>
+            </div>
+            <div class="overview-metrics">
+              <div class="metric-box">
+                <div class="metric-label">Durée</div>
+                <div class="metric-value">~110 min</div>
+              </div>
+              <div class="metric-box">
+                <div class="metric-label">Actes</div>
+                <div class="metric-value">3</div>
+              </div>
+              <div class="metric-box">
+                <div class="metric-label">PNJs</div>
+                <div class="metric-value">3</div>
+              </div>
+            </div>
+          </section>
+
+          <!-- FONDATIONS -->
+          <section class="section">
+            <header class="section-head">
+              <div class="section-head-left">
+                <div class="section-kicker">Fondations</div>
+                <div class="section-title">Les éléments structurants</div>
+                <p class="section-help">Tap pour voir le détail et lancer le workflow d'édition Merlin.</p>
+              </div>
+            </header>
+            <div class="fondations-grid">
+              <div class="foundation-card">
+                <div class="foundation-head">
+                  <div class="foundation-icon lieu"><i class="ti ti-map-pin"></i></div>
+                  <div>
+                    <div class="foundation-lbl">Lieu principal</div>
+                    <div class="foundation-name">La Grotte des Soupirs</div>
+                  </div>
+                </div>
+                <div class="foundation-desc">Grotte côtière hantée, accessible à marée basse. Le vent y produit des gémissements lugubres.</div>
+              </div>
+              <div class="foundation-card">
+                <div class="foundation-head">
+                  <div class="foundation-icon quete"><i class="ti ti-target"></i></div>
+                  <div>
+                    <div class="foundation-lbl">Quête principale</div>
+                    <div class="foundation-name">La broche disparue</div>
+                  </div>
+                </div>
+                <div class="foundation-desc">Retrouver la broche de Dame Ysolde et comprendre ce qui hante la Grotte avant que la marée ne piège les héros.</div>
+              </div>
+              <div class="foundation-card">
+                <div class="foundation-head">
+                  <div class="foundation-icon antago"><i class="ti ti-skull"></i></div>
+                  <div>
+                    <div class="foundation-lbl">Antagoniste</div>
+                    <div class="foundation-name">Morrigan la Noyée</div>
+                  </div>
+                </div>
+                <div class="foundation-desc">Fantôme de l'ancienne gardienne du phare, liée à la Grotte par le Fanal des Abysses.</div>
+              </div>
+              <div class="foundation-card">
+                <div class="foundation-head">
+                  <div class="foundation-icon ambiance"><i class="ti ti-mood-smile"></i></div>
+                  <div>
+                    <div class="foundation-lbl">Ambiance</div>
+                    <div class="foundation-name">Mystère côtier</div>
+                  </div>
+                </div>
+                <div class="foundation-desc">Marée qui monte, lumière froide du Fanal, gémissements dans la falaise. Tension croissante.</div>
+              </div>
+            </div>
+          </section>
+
+          <!-- PERSONNAGES -->
+          <section class="section">
+            <header class="section-head">
+              <div class="section-head-left">
+                <div class="section-kicker">Personnages</div>
+                <div class="section-title">3 PNJs peuplent l'aventure</div>
+              </div>
+              <button class="section-cta"><i class="ti ti-plus"></i> Ajouter un PNJ</button>
+            </header>
+            <div class="pnj-grid">
+              <div class="pnj-card">
+                <div class="pnj-avatar">DY</div>
+                <div class="pnj-info">
+                  <div class="pnj-name">Dame Ysolde</div>
+                  <div class="pnj-role">Maire, garde un secret</div>
+                </div>
+              </div>
+              <div class="pnj-card" onclick="showScreen('pnj-detail')">
+                <div class="pnj-avatar">DF</div>
+                <div class="pnj-info">
+                  <div class="pnj-name">Dorian le Filou</div>
+                  <div class="pnj-role">Voleur caché dans la grotte</div>
+                </div>
+              </div>
+              <div class="pnj-card">
+                <div class="pnj-avatar">PE</div>
+                <div class="pnj-info">
+                  <div class="pnj-name">Pêcheur Erwan</div>
+                  <div class="pnj-role">Témoin du naufrage</div>
+                </div>
+              </div>
+            </div>
+          </section>
+
+          <!-- DÉROULÉ -->
+          <section class="section">
+            <header class="section-head">
+              <div class="section-head-left">
+                <div class="section-kicker">Déroulé</div>
+                <div class="section-title">3 actes · 110 min au total</div>
+              </div>
+              <button class="section-cta"><i class="ti ti-plus"></i> Ajouter un acte</button>
+            </header>
+            <div class="actes-list">
+              <div class="acte-card">
+                <div class="acte-number">1</div>
+                <div class="acte-body">
+                  <div class="acte-top">
+                    <div>
+                      <div class="acte-eyebrow">Enquête</div>
+                      <div class="acte-title">Les murmures du village</div>
+                    </div>
+                    <span class="acte-duration"><i class="ti ti-clock"></i> ~45 min</span>
+                  </div>
+                  <p class="acte-desc">Les héros arrivent au village côtier et reçoivent la mission de Dame Ysolde : retrouver sa broche disparue. L'enquête mène vers la Grotte des Soupirs.</p>
+                  <div class="acte-tags">
+                    <span class="acte-tag">Interroger le pêcheur</span>
+                    <span class="acte-tag">Trouver le carnet</span>
+                    <span class="acte-tag">Convaincre Dame Ysolde</span>
+                  </div>
+                </div>
+              </div>
+              <div class="acte-card" onclick="showScreen('acte-detail')">
+                <div class="acte-number">2</div>
+                <div class="acte-body">
+                  <div class="acte-top">
+                    <div>
+                      <div class="acte-eyebrow">Rôleplay</div>
+                      <div class="acte-title">La rencontre avec Dorian</div>
+                    </div>
+                    <span class="acte-duration"><i class="ti ti-clock"></i> ~35 min</span>
+                  </div>
+                  <p class="acte-desc">Dans la grotte à marée basse, les héros découvrent Dorian, tétanisé. Il connaît un passage vers la zone secrète mais il faut gagner sa confiance.</p>
+                  <div class="acte-tags">
+                    <span class="acte-tag">Gagner sa confiance</span>
+                    <span class="acte-tag">Passage secret</span>
+                  </div>
+                </div>
+              </div>
+              <div class="acte-card">
+                <div class="acte-number">3</div>
+                <div class="acte-body">
+                  <div class="acte-top">
+                    <div>
+                      <div class="acte-eyebrow">Combat · Final</div>
+                      <div class="acte-title">Le combat du Fanal</div>
+                    </div>
+                    <span class="acte-duration"><i class="ti ti-clock"></i> ~25 min</span>
+                  </div>
+                  <p class="acte-desc">Morrigan la Noyée se manifeste dans la chambre secrète. Le combat peut se conclure par la victoire, l'apaisement de son nom ou une fuite risquée.</p>
+                  <div class="acte-tags">
+                    <span class="acte-tag">1 × fantôme</span>
+                    <span class="acte-tag">Marée qui monte</span>
+                    <span class="acte-tag">Issue roleplay possible</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </section>
+
+        </div>
+      </div>
+    </div>
+
+    <!-- ═══════ SCREEN — FICHE PNJ ═══════ -->
+    <div class="screen" id="screen-pnj-detail">
+      <div class="topbar">
+        <div class="topbar-brand">
+          <div class="topbar-brand-icon"><i class="ti ti-wand"></i></div>
+        </div>
+        <button class="topbar-back" onclick="showScreen('hub')"><i class="ti ti-arrow-left"></i> Accueil</button>
+        <div class="topbar-context">
+          <i class="ti ti-book-2"></i>
+          <span class="topbar-context-name">L'écume du monde</span>
+        </div>
+        <span class="topbar-badge"><i class="ti ti-check"></i> Complet</span>
+        <div class="topbar-spacer"></div>
+        <div class="user-menu-wrap">
+          <button class="user-avatar" onclick="toggleUserMenu(event)" title="Mon compte">ME</button>
+          <div class="user-menu" id="user-menu-3">
+            <div class="user-menu-header">
+              <div class="user-menu-name">Merlin</div>
+              <div class="user-menu-role">Enfant · famille Antor</div>
+            </div>
+            <button class="user-menu-item"><i class="ti ti-users"></i> Famille</button>
+            <button class="user-menu-item"><i class="ti ti-settings"></i> Réglages</button>
+            <div class="user-menu-divider"></div>
+            <button class="user-menu-item"><i class="ti ti-logout"></i> Se déconnecter</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="tabs">
+        <button class="tab active"><i class="ti ti-layout-grid"></i> Vue d'ensemble</button>
+        <button class="tab"><i class="ti ti-checklist"></i> Préparation <span class="tab-badge warn">12%</span></button>
+        <button class="tab"><i class="ti ti-history"></i> Sessions <span class="tab-badge">0</span></button>
+        <div class="tabs-spacer"></div>
+        <button class="tab-action"><i class="ti ti-file-download"></i> Générer le PDF</button>
+      </div>
+
+      <div class="breadcrumb">
+        <button class="breadcrumb-back" onclick="showScreen('overview')"><i class="ti ti-arrow-left"></i> Vue d'ensemble</button>
+        <span class="breadcrumb-sep">/</span>
+        <span class="breadcrumb-current">Personnages · Dorian le Filou</span>
+      </div>
+
+      <div class="pnj-hero">
+        <div class="pnj-hero-avatar">DF</div>
+        <div class="pnj-hero-meta">
+          <div class="pnj-hero-kicker">Personnage non-joueur</div>
+          <h1>Dorian le Filou</h1>
+          <div class="pnj-hero-sub">
+            <span class="pnj-hero-sub-item"><i class="ti ti-map-pin"></i> La Grotte des Soupirs</span>
+            <span class="pnj-hero-sub-item"><i class="ti ti-stack-2"></i> Apparaît dans l'Acte 2</span>
+            <span class="pnj-hero-sub-item"><i class="ti ti-mood-cog"></i> Allié potentiel</span>
+          </div>
+        </div>
+        <button class="pnj-hero-edit"><i class="ti ti-wand"></i> Modifier avec Merlin</button>
+      </div>
+
+      <div class="pnj-content">
+        <div class="pnj-fields-grid">
+          <div class="pnj-field">
+            <div class="pnj-field-head">
+              <div class="pnj-field-icon"><i class="ti ti-route"></i></div>
+              <span class="pnj-field-lbl">Rôle dans l'histoire</span>
+            </div>
+            <div class="pnj-field-val">Jeune voleur effrayé, témoin involontaire de Morrigan. Sa libération est l'enjeu central de l'Acte 2.</div>
+          </div>
+          <div class="pnj-field">
+            <div class="pnj-field-head">
+              <div class="pnj-field-icon"><i class="ti ti-eye"></i></div>
+              <span class="pnj-field-lbl">Apparence</span>
+            </div>
+            <div class="pnj-field-val">Adolescent maigre aux cheveux roux emmêlés, vêtements de toile mouillés, regard fuyant.</div>
+          </div>
+          <div class="pnj-field">
+            <div class="pnj-field-head">
+              <div class="pnj-field-icon"><i class="ti ti-flame"></i></div>
+              <span class="pnj-field-lbl">Motivation</span>
+            </div>
+            <div class="pnj-field-val">Il a volé la broche de Dame Ysolde et se cache dans la grotte en attendant que ça se calme au village.</div>
+          </div>
+          <div class="pnj-field">
+            <div class="pnj-field-head">
+              <div class="pnj-field-icon"><i class="ti ti-key"></i></div>
+              <span class="pnj-field-lbl">Secret</span>
+            </div>
+            <div class="pnj-field-val">Il sait que Morrigan rôde la nuit. Il n'a pas osé sortir de la grotte depuis qu'il l'a aperçue.</div>
+          </div>
+          <div class="pnj-field full">
+            <div class="pnj-field-head">
+              <div class="pnj-field-icon"><i class="ti ti-microphone"></i></div>
+              <span class="pnj-field-lbl">Voix et manière de parler</span>
+            </div>
+            <div class="pnj-field-val">Phrases hachées, voix tremblante. Évite les questions directes. Surnomme les héros « les grands ». Quand il a peur, il bafouille.</div>
+          </div>
+        </div>
+
+        <div class="pnj-relation">
+          <div class="pnj-relation-kicker"><i class="ti ti-affiliate" style="font-size:14px"></i> Relations dans le scénario</div>
+          <div class="pnj-relation-list">
+            <button class="pnj-relation-pill">
+              <span class="pnj-relation-pill-avatar">DY</span>
+              <span>A volé la broche de Dame Ysolde</span>
+            </button>
+            <button class="pnj-relation-pill">
+              <span class="pnj-relation-pill-avatar">MO</span>
+              <span>Terrorisé par Morrigan</span>
+            </button>
+            <button class="pnj-relation-pill pnj-relation-pill-acte">
+              <i class="ti ti-stack-2" style="font-size:13px"></i>
+              <span>Acte 2 · La rencontre</span>
+            </button>
+          </div>
+        </div>
+
+        <div class="pnj-hint">
+          <i class="ti ti-info-circle"></i>
+          <p>Pour modifier n'importe quel élément de Dorian, lance le workflow Merlin avec <b>« Modifier avec Merlin »</b>. Tu pourras filer directement à l'étape qui t'intéresse — la sauvegarde est automatique.</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- ═══════ SCREEN — FICHE ACTE ═══════ -->
+    <div class="screen" id="screen-acte-detail">
+      <div class="topbar">
+        <div class="topbar-brand">
+          <div class="topbar-brand-icon"><i class="ti ti-wand"></i></div>
+        </div>
+        <button class="topbar-back" onclick="showScreen('hub')"><i class="ti ti-arrow-left"></i> Accueil</button>
+        <div class="topbar-context">
+          <i class="ti ti-book-2"></i>
+          <span class="topbar-context-name">L'écume du monde</span>
+        </div>
+        <span class="topbar-badge"><i class="ti ti-check"></i> Complet</span>
+        <div class="topbar-spacer"></div>
+        <div class="user-menu-wrap">
+          <button class="user-avatar" onclick="toggleUserMenu(event)" title="Mon compte">ME</button>
+          <div class="user-menu" id="user-menu-4">
+            <div class="user-menu-header">
+              <div class="user-menu-name">Merlin</div>
+              <div class="user-menu-role">Enfant · famille Antor</div>
+            </div>
+            <button class="user-menu-item"><i class="ti ti-users"></i> Famille</button>
+            <button class="user-menu-item"><i class="ti ti-settings"></i> Réglages</button>
+            <div class="user-menu-divider"></div>
+            <button class="user-menu-item"><i class="ti ti-logout"></i> Se déconnecter</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="tabs">
+        <button class="tab active"><i class="ti ti-layout-grid"></i> Vue d'ensemble</button>
+        <button class="tab"><i class="ti ti-checklist"></i> Préparation <span class="tab-badge warn">12%</span></button>
+        <button class="tab"><i class="ti ti-history"></i> Sessions <span class="tab-badge">0</span></button>
+        <div class="tabs-spacer"></div>
+        <button class="tab-action"><i class="ti ti-file-download"></i> Générer le PDF</button>
+      </div>
+
+      <div class="breadcrumb">
+        <button class="breadcrumb-back" onclick="showScreen('overview')"><i class="ti ti-arrow-left"></i> Vue d'ensemble</button>
+        <span class="breadcrumb-sep">/</span>
+        <span class="breadcrumb-current">Déroulé · Acte 2</span>
+      </div>
+
+      <div class="acte-hero">
+        <div class="acte-hero-number">2</div>
+        <div class="acte-hero-meta">
+          <div class="acte-hero-kicker">Acte 2 · Rôleplay</div>
+          <h1>La rencontre avec Dorian</h1>
+          <div class="acte-hero-sub">
+            <span class="acte-hero-sub-tag"><i class="ti ti-masks-theater" style="font-size:12px"></i> Rôleplay dominant</span>
+            <span class="acte-hero-sub-item"><i class="ti ti-clock"></i> ~35 min</span>
+            <span class="acte-hero-sub-item lieu"><i class="ti ti-map-pin"></i> La Grotte des Soupirs</span>
+          </div>
+        </div>
+        <button class="acte-hero-edit"><i class="ti ti-wand"></i> Modifier avec Merlin</button>
+      </div>
+
+      <div class="acte-content">
+
+        <section class="acte-objectif">
+          <div class="acte-objectif-kicker"><i class="ti ti-target"></i> Objectif MJ</div>
+          <p class="acte-objectif-text">Faire entrer les joueurs dans le mystère sans les bloquer. Ils trouvent Dorian, tétanisé dans la grotte — gagner sa confiance ouvre le passage vers la chambre secrète.</p>
+          <p class="acte-objectif-enjeu"><b>Enjeu narratif :</b> Si la confiance est gagnée, Dorian indique le passage qui contourne les squelettes. Sinon, les héros découvrent eux-mêmes, mais avec plus de difficulté.</p>
+        </section>
+
+        <section class="acte-section">
+          <header class="acte-section-head">
+            <div class="acte-section-head-left">
+              <div class="acte-section-icon"><i class="ti ti-route-2"></i></div>
+              <span class="acte-section-kicker">Voies offertes aux joueurs</span>
+            </div>
+          </header>
+          <p class="section-help" style="margin-left:36px">Différentes manières d'aborder l'acte selon les choix de la table.</p>
+          <div class="voies-grid" style="margin-top:6px">
+            <div class="voie-card">
+              <div class="voie-card-num">1</div>
+              <div class="voie-card-head">
+                <div class="voie-card-icon diplomatic"><i class="ti ti-mood-smile"></i></div>
+                <div class="voie-card-title">L'approche douce</div>
+              </div>
+              <p class="voie-card-desc">Parler à voix basse, offrir de la nourriture. Dorian baisse sa garde et raconte ce qu'il a vu.</p>
+            </div>
+            <div class="voie-card">
+              <div class="voie-card-num">2</div>
+              <div class="voie-card-head">
+                <div class="voie-card-icon investigate"><i class="ti ti-search"></i></div>
+                <div class="voie-card-title">L'observation</div>
+              </div>
+              <p class="voie-card-desc">Examiner les traces autour de la grotte, comprendre pourquoi Dorian se cache, deviner son secret.</p>
+            </div>
+            <div class="voie-card">
+              <div class="voie-card-num">3</div>
+              <div class="voie-card-head">
+                <div class="voie-card-icon direct"><i class="ti ti-bolt"></i></div>
+                <div class="voie-card-title">L'intimidation</div>
+              </div>
+              <p class="voie-card-desc">Acculer Dorian, le menacer. Il craque mais lâche moins d'infos et devient hostile par la suite.</p>
+            </div>
+          </div>
+        </section>
+
+        <section class="acte-section">
+          <header class="acte-section-head">
+            <div class="acte-section-head-left">
+              <div class="acte-section-icon"><i class="ti ti-sword"></i></div>
+              <span class="acte-section-kicker">Rencontres clés</span>
+            </div>
+            <button class="section-cta"><i class="ti ti-plus"></i> Ajouter</button>
+          </header>
+          <div class="rencontres-list">
+            <div class="rencontre-card">
+              <div class="rencontre-icon roleplay"><i class="ti ti-masks-theater"></i></div>
+              <div class="rencontre-body">
+                <div class="rencontre-type">Scène RP · centrale</div>
+                <div class="rencontre-title">Discussion avec Dorian</div>
+                <p class="rencontre-desc">Phrases hachées, voix tremblante. Il craque si on évoque sa mère ou sa peur.</p>
+              </div>
+              <div class="rencontre-meta">
+                <span class="rencontre-meta-item"><i class="ti ti-clock"></i> ~15 min</span>
+                <span class="rencontre-meta-item"><i class="ti ti-user"></i> Dorian</span>
+              </div>
+            </div>
+            <div class="rencontre-card">
+              <div class="rencontre-icon enigme"><i class="ti ti-puzzle"></i></div>
+              <div class="rencontre-body">
+                <div class="rencontre-type">Énigme · facultative</div>
+                <div class="rencontre-title">Le passage des marées</div>
+                <p class="rencontre-desc">Si les héros n'ont pas la confiance de Dorian, ils doivent deviner que la chambre s'ouvre à marée basse.</p>
+              </div>
+              <div class="rencontre-meta">
+                <span class="rencontre-meta-item"><i class="ti ti-clock"></i> ~10 min</span>
+                <span class="rencontre-meta-item"><i class="ti ti-bulb"></i> Indice possible</span>
+              </div>
+            </div>
+            <div class="rencontre-card">
+              <div class="rencontre-icon combat"><i class="ti ti-sword"></i></div>
+              <div class="rencontre-body">
+                <div class="rencontre-type">Combat · conditionnel</div>
+                <div class="rencontre-title">Squelettes du naufrage</div>
+                <p class="rencontre-desc">Si les héros ratent l'approche douce ET l'énigme, ils tombent sur 3 squelettes en gardes du passage.</p>
+              </div>
+              <div class="rencontre-meta">
+                <span class="rencontre-meta-item"><i class="ti ti-clock"></i> ~8 min</span>
+                <span class="rencontre-meta-item"><i class="ti ti-skull"></i> 3 squelettes</span>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <section class="acte-section">
+          <header class="acte-section-head">
+            <div class="acte-section-head-left">
+              <div class="acte-section-icon"><i class="ti ti-list-numbers"></i></div>
+              <span class="acte-section-kicker">Découpage MJ <span class="acte-section-help">— scènes séquentielles</span></span>
+            </div>
+          </header>
+          <div class="scenes-timeline">
+            <div class="scene-row">
+              <div class="scene-marker">A</div>
+              <div class="scene-content">
+                <div class="scene-title">Arrivée dans la grotte <span class="scene-time">+0 min</span></div>
+                <p class="scene-desc">Les héros pénètrent dans la grotte à marée basse. Bruit d'eau qui suinte, écho de respiration au fond.</p>
+              </div>
+            </div>
+            <div class="scene-row">
+              <div class="scene-marker">B</div>
+              <div class="scene-content">
+                <div class="scene-title">Découverte de Dorian <span class="scene-time">+5 min</span></div>
+                <p class="scene-desc">Une silhouette adolescente recroquevillée derrière un rocher. Dorian, terrifié, prêt à fuir au moindre geste brusque.</p>
+              </div>
+            </div>
+            <div class="scene-row">
+              <div class="scene-marker">C</div>
+              <div class="scene-content">
+                <div class="scene-title">Premier dialogue <span class="scene-time">+10 min</span></div>
+                <p class="scene-desc">Selon l'approche choisie (douce / observation / intimidation), Dorian s'ouvre plus ou moins. Test de Charisme ou Sagesse.</p>
+              </div>
+            </div>
+            <div class="scene-row">
+              <div class="scene-marker">D</div>
+              <div class="scene-content">
+                <div class="scene-title">Le passage révélé (ou découvert) <span class="scene-time">+25 min</span></div>
+                <p class="scene-desc">Dorian indique le passage qui contourne les squelettes — OU les héros doivent le trouver par eux-mêmes / combattre.</p>
+              </div>
+            </div>
+            <div class="scene-row">
+              <div class="scene-marker">E</div>
+              <div class="scene-content">
+                <div class="scene-title">Sortie de l'acte <span class="scene-time">+35 min</span></div>
+                <p class="scene-desc">Les héros entrent dans le tunnel vers la chambre secrète. Transition vers l'Acte 3.</p>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <section class="acte-section">
+          <header class="acte-section-head">
+            <div class="acte-section-head-left">
+              <div class="acte-section-icon"><i class="ti ti-clock"></i></div>
+              <span class="acte-section-kicker">Timing & coupes</span>
+            </div>
+          </header>
+          <div class="timing-grid">
+            <div class="timing-box">
+              <div class="timing-box-icon"><i class="ti ti-hourglass"></i></div>
+              <div class="timing-box-label">Durée prévue</div>
+              <div class="timing-box-value">~35 min</div>
+            </div>
+            <div class="timing-box">
+              <div class="timing-box-icon"><i class="ti ti-bolt"></i></div>
+              <div class="timing-box-label">Tempo</div>
+              <div class="timing-box-value">Calme</div>
+            </div>
+            <div class="timing-box">
+              <div class="timing-box-icon"><i class="ti ti-flag"></i></div>
+              <div class="timing-box-label">Acte suivant</div>
+              <div class="timing-box-value">Acte 3</div>
+            </div>
+          </div>
+          <div class="timing-coupe" style="margin-top:10px">
+            <i class="ti ti-scissors"></i>
+            <div class="timing-coupe-body">
+              <div class="timing-coupe-label">Point de coupe possible</div>
+              <p class="timing-coupe-text">Après la scène C (premier dialogue) si la table fatigue. L'Acte 2 peut reprendre en début de session suivante.</p>
+            </div>
+          </div>
+        </section>
+
+        <section class="acte-section">
+          <header class="acte-section-head">
+            <div class="acte-section-head-left">
+              <div class="acte-section-icon"><i class="ti ti-users"></i></div>
+              <span class="acte-section-kicker">PNJs présents dans cet acte</span>
+            </div>
+          </header>
+          <div class="pnj-presents-row">
+            <button class="pnj-present-pill" onclick="showScreen('pnj-detail')">
+              <span class="pnj-present-pill-avatar">DF</span>
+              <span>Dorian le Filou</span>
+            </button>
+            <button class="pnj-present-pill">
+              <span class="pnj-present-pill-avatar">MO</span>
+              <span>Morrigan (présence furtive)</span>
+            </button>
+          </div>
+        </section>
+
+        <div class="pnj-hint">
+          <i class="ti ti-info-circle"></i>
+          <p>Cet acte a été créé via le workflow Merlin en 6 étapes. Pour modifier n'importe quel élément, lance le bouton <b>« Modifier avec Merlin »</b> en haut — tu pourras filer directement à l'étape qui t'intéresse.</p>
+        </div>
+
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<script>
+function showScreen(name) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.querySelectorAll('.switcher-btn').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.user-menu').forEach(m => m.classList.remove('open'));
+  document.getElementById('screen-' + name).classList.add('active');
+  const tab = Array.from(document.querySelectorAll('.switcher-btn')).find(t => t.getAttribute('onclick').includes("'" + name + "'"));
+  if (tab) tab.classList.add('active');
+}
+function toggleUserMenu(e) {
+  e.stopPropagation();
+  const menu = e.currentTarget.parentElement.querySelector('.user-menu');
+  const wasOpen = menu.classList.contains('open');
+  document.querySelectorAll('.user-menu').forEach(m => m.classList.remove('open'));
+  if (!wasOpen) menu.classList.add('open');
+}
+document.addEventListener('click', () => {
+  document.querySelectorAll('.user-menu').forEach(m => m.classList.remove('open'));
+});
+</script>
+</body>
+</html>

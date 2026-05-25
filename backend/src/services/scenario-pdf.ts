@@ -56,10 +56,22 @@ function writeScenario(doc: PDFKit.PDFDocument, scenario: ScenarioPdfInput) {
   doc.moveDown(1);
   section(doc, 'Resume');
   keyValue(doc, 'Statut', scenario.status);
-  keyValue(doc, 'Ambiance', data.ambiance ?? 'Non definie');
+  keyValue(doc, 'Sensation', data.ambiance ?? 'Non definie');
   keyValue(doc, 'Lieu', data.lieu?.nom ?? 'Non defini');
-  keyValue(doc, 'Quete', data.quete ?? 'Non definie');
+  keyValue(doc, 'Quete', data.quete?.phraseSimple ?? 'Non definie');
   keyValue(doc, 'Duree estimee', data.sessionning ? `${data.sessionning.dureeTotaleEstimeeMin} min` : 'Non definie');
+
+  if (data.quete) {
+    keyValue(doc, 'Probleme', data.quete.ceQuiNeVaPas);
+    keyValue(doc, 'Gravite', data.quete.pourquoiCestGrave);
+    keyValue(doc, 'Urgence', data.quete.pourquoiMaintenant);
+    keyValue(doc, 'Si personne n agit', data.quete.ceQuiArriveSiPersonneNagit);
+  }
+
+  if (data.objectifDesHeros) {
+    keyValue(doc, 'Objectif des heros', data.objectifDesHeros.phraseSimple);
+    keyValue(doc, 'Signe de reussite', data.objectifDesHeros.signeDeReussite);
+  }
 
   if (data.lieu?.description) {
     paragraph(doc, data.lieu.description);
@@ -68,9 +80,19 @@ function writeScenario(doc: PDFKit.PDFDocument, scenario: ScenarioPdfInput) {
   if (data.antagoniste) {
     section(doc, 'Antagoniste');
     keyValue(doc, 'Nom', data.antagoniste.nom);
+    if (data.antagoniste.type) keyValue(doc, 'Type', data.antagoniste.type);
     keyValue(doc, 'Nature', data.antagoniste.nature);
     if (data.antagoniste.monsterId) keyValue(doc, 'Monstre DRS', data.antagoniste.monsterId);
     paragraph(doc, data.antagoniste.motivation);
+    if (data.antagoniste.faiblesseOuSolution) paragraph(doc, `Solution : ${data.antagoniste.faiblesseOuSolution}`);
+  }
+
+  if (data.fin) {
+    section(doc, 'Fin');
+    keyValue(doc, 'Victoire', data.fin.conditionDeVictoire);
+    paragraph(doc, data.fin.sceneDeResolution);
+    keyValue(doc, 'Recompense', data.fin.recompense);
+    if (data.fin.petiteSurpriseFinale) paragraph(doc, data.fin.petiteSurpriseFinale);
   }
 
   if (data.pnjs.length > 0) {

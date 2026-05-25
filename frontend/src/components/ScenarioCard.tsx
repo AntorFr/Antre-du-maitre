@@ -28,7 +28,7 @@ export function ScenarioCard({ scenario }: ScenarioCardProps) {
         <Field label="Lieu" value={data.lieu?.nom} />
       </div>
 
-      <Field className="mt-3" label="Quête" value={data.quete} />
+      <Field className="mt-3" label="Quête" value={data.quete?.phraseSimple} />
 
       {data.actes.length ? (
         <div className="mt-5">
@@ -72,4 +72,3 @@ function Field({
     </div>
   );
 }
-

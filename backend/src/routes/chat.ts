@@ -231,8 +231,7 @@ async function buildMonsterCatalogForTurn(input: {
   currentStep: ScenarioData['currentStep'];
 }) {
   if (
-    input.currentStep !== 'STEP_4_MECHANT' &&
-    input.currentStep !== 'STEP_8_RENCONTRES'
+    input.currentStep !== 'STEP_4_ANTAGONISTE'
   ) {
     return [];
   }

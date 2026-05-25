@@ -1,0 +1,895 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>L'Antre du Maître — Maquette iPad actuelle</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/tabler-icons.min.css">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --p-dark:#2A1F5C;
+  --p-mid:#534AB7;
+  --p-light:#AFA9EC;
+  --p-bg:#EEEDFE;
+  --p-deep:#1a1440;
+  --p-card:#3C3489;
+  --color-bg:#f0eff5;
+  --color-surface:#ffffff;
+  --color-surface-2:#f5f5f3;
+  --color-border:rgba(0,0,0,0.12);
+  --color-border-md:rgba(0,0,0,0.22);
+  --color-text:#1a1a1a;
+  --color-text-2:#666660;
+  --color-text-3:#999990;
+  --r-md:8px;
+  --r-lg:12px;
+  --font:system-ui,-apple-system,sans-serif;
+}
+body{font-family:var(--font);background:var(--color-bg);min-height:100vh;display:flex;align-items:flex-start;justify-content:center;padding:24px;color:#020617}
+h1,.meta,.palette,.ipad-label,.page-note{display:none}
+h1{font-size:18px;font-weight:500;color:var(--p-dark);text-align:center}
+.meta{font-size:12px;color:var(--color-text-2);text-align:center;line-height:1.6}
+.palette{gap:6px;flex-wrap:wrap;justify-content:center}
+.swatch{height:24px;border-radius:4px;display:flex;align-items:center;padding:0 10px;font-size:10px;white-space:nowrap}
+
+/* ── iPad shell ── */
+.ipad-wrap{width:100%;max-width:1120px}
+.ipad-label{font-size:11px;color:var(--color-text-3);text-align:center;margin-bottom:8px}
+.ipad{width:100%;height:calc(100vh - 48px);min-height:560px;background:var(--color-surface);border-radius:20px;border:1px solid var(--color-border);overflow:hidden;display:flex;flex-direction:column;box-shadow:0 4px 32px rgba(0,0,0,0.10)}
+
+/* ── Topbar ── */
+.topbar{background:var(--p-dark);height:48px;display:flex;align-items:center;padding:0 16px;gap:12px;flex-shrink:0}
+.topbar-avatar{width:30px;height:30px;border-radius:50%;background:var(--p-mid);border:1.5px solid var(--p-light);display:flex;align-items:center;justify-content:center;font-size:14px;flex-shrink:0}
+.topbar-title{color:#EEEDFE;font-size:15px;font-weight:500}
+.topbar-sub{color:var(--p-light);font-size:11px;margin-left:4px}
+.topbar-spacer{flex:1}
+.topbar-info{font-size:12px;color:var(--p-light);display:flex;align-items:center;gap:5px}
+.topbar-info i{font-size:14px}
+.topbar-badge{background:var(--p-mid);border-radius:20px;padding:4px 12px;color:#EEEDFE;font-size:11px;display:flex;align-items:center;gap:5px;white-space:nowrap}
+
+/* ── Body layout ── */
+.body{display:flex;overflow:hidden;flex:1;min-height:0}
+
+/* ── Sidebar ── */
+.sidebar{width:64px;background:var(--p-deep);display:flex;flex-direction:column;align-items:center;padding:10px 0;gap:2px;flex-shrink:0}
+.nav-btn{width:48px;height:52px;border-radius:var(--r-md);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;cursor:pointer;color:#7F77DD;font-size:9px;border:none;background:transparent;transition:background .15s}
+.nav-btn i{font-size:21px}
+.nav-btn.active{background:var(--p-mid);color:#EEEDFE}
+.nav-btn:not(.active):hover{background:rgba(255,255,255,0.07)}
+.nav-spacer{flex:1}
+.nav-divider{width:32px;height:0.5px;background:rgba(255,255,255,0.1);margin:4px 0}
+.user-mini{width:36px;height:36px;border-radius:var(--r-md);background:rgba(255,255,255,0.06);color:var(--p-light);display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;margin-top:2px}
+.logout-btn{width:48px;height:44px;border-radius:var(--r-md);border:none;background:transparent;color:var(--p-light);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1px;font-size:9px;font-family:var(--font)}
+.logout-btn i{font-size:18px}
+
+/* ── Left panel (Merlin) ── */
+.left-panel{width:256px;background:var(--p-deep);display:flex;flex-direction:column;align-items:center;padding:16px;gap:12px;flex-shrink:0;border-right:0.5px solid rgba(255,255,255,0.07)}
+
+.wizard-wrap{position:relative;display:flex;align-items:center;justify-content:center;width:90px;height:90px}
+.ring {position:absolute;width:76px;height:76px;border-radius:50%;border:1.5px solid #7F77DD;opacity:0.4;animation:pulse 2s ease-in-out infinite}
+.ring2{position:absolute;width:90px;height:90px;border-radius:50%;border:1px solid var(--p-mid);opacity:0.2;animation:pulse 2s ease-in-out infinite .4s}
+@keyframes pulse{0%,100%{transform:scale(1);opacity:.4}50%{transform:scale(1.08);opacity:.1}}
+.wizard{width:62px;height:62px;border-radius:50%;background:var(--p-mid);border:2px solid var(--p-light);display:flex;align-items:center;justify-content:center;font-size:28px}
+
+.bubble{background:var(--p-card);border-radius:var(--r-lg);padding:10px 14px;width:100%}
+.bubble p{color:#EEEDFE;font-size:13px;line-height:1.5;text-align:center}
+.bubble .hint{color:var(--p-light);font-size:11px;margin-top:4px;text-align:center}
+
+.dot{width:6px;height:6px;border-radius:50%;background:#7F77DD;flex-shrink:0;animation:blink 1.2s ease-in-out infinite}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:.2}}
+
+.merlin-tip{background:rgba(83,74,183,0.25);border-radius:var(--r-md);padding:8px 12px;width:100%;border-left:2.5px solid var(--p-mid);border-radius:0 var(--r-md) var(--r-md) 0}
+.merlin-tip p{font-size:11px;color:var(--p-light);line-height:1.5}
+.adventures-box{display:flex;min-height:0;width:100%;flex:1;flex-direction:column;border-radius:var(--r-md);background:rgba(255,255,255,.05);padding:8px}
+.adventures-head{display:flex;align-items:center;justify-content:space-between;padding:0 4px;font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.14em;color:var(--p-light)}
+.adventures-list{margin-top:8px;display:flex;min-height:0;flex:1;flex-direction:column;gap:4px;overflow-y:auto}
+.adventure-item{border:0;border-radius:var(--r-md);background:rgba(255,255,255,.05);padding:8px 12px;text-align:left;color:var(--p-bg);font-family:var(--font)}
+.adventure-item.active{background:var(--p-mid);color:#fff}
+.adventure-title{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:12px;font-weight:600}
+.adventure-meta{display:block;margin-top:2px;font-size:10px;color:var(--p-light)}
+.adventure-item.active .adventure-meta{color:var(--p-bg)}
+.new-adventure{width:100%;border:0;border-radius:var(--r-md);background:rgba(255,255,255,.1);padding:8px 12px;color:var(--p-bg);font-size:12px;font-weight:600;font-family:var(--font)}
+
+/* ── Right panel ── */
+.right-panel{flex:1;display:flex;flex-direction:column;overflow:hidden;min-width:0}
+
+/* Steps bar */
+.steps-bar{background:var(--color-surface-2);border-bottom:0.5px solid var(--color-border);padding:10px 16px;display:flex;align-items:center;flex-shrink:0}
+.step{display:flex;flex-direction:column;align-items:center;gap:3px;flex:1;min-width:0}
+.step-dot{width:24px;height:24px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;border:0.5px solid var(--color-border);flex-shrink:0}
+.step-dot.done  {background:var(--p-bg);color:var(--p-card);border-color:var(--p-light)}
+.step-dot.active{background:var(--p-mid);color:#EEEDFE;border-color:var(--p-mid)}
+.step-dot.todo  {background:var(--color-surface);color:var(--color-text-3)}
+.step-lbl{font-size:9px;color:var(--color-text-2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:48px;text-align:center}
+.step-lbl.active{color:var(--p-mid);font-weight:500}
+.step-line{flex:1;height:1px;background:var(--color-border);margin-bottom:14px}
+
+/* Content */
+.content{flex:1;overflow-y:auto;padding:16px 18px;display:flex;flex-direction:column;gap:12px}
+
+.progress-row{display:flex;align-items:center;gap:12px;background:var(--color-surface-2);border-radius:var(--r-md);padding:9px 14px}
+.progress-lbl{font-size:12px;color:var(--color-text-2);white-space:nowrap}
+.progress-bg{flex:1;height:5px;background:var(--color-border);border-radius:99px;overflow:hidden}
+.progress-fill{height:100%;background:var(--p-mid);border-radius:99px}
+.progress-pct{font-size:12px;color:var(--p-mid);font-weight:500;white-space:nowrap}
+
+.info-row{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
+.info-card{background:var(--color-surface-2);border-radius:var(--r-md);padding:9px 12px}
+.info-card-lbl{font-size:10px;color:var(--color-text-2);display:flex;align-items:center;gap:4px;margin-bottom:3px}
+.info-card-lbl i{font-size:13px}
+.info-card-val{font-size:13px;color:var(--color-text);font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+
+.conseil-box{background:var(--p-bg);border-radius:0 var(--r-md) var(--r-md) 0;border-left:3px solid var(--p-mid);padding:10px 14px}
+.conseil-box p{font-size:12px;color:var(--p-card);line-height:1.6}
+
+.action-row{display:flex;gap:8px;padding-top:2px;margin-top:auto}
+.btn-back{padding:10px 16px;border-radius:var(--r-md);border:0.5px solid var(--color-border-md);background:var(--color-surface-2);font-size:13px;cursor:pointer;color:var(--color-text-2);display:flex;align-items:center;gap:6px;min-height:44px;font-family:var(--font)}
+.btn-next{flex:1;padding:10px 16px;border-radius:var(--r-md);border:none;background:var(--p-mid);font-size:13px;cursor:pointer;color:#EEEDFE;display:flex;align-items:center;justify-content:center;gap:6px;min-height:44px;font-weight:500;font-family:var(--font)}
+.btn-next:hover{background:var(--p-card)}
+.create-scroll{flex:1;overflow-y:auto;background:#faf9f5;padding:16px 18px}
+.create-inner{max-width:840px;margin:0 auto;display:flex;flex-direction:column;gap:12px}
+.chat-thread{display:flex;flex-direction:column;gap:12px}
+.chat-row{display:flex;align-items:flex-start;gap:8px}
+.chat-row.user{justify-content:flex-end}
+.chat-avatar{margin-top:4px;width:32px;height:32px;border-radius:50%;background:var(--p-mid);color:var(--p-bg);display:flex;align-items:center;justify-content:center;box-shadow:0 1px 2px rgba(0,0,0,.08);flex-shrink:0}
+.chat-bubble{max-width:84%;border-radius:16px;background:#fff;padding:12px 16px;font-size:13px;line-height:1.55;color:#334155;box-shadow:0 1px 2px rgba(0,0,0,.05);border:1px solid rgba(0,0,0,.1)}
+.chat-bubble.merlin{border-top-left-radius:3px}
+.chat-bubble.user{max-width:72%;border:0;border-top-right-radius:3px;background:var(--p-mid);color:#fff}
+.chat-kicker{margin-bottom:4px;font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.16em;color:var(--p-mid)}
+.draft-preview{border:1px solid rgba(0,0,0,.1);border-radius:var(--r-md);background:#f8f7f2;padding:12px}
+.draft-head{display:flex;align-items:center;justify-content:space-between;gap:12px}
+.draft-title{display:flex;align-items:center;gap:8px;font-size:12px;font-weight:600;color:#334155}
+.draft-action{border:0;border-radius:999px;background:var(--p-mid);color:#fff;padding:6px 12px;font-size:11px;font-weight:600;font-family:var(--font)}
+.draft-section-title{display:flex;align-items:center;gap:8px;margin:12px 0 8px;font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.12em;color:var(--p-mid)}
+.draft-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+.draft-card{border:0;border-radius:var(--r-md);background:#fff;padding:8px 12px;text-align:left;box-shadow:0 0 0 1px rgba(0,0,0,.1);font-family:var(--font)}
+.draft-card-title{font-size:12px;font-weight:600;color:#0f172a}
+.draft-card-copy{margin-top:3px;font-size:11px;line-height:1.45;color:#64748b;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.suggestions-panel{border-radius:var(--r-lg);background:#fff;padding:12px;box-shadow:0 1px 2px rgba(0,0,0,.05),0 0 0 1px rgba(0,0,0,.1)}
+.suggestions-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px}
+.suggestions-title{font-size:12px;font-weight:600;color:#475569}
+.suggestions-hint{font-size:11px;font-style:italic;color:var(--p-mid)}
+.suggestions-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
+.suggestion-card{min-height:56px;border:1px solid rgba(0,0,0,.1);border-radius:var(--r-md);background:#f5f5f3;padding:8px 12px;display:flex;align-items:flex-start;gap:8px;text-align:left;font-size:12px;line-height:1.35;color:#334155;font-family:var(--font)}
+.suggestion-card.active{border-color:var(--p-light);background:var(--p-bg);color:var(--p-card)}
+.create-input{display:flex;flex-shrink:0;gap:8px;border-top:1px solid rgba(0,0,0,.1);background:#fff;padding:12px 18px}
+.create-input input{min-height:44px;min-width:0;flex:1;border:1px solid rgba(0,0,0,.15);border-radius:var(--r-md);background:#f5f5f3;padding:0 16px;font-size:13px;outline:none}
+.create-input button{border:0;border-radius:var(--r-md);background:var(--p-mid);color:#fff;padding:0 20px;font-size:13px;font-weight:600;font-family:var(--font)}
+
+/* ══════════════════════════════════════
+   SCREEN 2 — SCÉNARIO
+══════════════════════════════════════ */
+.scenario-layout{flex:1;display:grid;grid-template-columns:1fr 1fr;gap:0;overflow:hidden}
+.scenario-col{padding:16px 18px;display:flex;flex-direction:column;gap:12px;overflow-y:auto}
+.scenario-col+.scenario-col{border-left:0.5px solid var(--color-border)}
+.sc-card{background:var(--color-surface-2);border-radius:var(--r-md);padding:10px 14px}
+.sc-card-lbl{font-size:10px;color:var(--color-text-2);display:flex;align-items:center;gap:5px;margin-bottom:5px}
+.sc-card-lbl i{font-size:13px}
+.sc-card-val{font-size:13px;color:var(--color-text);line-height:1.5}
+.pill{display:inline-flex;align-items:center;font-size:11px;padding:3px 9px;border-radius:20px;margin:2px 2px 0 0}
+.session-row{display:flex;gap:10px;align-items:flex-start}
+.session-num{width:26px;height:26px;border-radius:50%;background:var(--p-mid);color:#EEEDFE;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:500;flex-shrink:0;margin-top:1px}
+.session-lbl{font-size:12px;font-weight:500;color:var(--color-text)}
+.session-sub{font-size:11px;color:var(--color-text-2);margin-top:2px}
+.acte-block{border-left:2px solid var(--color-border);padding-left:12px}
+.acte-title{font-size:12px;font-weight:500;color:var(--color-text);display:flex;align-items:center;gap:6px}
+.acte-title .dur{font-size:10px;color:var(--color-text-3);font-weight:400}
+.acte-body{font-size:11px;color:var(--color-text-2);margin-top:3px;line-height:1.5}
+.acte-opts{font-size:11px;color:var(--color-text-3);margin-top:4px;font-style:italic}
+.sc-actions{display:flex;gap:8px;padding:12px 18px;border-top:0.5px solid var(--color-border);flex-shrink:0}
+.panel-tabs{display:flex;gap:6px;background:#f5f5f3;border-radius:var(--r-md);padding:4px}
+.panel-tab{border:none;border-radius:6px;background:transparent;padding:6px 10px;font-size:11px;color:var(--color-text-2);font-family:var(--font)}
+.panel-tab.active{background:#fff;color:var(--p-card);box-shadow:0 1px 4px rgba(0,0,0,.08)}
+.act-workflow{background:#f7f6f1;border-radius:var(--r-md);border:0.5px solid var(--color-border);overflow:hidden}
+.act-workflow-head{display:flex;align-items:center;gap:8px;padding:10px 12px;border-bottom:0.5px solid var(--color-border);background:#fff}
+.act-step-grid{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:7px;padding:10px}
+.act-step-card{min-height:70px;border-radius:var(--r-md);background:rgba(255,255,255,.72);box-shadow:0 0 0 1px var(--color-border);padding:8px;text-align:left}
+.act-step-card.active{background:#fff;box-shadow:0 0 0 1px var(--p-light),0 2px 8px rgba(0,0,0,.06)}
+.act-step-dot{width:20px;height:20px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700}
+.act-step-dot.current{background:var(--p-mid);color:#fff}
+.act-step-dot.done{background:#dcfce7;color:#047857}
+.act-step-dot.todo{background:#f1f5f9;color:#94a3b8}
+.act-step-title{display:block;margin-top:5px;font-size:11px;font-weight:700;color:#111827}
+.act-step-help{display:block;margin-top:2px;font-size:10px;line-height:1.35;color:#64748b}
+.merlin-chat-card{background:#fff;border-radius:var(--r-md);border:0.5px solid var(--color-border);padding:12px}
+.chat-bubble-merlin{background:var(--p-bg);color:var(--p-card);border-radius:14px;border-top-left-radius:4px;padding:10px 12px;font-size:12px;line-height:1.55}
+
+/* ══════════════════════════════════════
+   SCREEN 3 — TODO
+══════════════════════════════════════ */
+.todo-layout{flex:1;display:flex;flex-direction:column;overflow:hidden;background:#fff}
+.todo-header{display:flex;align-items:center;gap:12px;border-bottom:1px solid rgba(0,0,0,.1);padding:12px 18px;flex-shrink:0}
+.todo-title-kicker{font-size:12px;text-transform:uppercase;letter-spacing:.18em;color:var(--p-mid)}
+.todo-title{font-size:18px;font-weight:600;color:#020617;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.todo-metrics{margin-left:auto;display:grid;grid-template-columns:repeat(3,1fr);gap:8px;min-width:420px}
+.todo-metric{background:#f5f5f3;border-radius:var(--r-md);padding:8px 12px;text-align:right}
+.todo-metric-label{font-size:10px;color:#94a3b8;text-transform:uppercase;letter-spacing:.12em}
+.todo-metric-value{font-size:15px;font-weight:600;color:#020617;margin-top:1px}
+.todo-split{display:grid;grid-template-columns:340px minmax(0,1fr);min-height:0;flex:1;overflow:hidden}
+.todo-aside{overflow-y:auto;border-right:1px solid rgba(0,0,0,.1);background:#f7f6f1;padding:16px 18px;display:flex;flex-direction:column;gap:12px}
+.todo-main{display:flex;min-width:0;flex-direction:column;overflow:hidden;background:#fff}
+.todo-card{background:#fff;border-radius:var(--r-lg);padding:16px;box-shadow:0 0 0 1px rgba(0,0,0,.1)}
+.todo-card-kicker{font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.16em;color:#94a3b8}
+.todo-card-copy{font-size:13px;color:#475569;margin-top:4px}
+.todo-percent{width:56px;height:56px;border-radius:999px;background:var(--p-bg);color:var(--p-card);display:flex;align-items:center;justify-content:center;font-size:15px;font-weight:600;flex-shrink:0}
+.todo-cat-hdr{display:flex;align-items:center;gap:7px;font-size:12px;font-weight:500}
+.todo-cat-pill{border-radius:20px;padding:2px 10px;font-size:11px}
+.todo-category-list{display:flex;flex-direction:column;gap:8px}
+.todo-category-btn{border:0;border-radius:var(--r-lg);background:rgba(255,255,255,.75);padding:12px;text-align:left;box-shadow:0 0 0 1px rgba(0,0,0,.1);font-family:var(--font)}
+.todo-category-btn.active{background:#fff;box-shadow:0 0 0 1px var(--p-light),0 1px 2px rgba(0,0,0,.05)}
+.todo-category-head{display:flex;align-items:flex-start;justify-content:space-between;gap:10px}
+.todo-category-title{display:flex;align-items:center;gap:8px;font-size:12px;font-weight:600;color:#0f172a}
+.todo-category-help{font-size:11px;line-height:1.45;color:#64748b;margin-top:4px}
+.todo-item{display:flex;align-items:center;gap:10px;min-height:44px;border-bottom:0.5px solid var(--color-border);padding:6px 0}
+.todo-item:last-child{border-bottom:none}
+.todo-cb{width:20px;height:20px;border-radius:4px;border:0.5px solid var(--color-border-md);flex-shrink:0;display:flex;align-items:center;justify-content:center;cursor:pointer}
+.todo-cb.done{background:var(--p-mid);border-color:var(--p-mid);color:#fff}
+.todo-cb i{font-size:12px}
+.todo-text{font-size:12px;color:var(--color-text);flex:1;line-height:1.3}
+.todo-text.done{color:var(--color-text-3);text-decoration:line-through}
+.todo-prog-row{display:flex;align-items:center;gap:10px;background:var(--color-surface-2);border-radius:var(--r-md);padding:9px 14px}
+.todo-now-list{display:flex;flex-direction:column;gap:8px;margin-top:12px}
+.todo-now{border:0;border-radius:var(--r-md);background:#f5f5f3;display:flex;gap:8px;align-items:flex-start;padding:8px 12px;text-align:left;font-family:var(--font)}
+.todo-now i{font-size:20px;color:#64748b;flex-shrink:0}
+.todo-main-head{display:flex;align-items:center;justify-content:space-between;gap:12px;border-bottom:1px solid rgba(0,0,0,.1);padding:12px 18px;flex-shrink:0}
+.todo-main-kicker{display:flex;align-items:center;gap:8px;font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.16em;color:var(--p-mid)}
+.todo-cat-progress{min-width:220px;border-radius:var(--r-md);background:#f5f5f3;padding:8px 16px}
+.todo-task-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;padding:16px 18px;overflow-y:auto}
+.todo-task-card{min-height:96px;border:1px solid rgba(0,0,0,.1);border-radius:var(--r-lg);background:#f5f5f3;padding:16px;display:flex;gap:12px;text-align:left}
+.todo-check{margin-top:2px;width:24px;height:24px;border-radius:4px;border:1px solid rgba(0,0,0,.25);background:#fff;flex-shrink:0}
+.todo-task-meta{display:flex;align-items:center;gap:8px;font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.12em;color:#94a3b8}
+.todo-task-label{font-size:13px;line-height:1.5;color:#1e293b;margin-top:4px}
+.todo-footer{display:flex;align-items:center;gap:8px;border-top:1px solid rgba(0,0,0,.1);padding:12px 18px;flex-shrink:0}
+
+/* ══════════════════════════════════════
+   SCREEN 4 — MONDE
+══════════════════════════════════════ */
+.world-layout{flex:1;display:flex;flex-direction:column;overflow:hidden;background:#fff}
+.world-header{display:flex;align-items:center;gap:12px;border-bottom:1px solid rgba(0,0,0,.1);padding:12px 18px;flex-shrink:0}
+.world-title-kicker{font-size:12px;text-transform:uppercase;letter-spacing:.18em;color:var(--p-mid)}
+.world-title{font-size:18px;font-weight:600;color:#020617;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.world-metrics{margin-left:auto;display:grid;grid-template-columns:repeat(2,1fr);gap:8px;min-width:360px}
+.world-metric{background:#f5f5f3;border-radius:var(--r-md);padding:8px 12px}
+.world-metric-label{font-size:10px;color:#64748b;text-transform:uppercase;letter-spacing:.12em}
+.world-metric-value{font-size:15px;font-weight:600;color:#0f172a;margin-top:1px}
+.world-split{display:grid;grid-template-columns:360px minmax(0,1fr);min-height:0;flex:1;overflow:hidden}
+.world-aside{overflow-y:auto;border-right:1px solid rgba(0,0,0,.1);background:#f7f6f1;padding:16px 18px;display:flex;flex-direction:column;gap:12px}
+.world-card{background:#fff;border-radius:var(--r-lg);padding:16px;box-shadow:0 0 0 1px rgba(0,0,0,.1)}
+.world-card-kicker{font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.16em;color:#94a3b8}
+.world-card-copy{font-size:12px;line-height:1.55;color:#64748b;margin-top:4px}
+.world-type-counts{display:grid;grid-template-columns:repeat(5,1fr);gap:6px;margin-top:12px}
+.world-type-box{border-radius:var(--r-md);background:#f5f5f3;padding:6px 4px;text-align:center;color:#475569}
+.world-type-box i{font-size:16px}
+.proposal-btn{border:0;border-radius:var(--r-lg);background:#fff;padding:12px;text-align:left;box-shadow:0 0 0 1px var(--p-light),0 1px 2px rgba(0,0,0,.05);font-family:var(--font)}
+.proposal-row{display:flex;align-items:flex-start;gap:12px}
+.proposal-icon,.entity-icon{width:32px;height:32px;border-radius:var(--r-md);display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.proposal-icon i,.entity-icon i{font-size:16px}
+.proposal-name{font-size:13px;font-weight:600;color:#0f172a;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.proposal-desc{font-size:11px;line-height:1.45;color:#64748b;margin-top:4px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.proposal-meta{font-size:10px;color:#94a3b8;margin-top:4px}
+.filter-list{display:flex;flex-direction:column;gap:6px;margin-top:12px}
+.filter-btn{border:0;border-radius:var(--r-md);background:transparent;display:flex;align-items:center;gap:8px;padding:8px 10px;text-align:left;font-size:12px;color:#475569;font-family:var(--font)}
+.filter-btn.active{background:var(--p-bg);color:var(--p-card)}
+.filter-btn span:last-child{margin-left:auto;color:#94a3b8}
+.world-main{display:flex;min-width:0;flex-direction:column;overflow:hidden;background:#fff}
+.proposal-review{border-bottom:1px solid rgba(0,0,0,.1);padding:16px 18px;flex-shrink:0}
+.proposal-review-box{border-radius:var(--r-lg);background:#f5f5f3;padding:16px}
+.proposal-review-head{display:flex;align-items:center;gap:8px;font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.16em;color:var(--p-mid)}
+.proposal-review-title{font-size:18px;font-weight:600;color:#020617;margin-top:4px}
+.proposal-review-copy{font-size:13px;line-height:1.55;color:#334155;margin-top:8px}
+.proposal-actions{display:flex;gap:8px;margin-left:16px;flex-shrink:0}
+.canon-head{display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid rgba(0,0,0,.1);padding:12px 18px;flex-shrink:0}
+.canon-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;padding:16px 18px;overflow-y:auto;align-content:start}
+.entity-card{background:var(--color-surface);border:1px solid rgba(0,0,0,.1);border-radius:var(--r-lg);padding:12px;display:flex;gap:12px;align-items:flex-start;box-shadow:0 1px 2px rgba(0,0,0,.05)}
+.entity-name{font-size:13px;font-weight:500;color:var(--color-text)}
+.entity-desc{font-size:11px;color:#475569;margin-top:4px;line-height:1.45;display:-webkit-box;-webkit-line-clamp:4;-webkit-box-orient:vertical;overflow:hidden}
+.entity-badges{display:flex;gap:4px;margin-top:6px;flex-wrap:wrap}
+.entity-badge{font-size:10px;padding:2px 7px;border-radius:20px}
+
+/* ══════════════════════════════════════
+   JS screen switching
+══════════════════════════════════════ */
+.screen{display:none}
+.screen.active{display:flex;flex-direction:column;overflow:hidden;flex:1}
+</style>
+</head>
+<body>
+
+<h1>L'Antre du Maître — Maquette iPad actuelle</h1>
+<div class="meta">
+  CoF Mini · PWA React + Vite · Safari iOS · Orientation paysage (960×588)<br>
+  Copie statique fidèle à la charte actuelle : topbar, rail, workflow rond, fiches scénario, todo et monde
+</div>
+<div class="palette">
+  <div class="swatch" style="background:#2A1F5C;color:#EEEDFE">#2A1F5C dark</div>
+  <div class="swatch" style="background:#534AB7;color:#EEEDFE">#534AB7 primary</div>
+  <div class="swatch" style="background:#AFA9EC;color:#3C3489">#AFA9EC light</div>
+  <div class="swatch" style="background:#EEEDFE;color:#3C3489">#EEEDFE bg tint</div>
+  <div class="swatch" style="background:#3C3489;color:#EEEDFE">#3C3489 card</div>
+  <div class="swatch" style="background:#1a1440;color:#EEEDFE">#1a1440 deep</div>
+</div>
+
+<div class="ipad-wrap">
+  <div class="ipad-label" id="screen-label">Écran 1 — Création avec Merlin (étape Défis)</div>
+  <div class="ipad">
+
+    <!-- TOPBAR -->
+    <div class="topbar">
+      <div class="topbar-avatar"><i class="ti ti-wand"></i></div>
+      <div class="topbar-title">L'Antre du Maître</div>
+      <div class="topbar-sub">· CoF Mini</div>
+      <div class="topbar-spacer"></div>
+      <div class="topbar-info"><i class="ti ti-clock"></i> Aventure guidée</div>
+      <div class="topbar-badge"><i class="ti ti-wand"></i> <span id="topbar-status">Création en cours</span></div>
+    </div>
+
+    <!-- BODY -->
+    <div class="body">
+
+      <!-- SIDEBAR -->
+      <div class="sidebar">
+        <button class="nav-btn active" id="nav-create" onclick="showScreen('create')" title="Créer">
+          <i class="ti ti-wand"></i>Créer
+        </button>
+        <button class="nav-btn" id="nav-scenario" onclick="showScreen('scenario')" title="Scénario">
+          <i class="ti ti-scroll"></i>Scén.
+        </button>
+        <button class="nav-btn" id="nav-todo" onclick="showScreen('todo')" title="Todo">
+          <i class="ti ti-checklist"></i>Todo
+        </button>
+        <button class="nav-btn" id="nav-world" onclick="showScreen('world')" title="Monde">
+          <i class="ti ti-map"></i>Monde
+        </button>
+        <div class="nav-spacer"></div>
+        <div class="nav-divider"></div>
+        <div class="user-mini" title="merlin · CHILD">ME</div>
+        <button class="logout-btn" title="Se déconnecter">
+          <i class="ti ti-logout"></i>Sortir
+        </button>
+      </div>
+
+      <!-- ═══ SCREEN 1 : CRÉATION ═══ -->
+      <div class="screen active" id="screen-create" style="flex-direction:row">
+
+        <div class="left-panel">
+          <div class="wizard-wrap">
+            <div class="ring2"></div>
+            <div class="ring"></div>
+            <div class="wizard"><i class="ti ti-wand"></i></div>
+          </div>
+          <div class="bubble">
+            <p>Merlin construit le scénario étape par étape.</p>
+            <div class="hint">L'écume du monde</div>
+          </div>
+          <div class="merlin-tip">
+            <p>Le scénario alterne exploration, roleplay et combat. Les combats peuvent être évités par le dialogue ou la ruse.</p>
+          </div>
+          <div class="adventures-box">
+            <div class="adventures-head"><span>Mes aventures</span><span>2</span></div>
+            <div class="adventures-list">
+              <button class="adventure-item active">
+                <span class="adventure-title">L'écume du monde</span>
+                <span class="adventure-meta">Complet · 25/05</span>
+              </button>
+              <button class="adventure-item">
+                <span class="adventure-title">Se rince les dents</span>
+                <span class="adventure-meta">Brouillon · 25/05</span>
+              </button>
+            </div>
+          </div>
+          <button class="new-adventure">Nouvelle aventure</button>
+        </div>
+
+        <div class="right-panel">
+          <div class="steps-bar">
+            <div class="step"><div class="step-dot done"><i class="ti ti-check"></i></div><div class="step-lbl">Ton</div></div>
+            <div class="step-line"></div>
+            <div class="step"><div class="step-dot done"><i class="ti ti-check"></i></div><div class="step-lbl">Lieu</div></div>
+            <div class="step-line"></div>
+            <div class="step"><div class="step-dot done"><i class="ti ti-check"></i></div><div class="step-lbl">Quête</div></div>
+            <div class="step-line"></div>
+            <div class="step"><div class="step-dot done"><i class="ti ti-check"></i></div><div class="step-lbl">Méchant</div></div>
+            <div class="step-line"></div>
+            <div class="step"><div class="step-dot done"><i class="ti ti-check"></i></div><div class="step-lbl">PNJs</div></div>
+            <div class="step-line"></div>
+            <div class="step"><div class="step-dot done"><i class="ti ti-check"></i></div><div class="step-lbl">Défis</div></div>
+            <div class="step-line"></div>
+            <div class="step"><div class="step-dot done"><i class="ti ti-check"></i></div><div class="step-lbl">Actes</div></div>
+            <div class="step-line"></div>
+            <div class="step"><div class="step-dot done"><i class="ti ti-check"></i></div><div class="step-lbl">Cartes</div></div>
+            <div class="step-line"></div>
+            <div class="step"><div class="step-dot done"><i class="ti ti-check"></i></div><div class="step-lbl">Durée</div></div>
+            <div class="step-line"></div>
+            <div class="step"><div class="step-dot active"><i class="ti ti-wand"></i></div><div class="step-lbl active">Recap</div></div>
+          </div>
+
+          <div class="content" style="flex:0 0 auto">
+            <div class="progress-row">
+              <div class="progress-lbl">Avancement</div>
+              <div class="progress-bg"><div class="progress-fill" style="width:100%"></div></div>
+              <div class="progress-pct">10 / 10</div>
+            </div>
+
+            <div class="info-row">
+              <div class="info-card">
+                <div class="info-card-lbl"><i class="ti ti-map-pin"></i> Lieu</div>
+                <div class="info-card-val">Grotte des Soupirs</div>
+              </div>
+              <div class="info-card">
+                <div class="info-card-lbl"><i class="ti ti-mood-smile"></i> Ambiance</div>
+                <div class="info-card-val">Exploration</div>
+              </div>
+              <div class="info-card">
+                <div class="info-card-lbl"><i class="ti ti-skull"></i> Méchant</div>
+                <div class="info-card-val">Morrigan la Noyée</div>
+              </div>
+            </div>
+          </div>
+          <div class="create-scroll">
+            <div class="create-inner">
+              <div class="chat-thread">
+                <div class="chat-row">
+                  <div class="chat-avatar"><i class="ti ti-wand"></i></div>
+                  <div class="chat-bubble merlin">
+                    <div class="chat-kicker">Merlin démarre</div>
+                    On va créer une aventure CoF Mini ensemble. Je vais te poser quelques questions, puis préparer les actes, les rencontres et la todo.
+                  </div>
+                </div>
+                <div class="chat-row user">
+                  <div class="chat-bubble user">Je veux une aventure dans une grotte au bord de la mer, avec un fantôme et un objet volé.</div>
+                </div>
+                <div class="chat-row">
+                  <div class="chat-avatar"><i class="ti ti-wand"></i></div>
+                  <div class="chat-bubble merlin">
+                    <div class="chat-kicker">Merlin</div>
+                    Parfait. J'ai construit <strong>L'écume du monde</strong> : une enquête au village, une rencontre avec Dorian dans la grotte, puis le combat du Fanal contre Morrigan la Noyée.
+                  </div>
+                </div>
+                <div class="chat-row user">
+                  <div class="chat-bubble user">Ajoute une piste par le port et une conséquence si les joueurs tardent.</div>
+                </div>
+                <div class="chat-row">
+                  <div class="chat-avatar"><i class="ti ti-wand"></i></div>
+                  <div class="chat-bubble merlin">
+                    <div class="chat-kicker">Merlin</div>
+                    C'est ajouté : un carnet près du port peut orienter les joueurs, et si la table tarde, la marée coupe une issue dans la grotte.
+                  </div>
+                </div>
+              </div>
+
+              <section class="draft-preview">
+                <div class="draft-head">
+                  <div class="draft-title"><i class="ti ti-sparkles"></i> Ce que Merlin a préparé</div>
+                  <button class="draft-action" onclick="showScreen('scenario')"><i class="ti ti-file-description"></i> Voir le détail</button>
+                </div>
+                <div class="draft-section-title"><i class="ti ti-sword"></i> Rencontres proposées</div>
+                <div class="draft-grid">
+                  <div class="draft-card"><div class="draft-card-title">Acte 1 · 2 × brigand</div><div class="draft-card-copy">Deux brigands surveillent les abords de la falaise et peuvent être combattus, évités ou interrogés.</div></div>
+                  <div class="draft-card"><div class="draft-card-title">Acte 2 · 2 × squelette</div><div class="draft-card-copy">Des squelettes patrouillent l'entrée du tunnel secret. Dorian connaît un passage alternatif.</div></div>
+                </div>
+                <div class="draft-section-title"><i class="ti ti-file-description"></i> Actes retenus</div>
+                <div class="draft-grid">
+                  <button class="draft-card" onclick="showScreen('scenario')"><div class="draft-card-title">Acte 1 · Les murmures du village</div><div class="draft-card-copy">Mission de Dame Ysolde, enquête au port et pistes vers la Grotte des Soupirs.</div></button>
+                  <button class="draft-card" onclick="showScreen('scenario')"><div class="draft-card-title">Acte 2 · La rencontre avec Dorian</div><div class="draft-card-copy">Un voleur repentant peut aider les héros s'ils gagnent sa confiance.</div></button>
+                  <button class="draft-card" onclick="showScreen('scenario')"><div class="draft-card-title">Acte 3 · Le combat du Fanal</div><div class="draft-card-copy">Morrigan attaque pendant que la marée monte dans la chambre secrète.</div></button>
+                </div>
+              </section>
+
+              <section class="suggestions-panel">
+                <div class="suggestions-head">
+                  <div class="suggestions-title">Suggestions de réponse</div>
+                  <div class="suggestions-hint">ou écris librement en bas</div>
+                </div>
+                <div class="suggestions-grid">
+                  <button class="suggestion-card active"><i class="ti ti-search"></i><span><strong>Ajoute une piste</strong><br><span style="font-size:11px;color:#64748b">Merlin adapte la suite.</span></span></button>
+                  <button class="suggestion-card"><i class="ti ti-sword"></i><span><strong>Rends le combat plus tactique</strong><br><span style="font-size:11px;color:#64748b">Merlin adapte la suite.</span></span></button>
+                  <button class="suggestion-card"><i class="ti ti-map"></i><span><strong>Propose des cartes</strong><br><span style="font-size:11px;color:#64748b">Merlin adapte la suite.</span></span></button>
+                </div>
+              </section>
+            </div>
+          </div>
+          <div class="create-input">
+            <input value="" placeholder="Écris une réponse à Merlin…" />
+            <button>Envoyer</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- ═══ SCREEN 2 : SCÉNARIO ═══ -->
+      <div class="screen" id="screen-scenario">
+        <div class="scenario-layout">
+          <div class="scenario-col">
+            <div style="font-size:14px;font-weight:500;color:#1a1a1a">L'écume du monde</div>
+            <div class="panel-tabs">
+              <button class="panel-tab active">Jouer</button>
+              <button class="panel-tab">Actes</button>
+              <button class="panel-tab">Sessions</button>
+            </div>
+            <div class="info-row">
+              <div class="info-card">
+                <div class="info-card-lbl"><i class="ti ti-mood-smile"></i> Ambiance</div>
+                <div class="info-card-val">Exploration</div>
+              </div>
+              <div class="info-card">
+                <div class="info-card-lbl"><i class="ti ti-users"></i> Joueurs</div>
+                <div class="info-card-val">3 actes</div>
+              </div>
+              <div class="info-card">
+                <div class="info-card-lbl"><i class="ti ti-clock"></i> Durée</div>
+                <div class="info-card-val">~110 min</div>
+              </div>
+            </div>
+            <div class="sc-card">
+              <div class="sc-card-lbl"><i class="ti ti-target"></i> Quête principale</div>
+              <div class="sc-card-val">Retrouver la broche disparue de Dame Ysolde et découvrir le secret de la Grotte des Soupirs avant que la marée ne piège les héros.</div>
+            </div>
+            <div class="sc-card">
+              <div class="sc-card-lbl"><i class="ti ti-sword"></i> Types de défis</div>
+              <div style="margin-top:4px">
+                <span class="pill" style="background:#EEEDFE;color:#3C3489">Exploration</span>
+                <span class="pill" style="background:#EEEDFE;color:#3C3489">Roleplay</span>
+                <span class="pill" style="background:#EEEDFE;color:#3C3489">Combat</span>
+              </div>
+            </div>
+            <div class="sc-card">
+              <div class="sc-card-lbl"><i class="ti ti-clock"></i> Découpage sessions</div>
+              <div style="display:flex;flex-direction:column;gap:8px;margin-top:6px">
+                <div class="session-row">
+                  <div class="session-num">1</div>
+                  <div><div class="session-lbl">Session unique · ~110 min</div><div class="session-sub">Village côtier → grotte → combat du Fanal</div></div>
+                </div>
+                <div class="session-row">
+                  <div class="session-num">2</div>
+                  <div><div class="session-lbl">Point de coupe possible</div><div class="session-sub">Après la rencontre avec Dorian si la table ralentit.</div></div>
+                </div>
+              </div>
+            </div>
+            <div class="act-workflow">
+              <div class="act-workflow-head">
+                <div class="session-num">1</div>
+                <div>
+                  <div class="session-lbl">Acte 1 avec Merlin</div>
+                  <div class="session-sub">Workflow détaillé par acte, comme la création d'aventure</div>
+                </div>
+                <span class="pill" style="margin-left:auto;background:#fef3c7;color:#b45309">IN_PROGRESS</span>
+              </div>
+              <div class="act-step-grid">
+                <div class="act-step-card active">
+                  <span class="act-step-dot current">1</span>
+                  <span class="act-step-title">Objectif</span>
+                  <span class="act-step-help">But clair et enjeu</span>
+                </div>
+                <div class="act-step-card">
+                  <span class="act-step-dot done">2</span>
+                  <span class="act-step-title">Voies</span>
+                  <span class="act-step-help">Options joueurs</span>
+                </div>
+                <div class="act-step-card">
+                  <span class="act-step-dot todo">3</span>
+                  <span class="act-step-title">Gameplay</span>
+                  <span class="act-step-help">Combat, enquête...</span>
+                </div>
+                <div class="act-step-card">
+                  <span class="act-step-dot todo">4</span>
+                  <span class="act-step-title">Scènes</span>
+                  <span class="act-step-help">Découpage MJ</span>
+                </div>
+                <div class="act-step-card">
+                  <span class="act-step-dot todo">5</span>
+                  <span class="act-step-title">Timing</span>
+                  <span class="act-step-help">Rythme et coupes</span>
+                </div>
+                <div class="act-step-card">
+                  <span class="act-step-dot todo">6</span>
+                  <span class="act-step-title">Validation</span>
+                  <span class="act-step-help">Synthèse finale</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="scenario-col">
+            <div class="merlin-chat-card">
+              <div class="sc-card-lbl"><i class="ti ti-wand"></i> Merlin · Objectif</div>
+              <div class="chat-bubble-merlin">Pour cet acte, l'objectif MJ est de faire entrer les joueurs dans le mystère sans les bloquer. On prépare plusieurs chemins : interroger le pêcheur, fouiller le port, négocier avec Dame Ysolde ou suivre les traces jusqu'à la falaise.</div>
+            </div>
+            <div style="font-size:12px;font-weight:500;color:#666660;display:flex;align-items:center;gap:5px"><i class="ti ti-layout-list" style="font-size:14px"></i> Déroulé des actes</div>
+            <div class="acte-block">
+              <div class="acte-title">Acte 1 — Les murmures du village <span class="dur">~45 min</span></div>
+              <div class="acte-body">Les héros arrivent au village côtier et reçoivent la mission de Dame Ysolde : retrouver sa broche disparue. L'enquête mène vers la Grotte des Soupirs.</div>
+              <div class="acte-opts">Si les joueurs bloquent → un villageois mentionne une lumière froide dans la falaise.</div>
+            </div>
+            <div class="acte-block">
+              <div class="acte-title">Acte 2 — La rencontre avec Dorian <span class="dur">~35 min</span></div>
+              <div class="acte-body">Dans la grotte à marée basse, les héros découvrent Dorian, tétanisé. Il connaît un passage vers la zone secrète mais il faut gagner sa confiance.</div>
+              <div class="acte-opts">Si Dorian fait confiance aux héros → il indique le passage qui contourne les squelettes.</div>
+            </div>
+            <div class="acte-block">
+              <div class="acte-title">Acte 3 — Le combat du Fanal <span class="dur">~25 min</span></div>
+              <div class="acte-body">Morrigan la Noyée se manifeste dans la chambre secrète. Le combat peut se conclure par la victoire, l'apaisement de son nom ou une fuite risquée.</div>
+            </div>
+            <div class="sc-card">
+              <div class="sc-card-lbl"><i class="ti ti-map" style="font-size:13px"></i> Cartes Battle Mats</div>
+              <div style="font-size:12px;color:#1a1a1a;margin-top:4px;display:flex;flex-direction:column;gap:4px">
+                <div>Grotte côtière <span style="color:#666660">passages à marée basse</span> — Actes 2-3</div>
+                <div>Village côtier <span style="color:#666660">port et falaise</span> — Acte 1</div>
+                <div>Chambre secrète <span style="color:#666660">Fanal des Abysses</span> — Combat final</div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="sc-actions">
+          <button class="btn-back"><i class="ti ti-download"></i> Exporter PDF</button>
+          <button class="btn-next" onclick="showScreen('todo')"><i class="ti ti-checklist"></i> Préparer la partie</button>
+          <button class="btn-back" style="margin-left:auto"><i class="ti ti-star"></i> On a joué cette aventure !</button>
+        </div>
+      </div>
+
+      <!-- ═══ SCREEN 3 : TODO ═══ -->
+      <div class="screen" id="screen-todo">
+        <div class="todo-layout">
+          <header class="todo-header">
+            <div>
+              <div class="todo-title-kicker">Préparation de partie</div>
+              <div class="todo-title">L'écume du monde</div>
+            </div>
+            <div class="todo-metrics">
+              <div class="todo-metric"><div class="todo-metric-label">Progression</div><div class="todo-metric-value">0%</div></div>
+              <div class="todo-metric"><div class="todo-metric-label">Restant</div><div class="todo-metric-value">24</div></div>
+              <div class="todo-metric"><div class="todo-metric-label">Total</div><div class="todo-metric-value">24</div></div>
+            </div>
+          </header>
+
+          <div class="todo-split">
+            <aside class="todo-aside">
+              <article class="todo-card">
+                <div style="display:flex;align-items:center;justify-content:space-between;gap:12px">
+                  <div>
+                    <div class="todo-card-kicker">Checklist MJ</div>
+                    <div class="todo-card-copy">Coche ce qui est prêt avant de lancer la session.</div>
+                  </div>
+                  <div class="todo-percent">0%</div>
+                </div>
+                <div class="mt-3 h-2 overflow-hidden rounded-full bg-black/10" style="margin-top:12px;height:8px;overflow:hidden;border-radius:999px;background:rgba(0,0,0,.1)">
+                  <div style="height:100%;width:0%;border-radius:999px;background:#534AB7"></div>
+                </div>
+              </article>
+
+              <div class="todo-category-list">
+                <button class="todo-category-btn active">
+                  <div class="todo-category-head">
+                    <div>
+                      <div class="todo-category-title"><i class="ti ti-skull"></i> Monstres</div>
+                      <div class="todo-category-help">Stat blocks, capacités et PV prêts à jouer.</div>
+                    </div>
+                    <span class="entity-badge" style="background:#EEEDFE;color:#3C3489">0/3</span>
+                  </div>
+                  <div style="margin-top:8px;height:5px;overflow:hidden;border-radius:999px;background:rgba(0,0,0,.1)"><div style="height:100%;width:0%;background:#534AB7"></div></div>
+                </button>
+                <button class="todo-category-btn">
+                  <div class="todo-category-head"><div><div class="todo-category-title"><i class="ti ti-users"></i> PNJs</div><div class="todo-category-help">Noms, motivations et accroches rapides.</div></div><span class="entity-badge" style="background:#e0f2fe;color:#0369a1">0/4</span></div>
+                  <div style="margin-top:8px;height:5px;overflow:hidden;border-radius:999px;background:rgba(0,0,0,.1)"></div>
+                </button>
+                <button class="todo-category-btn">
+                  <div class="todo-category-head"><div><div class="todo-category-title"><i class="ti ti-map"></i> Cartes Battle Mats</div><div class="todo-category-help">Volumes, pages et plans nécessaires.</div></div><span class="entity-badge" style="background:#dcfce7;color:#047857">0/3</span></div>
+                  <div style="margin-top:8px;height:5px;overflow:hidden;border-radius:999px;background:rgba(0,0,0,.1)"></div>
+                </button>
+                <button class="todo-category-btn">
+                  <div class="todo-category-head"><div><div class="todo-category-title"><i class="ti ti-file-description"></i> Déroulements & options</div><div class="todo-category-help">Scènes, indices, choix et points de coupure.</div></div><span class="entity-badge" style="background:#fef3c7;color:#b45309">0/13</span></div>
+                  <div style="margin-top:8px;height:5px;overflow:hidden;border-radius:999px;background:rgba(0,0,0,.1)"></div>
+                </button>
+                <button class="todo-category-btn">
+                  <div class="todo-category-head"><div><div class="todo-category-title"><i class="ti ti-checklist"></i> Autre</div><div class="todo-category-help">Tout ce qui ne rentre pas dans les autres blocs.</div></div><span class="entity-badge" style="background:#f5f5f3;color:#475569">0/1</span></div>
+                  <div style="margin-top:8px;height:5px;overflow:hidden;border-radius:999px;background:rgba(0,0,0,.1)"></div>
+                </button>
+              </div>
+
+              <article class="todo-card">
+                <div class="todo-card-kicker">À préparer maintenant</div>
+                <div class="todo-now-list">
+                  <button class="todo-now"><i class="ti ti-users"></i><span><span style="display:block;font-size:12px;font-weight:600;color:#1e293b">PNJs</span><span style="font-size:11px;line-height:1.45;color:#64748b">Préparer l'antagoniste : Morrigan la Noyée</span></span></button>
+                  <button class="todo-now"><i class="ti ti-users"></i><span><span style="display:block;font-size:12px;font-weight:600;color:#1e293b">PNJs</span><span style="font-size:11px;line-height:1.45;color:#64748b">Préparer la fiche PNJ : Dorian le Filou</span></span></button>
+                  <button class="todo-now"><i class="ti ti-users"></i><span><span style="display:block;font-size:12px;font-weight:600;color:#1e293b">PNJs</span><span style="font-size:11px;line-height:1.45;color:#64748b">Préparer la fiche PNJ : Dame Ysolde</span></span></button>
+                </div>
+              </article>
+            </aside>
+
+            <main class="todo-main">
+              <div class="todo-main-head">
+                <div>
+                  <div class="todo-main-kicker"><i class="ti ti-skull"></i> Monstres</div>
+                  <div class="todo-card-copy">Stat blocks, capacités et PV prêts à jouer.</div>
+                </div>
+                <div class="todo-cat-progress">
+                  <div style="display:flex;justify-content:space-between;font-size:12px"><span style="color:#64748b">Catégorie</span><span style="font-weight:600;color:#534AB7">0 / 3</span></div>
+                  <div style="margin-top:8px;height:5px;overflow:hidden;border-radius:999px;background:rgba(0,0,0,.1)"><div style="height:100%;width:0%;background:#534AB7"></div></div>
+                </div>
+              </div>
+
+              <div class="todo-task-grid">
+                <button class="todo-task-card">
+                  <span class="todo-check"></span>
+                  <span>
+                    <span class="todo-task-meta"><i class="ti ti-skull"></i> Monstres</span>
+                    <span class="todo-task-label">Préparer 2 × brigand</span>
+                  </span>
+                </button>
+                <button class="todo-task-card">
+                  <span class="todo-check"></span>
+                  <span>
+                    <span class="todo-task-meta"><i class="ti ti-skull"></i> Monstres</span>
+                    <span class="todo-task-label">Préparer 2 × squelette</span>
+                  </span>
+                </button>
+                <button class="todo-task-card">
+                  <span class="todo-check"></span>
+                  <span>
+                    <span class="todo-task-meta"><i class="ti ti-skull"></i> Monstres</span>
+                    <span class="todo-task-label">Préparer 1 × fantome</span>
+                  </span>
+                </button>
+              </div>
+            </main>
+          </div>
+
+          <footer class="todo-footer">
+            <button class="btn-back" onclick="showScreen('scenario')">Retour scénario</button>
+            <button class="btn-back" onclick="showScreen('create')">Création / aventures</button>
+          </footer>
+          </div>
+      </div>
+
+      <!-- ═══ SCREEN 4 : MONDE ═══ -->
+      <div class="screen" id="screen-world">
+        <div class="world-layout">
+          <header class="world-header">
+            <div>
+              <div class="world-title-kicker">Monde persistant</div>
+              <div class="world-title">Canon validé et propositions Merlin</div>
+            </div>
+            <div class="world-metrics">
+              <div class="world-metric"><div class="world-metric-label">Canon</div><div class="world-metric-value">8</div></div>
+              <div class="world-metric"><div class="world-metric-label">À valider</div><div class="world-metric-value">1</div></div>
+            </div>
+          </header>
+
+          <div class="world-split">
+            <aside class="world-aside">
+              <article class="world-card">
+                <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:12px">
+                  <div>
+                    <div class="world-card-kicker">File de validation</div>
+                    <div class="world-card-copy">Les éléments proposés ne deviennent canon qu’après validation.</div>
+                  </div>
+                  <span class="pill" style="background:#EEEDFE;color:#3C3489">1</span>
+                </div>
+                <div class="world-type-counts">
+                  <div class="world-type-box"><i class="ti ti-map-pin"></i><div>1</div></div>
+                  <div class="world-type-box"><i class="ti ti-user"></i><div>0</div></div>
+                  <div class="world-type-box"><i class="ti ti-users"></i><div>0</div></div>
+                  <div class="world-type-box"><i class="ti ti-bolt"></i><div>0</div></div>
+                  <div class="world-type-box"><i class="ti ti-book"></i><div>0</div></div>
+                </div>
+              </article>
+
+              <button class="proposal-btn">
+                <div class="proposal-row">
+                  <div class="proposal-icon" style="background:#dcfce7;color:#047857"><i class="ti ti-map-pin"></i></div>
+                  <div>
+                    <div class="proposal-name">Le Vieux Phare de la Falaise</div>
+                    <div class="proposal-desc">Une tour de pierre grise dressée au bord de la falaise côtière, abandonnée depuis la disparition de sa gardienne.</div>
+                    <div class="proposal-meta">Lieu · Création Merlin</div>
+                  </div>
+                </div>
+              </button>
+
+              <article class="world-card">
+                <div class="world-card-kicker">Filtrer le canon</div>
+                <div class="filter-list">
+                  <button class="filter-btn active"><i class="ti ti-sparkles"></i> Tous <span>8</span></button>
+                  <button class="filter-btn"><i class="ti ti-map-pin"></i> Lieux <span>2</span></button>
+                  <button class="filter-btn"><i class="ti ti-user"></i> PNJs <span>4</span></button>
+                  <button class="filter-btn"><i class="ti ti-users"></i> Factions <span>0</span></button>
+                  <button class="filter-btn"><i class="ti ti-bolt"></i> Événements <span>2</span></button>
+                  <button class="filter-btn"><i class="ti ti-book"></i> Règles <span>0</span></button>
+                </div>
+              </article>
+            </aside>
+
+            <main class="world-main">
+              <div class="proposal-review">
+                <div class="proposal-review-box">
+                  <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:16px">
+                    <div>
+                      <div class="proposal-review-head"><i class="ti ti-map-pin"></i> Proposition à valider · Lieu</div>
+                      <div class="proposal-review-title">Le Vieux Phare de la Falaise</div>
+                      <div class="proposal-review-copy">Une tour de pierre grise dressée au bord de la falaise côtière, abandonnée depuis la disparition de sa gardienne, Morrigan. Le phare surplombe directement l’entrée de la Grotte des Soupirs.</div>
+                      <div class="entity-badges">
+                        <span class="entity-badge" style="background:#dcfce7;color:#047857">Lieu</span>
+                        <span class="entity-badge" style="background:#fff;color:#475569;border:1px solid rgba(0,0,0,.1)">Création Merlin</span>
+                        <span class="entity-badge" style="background:#fff;color:#64748b;border:1px solid rgba(0,0,0,.1)">Morrigan</span>
+                      </div>
+                    </div>
+                    <div class="proposal-actions">
+                      <button class="btn-next" style="min-height:36px;font-size:13px">Ajouter au canon</button>
+                      <button class="btn-back" style="min-height:36px;font-size:13px">Ignorer</button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div class="canon-head">
+                <div>
+                  <div class="world-card-kicker">Canon du monde</div>
+                  <div class="world-card-copy" style="margin-top:2px">Tous les éléments validés.</div>
+                </div>
+                <span class="pill" style="background:#f5f5f3;color:#475569">8 éléments</span>
+              </div>
+
+              <div class="canon-grid">
+                <div class="entity-card">
+                  <div class="entity-icon" style="background:#dcfce7;color:#047857"><i class="ti ti-map-pin"></i></div>
+                  <div><div class="entity-name">La Grotte des Soupirs</div><div class="entity-desc">Une grotte côtière creusée dans la falaise, accessible seulement à marée basse. Ses tunnels produisent des gémissements.</div><div class="entity-badges"><span class="entity-badge" style="background:#dcfce7;color:#047857">Lieu</span><span class="entity-badge" style="background:#EEEDFE;color:#3C3489">Création Merlin</span><span class="entity-badge" style="background:#f5f5f3;color:#64748b">côtier</span></div></div>
+                </div>
+                <div class="entity-card">
+                  <div class="entity-icon" style="background:#dcfce7;color:#047857"><i class="ti ti-map-pin"></i></div>
+                  <div><div class="entity-name">La Grotte des Soupirs</div><div class="entity-desc">Une grotte creusée dans la falaise côtière, accessible à marée basse. À marée haute, le vent produit des gémissements lugubres.</div><div class="entity-badges"><span class="entity-badge" style="background:#dcfce7;color:#047857">Lieu</span><span class="entity-badge" style="background:#EEEDFE;color:#3C3489">Création Merlin</span><span class="entity-badge" style="background:#f5f5f3;color:#64748b">grotte</span></div></div>
+                </div>
+                <div class="entity-card">
+                  <div class="entity-icon" style="background:#fef3c7;color:#b45309"><i class="ti ti-bolt"></i></div>
+                  <div><div class="entity-name">Le vol de la broche</div><div class="entity-desc">Dans la nuit précédant l'aventure, quelque chose s'est introduit chez Mémé Coralie et a emporté sa broche en nacre.</div><div class="entity-badges"><span class="entity-badge" style="background:#fef3c7;color:#b45309">Événement</span><span class="entity-badge" style="background:#EEEDFE;color:#3C3489">Création Merlin</span></div></div>
+                </div>
+                <div class="entity-card">
+                  <div class="entity-icon" style="background:#e0f2fe;color:#0369a1"><i class="ti ti-user"></i></div>
+                  <div><div class="entity-name">Mémé Coralie</div><div class="entity-desc">Vieille habitante du village côtier, ancienne pêcheuse aux mains noueuses et au regard vif.</div><div class="entity-badges"><span class="entity-badge" style="background:#e0f2fe;color:#0369a1">PNJ</span><span class="entity-badge" style="background:#EEEDFE;color:#3C3489">Création Merlin</span></div></div>
+                </div>
+                <div class="entity-card">
+                  <div class="entity-icon" style="background:#fef3c7;color:#b45309"><i class="ti ti-bolt"></i></div>
+                  <div><div class="entity-name">Le Fanal des Abysses</div><div class="entity-desc">Une lanterne magique engloutie dans la Grotte des Soupirs. Sa lumière froide révèle les passages cachés.</div><div class="entity-badges"><span class="entity-badge" style="background:#fef3c7;color:#b45309">Événement</span><span class="entity-badge" style="background:#EEEDFE;color:#3C3489">Création Merlin</span></div></div>
+                </div>
+                <div class="entity-card">
+                  <div class="entity-icon" style="background:#e0f2fe;color:#0369a1"><i class="ti ti-user"></i></div>
+                  <div><div class="entity-name">Morrigan la Noyée</div><div class="entity-desc">Fantôme de l'ancienne gardienne du phare côtier, liée à la Grotte des Soupirs par le Fanal des Abysses.</div><div class="entity-badges"><span class="entity-badge" style="background:#e0f2fe;color:#0369a1">PNJ</span><span class="entity-badge" style="background:#EEEDFE;color:#3C3489">Création Merlin</span></div></div>
+                </div>
+              </div>
+            </main>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<p class="page-note" style="font-size:11px;color:#999;text-align:center">
+  Maquette statique actuelle — L'Antre du Maître · CoF Mini<br>
+  iPad Air / Pro en paysage · 960×588 · PWA React + Vite + TailwindCSS
+</p>
+
+<script>
+const labels={
+  create:'Écran 1 — Création avec Merlin (étape Défis)',
+  scenario:'Écran 2 — Fiche scénario avec découpage sessions',
+  todo:'Écran 3 — Todo de préparation interactif',
+  world:'Écran 4 — Base de connaissance du monde'
+};
+const statuses={
+  create:'Création en cours',
+  scenario:'Scénario complet',
+  todo:'Préparation en cours',
+  world:'Mon monde'
+};
+function showScreen(name){
+  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
+  document.querySelectorAll('.nav-btn').forEach(b=>b.classList.remove('active'));
+  const scr=document.getElementById('screen-'+name);
+  const btn=document.getElementById('nav-'+name);
+  if(scr) scr.classList.add('active');
+  if(btn) btn.classList.add('active');
+  document.getElementById('screen-label').textContent=labels[name]||'';
+  document.getElementById('topbar-status').textContent=statuses[name]||'';
+}
+</script>
+</body>
+</html>
