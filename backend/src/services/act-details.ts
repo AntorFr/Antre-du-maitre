@@ -11,6 +11,7 @@ type ActDetailWorkflowResult = {
   scenario: ScenarioData;
   reply: string;
   suggestions: string[];
+  changedSections: ActDetailStep[];
 };
 
 const ACT_DETAIL_STEPS: ActDetailStep[] = [
@@ -26,7 +27,12 @@ export function ensureActDetails(scenario: ScenarioData): ScenarioData {
   return {
     ...scenario,
     actes: scenario.actes.map((acte) =>
-      acte.detailsMJ ? acte : addGeneratedActDetail(scenario, acte),
+      acte.detailsMJ
+        ? {
+            ...acte,
+            detailsMJ: sanitizeActDetail(acte.detailsMJ),
+          }
+        : addGeneratedActDetail(scenario, acte),
     ),
   };
 }
@@ -50,14 +56,19 @@ export function runActDetailWorkflow(input: {
   const updatedDetail = updateActDetail({
     detail: act.detailsMJ,
     message: input.request.message?.trim(),
+    step: input.request.step,
     action: input.request.action,
+  });
+  const updatedAct = updateActSummaryFromMessage({
+    act,
+    message: input.request.message?.trim(),
   });
   const updatedScenario = {
     ...scenario,
     actes: scenario.actes.map((candidate) =>
       candidate.numero === input.actNumber
         ? {
-            ...candidate,
+            ...updatedAct,
             detailsMJ: updatedDetail,
           }
         : candidate,
@@ -68,7 +79,41 @@ export function runActDetailWorkflow(input: {
     scenario: updatedScenario,
     reply: buildWorkflowReply(updatedDetail),
     suggestions: buildWorkflowSuggestions(updatedDetail),
+    changedSections: [input.request.step ?? updatedDetail.currentStep],
   };
+}
+
+function updateActSummaryFromMessage(input: {
+  act: ScenarioAct;
+  message?: string;
+}): ScenarioAct {
+  if (!input.message) return input.act;
+
+  const normalized = normalizeIntent(input.message);
+
+  if (
+    normalized.includes('non ') ||
+    normalized.includes('se reveil') ||
+    normalized.includes('grange') ||
+    normalized.includes('sans souvenir')
+  ) {
+    return {
+      ...input.act,
+      description: normalizeInstructionAsObjective(input.message),
+      obstaclePrincipal:
+        'Les héros doivent comprendre pourquoi ils sont là malgré leurs souvenirs manquants.',
+      informationApprise:
+        "Ils découvrent une première raison de leur présence dans le hameau.",
+      options: dedupeStrings([
+        'Examiner la grange',
+        'Chercher des traces de leur arrivée',
+        'Interroger discrètement les habitants',
+        ...input.act.options,
+      ]).slice(0, 8),
+    };
+  }
+
+  return input.act;
 }
 
 function addGeneratedActDetail(
@@ -170,14 +215,127 @@ function generateActDetail(
   };
 }
 
+function sanitizeActDetail(detail: ActDetail): ActDetail {
+  const notesUtilisateur = dedupeStrings(
+    detail.notesUtilisateur.map(normalizeLegacyUserNote),
+  );
+  const cleanedObjectifPrincipal = cleanLegacyRetouches(
+    detail.objectif.principal,
+    notesUtilisateur,
+  );
+  const principal =
+    isGenericActObjective(cleanedObjectifPrincipal) && notesUtilisateur[0]
+      ? normalizeInstructionAsObjective(notesUtilisateur[0])
+      : cleanedObjectifPrincipal;
+
+  return {
+    ...detail,
+    objectif: {
+      ...detail.objectif,
+      principal,
+      enjeu: cleanLegacyRetouches(detail.objectif.enjeu, notesUtilisateur),
+      reussiteComplete: cleanLegacyRetouches(
+        detail.objectif.reussiteComplete,
+        notesUtilisateur,
+      ),
+      reussitePartielle: cleanLegacyRetouches(
+        detail.objectif.reussitePartielle,
+        notesUtilisateur,
+      ),
+      echecInteressant: cleanLegacyRetouches(
+        detail.objectif.echecInteressant,
+        notesUtilisateur,
+      ),
+      bonusOptionnel: cleanLegacyRetouches(
+        detail.objectif.bonusOptionnel,
+        notesUtilisateur,
+      ),
+    },
+    syntheseMJ: cleanLegacyRetouches(detail.syntheseMJ, notesUtilisateur),
+    notesImpro: dedupeStrings(
+      detail.notesImpro
+        .map((note) => cleanLegacyRetouches(note, notesUtilisateur))
+        .filter((note) => !note.toLowerCase().startsWith('retouche ')),
+    ),
+    notesUtilisateur,
+  };
+}
+
+function normalizeLegacyUserNote(note: string) {
+  return note
+    .replace(/^notes données à merlin\s+/i, '')
+    .replace(/^notes donnees a merlin\s+/i, '')
+    .trim();
+}
+
+function cleanLegacyRetouches(value: string, notes: string[]) {
+  let cleaned = value;
+
+  for (const note of notes) {
+    const escaped = escapeRegExp(note);
+    cleaned = cleaned
+      .replace(
+        new RegExp(
+          `\\s*Retouche\\s*:\\s*(?:Notes données à Merlin\\s*)?${escaped}\\.*`,
+          'giu',
+        ),
+        '',
+      )
+      .replace(
+        new RegExp(
+          `\\s*Retouche\\s*:\\s*(?:Notes donnees a Merlin\\s*)?${escaped}\\.*`,
+          'giu',
+        ),
+        '',
+      );
+  }
+
+  return cleaned.replace(/\s{2,}/g, ' ').trim();
+}
+
+function normalizeInstructionAsObjective(note: string) {
+  return note.replace(/^non\s+/i, '').trim();
+}
+
+function isGenericActObjective(value: string) {
+  const normalized = normalizeIntent(value);
+  return (
+    normalized.startsWith('faire avancer les heros dans') ||
+    normalized.startsWith("faire avancer les heros dans")
+  );
+}
+
+function dedupeStrings(values: string[]) {
+  const seen = new Set<string>();
+  const deduped: string[] = [];
+
+  for (const value of values) {
+    const trimmed = value.trim();
+    const key = normalizeIntent(trimmed);
+
+    if (!trimmed || seen.has(key)) continue;
+
+    seen.add(key);
+    deduped.push(trimmed);
+  }
+
+  return deduped;
+}
+
+function escapeRegExp(value: string) {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
 function updateActDetail(input: {
   detail: ActDetail;
   message?: string;
+  step?: ActDetailStep;
   action: ActDetailChatRequest['action'];
 }): ActDetail {
   const notesUtilisateur = input.message
     ? [...input.detail.notesUtilisateur, input.message]
     : input.detail.notesUtilisateur;
+  const targetStep = input.step ?? input.detail.currentStep;
 
   if (input.action === 'REOPEN') {
     return {
@@ -198,17 +356,214 @@ function updateActDetail(input: {
     };
   }
 
-  const nextStep = getNextActDetailStep(input.detail.currentStep);
+  const detailWithMessage = applyActDetailMessage(
+    {
+      ...input.detail,
+      notesUtilisateur,
+    },
+    targetStep,
+    input.message,
+  );
+  const nextStep =
+    targetStep === input.detail.currentStep
+      ? getNextActDetailStep(input.detail.currentStep)
+      : input.detail.currentStep;
 
   return {
-    ...input.detail,
+    ...detailWithMessage,
     status: 'IN_PROGRESS',
     currentStep: nextStep,
-    notesUtilisateur,
     notesImpro: input.message
-      ? [...input.detail.notesImpro, `Note MJ : ${input.message}`]
-      : input.detail.notesImpro,
+      ? [
+          ...detailWithMessage.notesImpro,
+          `Retouche ${targetStep.toLowerCase()} : ${input.message}`,
+        ]
+      : detailWithMessage.notesImpro,
   };
+}
+
+function applyActDetailMessage(
+  detail: ActDetail,
+  step: ActDetailStep,
+  message?: string,
+): ActDetail {
+  if (!message) return detail;
+
+  const normalized = normalizeIntent(message);
+
+  if (step === 'OBJECTIF') {
+    if (normalized.includes('reussite partielle')) {
+      return {
+        ...detail,
+        objectif: {
+          ...detail.objectif,
+          reussitePartielle: `${detail.objectif.reussitePartielle} Retouche : ${message}.`,
+        },
+      };
+    }
+
+    if (normalized.includes('echec')) {
+      return {
+        ...detail,
+        objectif: {
+          ...detail.objectif,
+          echecInteressant: `${detail.objectif.echecInteressant} Retouche : ${message}.`,
+        },
+      };
+    }
+
+    if (normalized.includes('enjeu')) {
+      return {
+        ...detail,
+        objectif: {
+          ...detail.objectif,
+          enjeu: `${detail.objectif.enjeu} Retouche : ${message}.`,
+        },
+      };
+    }
+
+    return {
+      ...detail,
+      objectif: {
+        ...detail.objectif,
+        principal: `${detail.objectif.principal} Retouche : ${message}.`,
+      },
+    };
+  }
+
+  if (step === 'VOIES') {
+    const type = normalized.includes('social')
+      ? 'roleplay'
+      : normalized.includes('discret')
+        ? 'infiltration'
+        : normalized.includes('risqu')
+          ? 'exploration'
+          : detail.objectif.typePrincipal;
+    const label = normalized.includes('social')
+      ? 'Approche sociale'
+      : normalized.includes('discret')
+        ? 'Approche discrète'
+        : normalized.includes('risqu')
+          ? 'Approche risquée'
+          : 'Nouvelle voie';
+
+    return {
+      ...detail,
+      voies: [
+        ...detail.voies,
+        {
+          id: `voie-${detail.voies.length + 1}`,
+          label,
+          type,
+          actionJoueurs: message,
+          gain: 'Les héros obtiennent une progression claire sans bloquer la partie.',
+          risque: normalized.includes('risqu')
+            ? 'Le coût est visible : retard, complication ou ressource consommée.'
+            : 'Le MJ prévoit une conséquence douce en cas de réussite partielle.',
+          preparationMJ: ['Préparer un signe de réussite', 'Préparer un coût possible'],
+        },
+      ],
+    };
+  }
+
+  if (step === 'MODULE') {
+    return {
+      ...detail,
+      moduleSpecialise: {
+        ...detail.moduleSpecialise,
+        elements: [
+          ...detail.moduleSpecialise.elements,
+          {
+            label: normalized.includes('alternative')
+              ? 'Alternative'
+              : 'Mécanique ajoutée',
+            value: message,
+          },
+        ],
+      },
+    };
+  }
+
+  if (step === 'SCENES') {
+    if (normalized.includes('relance')) {
+      const scenes = detail.scenes.length
+        ? detail.scenes.map((scene, index) =>
+            index === detail.scenes.length - 1
+              ? {
+                  ...scene,
+                  relanceAntiBlocage: message,
+                }
+              : scene,
+          )
+        : detail.scenes;
+
+      return {
+        ...detail,
+        scenes,
+      };
+    }
+
+    return {
+      ...detail,
+      scenes: [
+        ...detail.scenes,
+        {
+          titre: normalized.includes('court') ? 'Scène courte ajoutée' : 'Scène ajoutée',
+          type: detail.objectif.typePrincipal,
+          statut: 'OPTIONNELLE',
+          objectifMJ: 'Donner au MJ une option de rythme ou de relance.',
+          deroule: message,
+          relanceAntiBlocage:
+            'Si la scène ne prend pas, transformer cette idée en indice visible.',
+        },
+      ],
+    };
+  }
+
+  if (step === 'TIMING') {
+    if (normalized.includes('court')) {
+      return {
+        ...detail,
+        timing: {
+          ...detail.timing,
+          versionCourte: message,
+        },
+      };
+    }
+
+    if (normalized.includes('couper')) {
+      return {
+        ...detail,
+        timing: {
+          ...detail.timing,
+          aCouperSiBesoin: [...detail.timing.aCouperSiBesoin, message],
+        },
+      };
+    }
+
+    return {
+      ...detail,
+      timing: {
+        ...detail.timing,
+        aGarderAbsolument: [...detail.timing.aGarderAbsolument, message],
+      },
+    };
+  }
+
+  return {
+    ...detail,
+    syntheseMJ: `${detail.syntheseMJ} Retouche : ${message}.`,
+  };
+}
+
+function normalizeIntent(value: string) {
+  return value
+    .trim()
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/\p{Diacritic}/gu, '')
+    .replace(/[’']/g, "'")
+    .replace(/\s+/g, ' ');
 }
 
 function getNextActDetailStep(step: ActDetailStep): ActDetailStep {

@@ -9,15 +9,16 @@ import { api, ApiError } from '../lib/api';
 type ScenarioProps = {
   token: string;
   scenario: ScenarioSummary | null;
+  initialPanel?: ScenarioPanel;
   onCreateScenario: () => void;
   onScenarioChange: (scenario: ScenarioSummary) => void;
   onWorldProposal: () => void;
-  onPrepareTodo: () => void;
 };
 
-type ScenarioPanel = 'run' | 'acts' | 'sessions';
+type ScenarioPanel = 'run' | 'act-detail' | 'acts' | 'sessions';
 type ScenarioAct = ScenarioSummary['data']['actes'][number];
 type ScenarioEncounter = ScenarioSummary['data']['rencontres'][number];
+type ScenarioPnj = ScenarioSummary['data']['pnjs'][number];
 type ActWorkflowStep = NonNullable<ScenarioAct['detailsMJ']>['currentStep'];
 
 const ACT_WORKFLOW_STEPS: Array<{
@@ -60,10 +61,10 @@ const ACT_WORKFLOW_STEPS: Array<{
 export function Scenario({
   token,
   scenario,
+  initialPanel = 'run',
   onCreateScenario,
   onScenarioChange,
   onWorldProposal,
-  onPrepareTodo,
 }: ScenarioProps) {
   const [sessions, setSessions] = useState<ScenarioSession[]>([]);
   const [activePanel, setActivePanel] = useState<ScenarioPanel>('run');
@@ -76,6 +77,15 @@ export function Scenario({
   const [actDetailReplies, setActDetailReplies] = useState<Record<number, string>>(
     {},
   );
+  const [actDetailSuggestions, setActDetailSuggestions] = useState<
+    Record<number, string[]>
+  >({});
+  const [actDetailChangedSections, setActDetailChangedSections] = useState<
+    Record<number, ActWorkflowStep[]>
+  >({});
+  const [actDetailPendingMessages, setActDetailPendingMessages] = useState<
+    Record<number, string | undefined>
+  >({});
   const [busyActNumber, setBusyActNumber] = useState<number | null>(null);
   const [debriefInputs, setDebriefInputs] = useState<Record<number, string>>(
     {},
@@ -86,15 +96,15 @@ export function Scenario({
   const [busySessionNumber, setBusySessionNumber] = useState<number | null>(
     null,
   );
+  const [isOpeningActDetail, setIsOpeningActDetail] = useState(false);
   const [isExportingPdf, setIsExportingPdf] = useState(false);
-  const [isEditingWithMerlin, setIsEditingWithMerlin] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    setActivePanel('run');
+    setActivePanel(initialPanel);
     setSelectedActNumber(scenario?.data.actes[0]?.numero ?? null);
     setError(null);
-  }, [scenario?.id]);
+  }, [initialPanel, scenario?.id]);
 
   useEffect(() => {
     if (!scenario) {
@@ -230,58 +240,39 @@ export function Scenario({
     }
   }
 
-  async function editWithMerlin() {
-    if (!scenario) return;
-
-    const message = window.prompt(
-      'Que veux-tu changer avec Merlin ?',
-      'Ajuste ce scénario en gardant la structure existante.',
-    )?.trim();
-
-    if (!message) return;
-
-    setError(null);
-    setIsEditingWithMerlin(true);
-
-    try {
-      const response = await api.chat(token, scenario.id, {
-        message,
-        voiceInput: false,
-      });
-      const { scenario: updatedScenario } = await api.getScenario(
-        token,
-        scenario.id,
-      );
-
-      onScenarioChange(updatedScenario);
-
-      if (response.proposedEntities.length > 0) {
-        onWorldProposal();
-      }
-    } catch (caughtError) {
-      setError(
-        caughtError instanceof ApiError
-          ? caughtError.message
-          : 'Impossible de modifier ce scénario via Merlin.',
-      );
-    } finally {
-      setIsEditingWithMerlin(false);
-    }
-  }
-
   async function submitActWorkflow(
     actNumber: number,
     action: 'ADVANCE' | 'VALIDATE' | 'REOPEN',
+    messageOverride?: string,
+    stepOverride?: ActWorkflowStep,
   ) {
     if (!scenario) return;
 
+    const message =
+      messageOverride?.trim() ||
+      actDetailInputs[actNumber]?.trim() ||
+      undefined;
+
     setError(null);
     setBusyActNumber(actNumber);
+    setActDetailPendingMessages((current) => ({
+      ...current,
+      [actNumber]: message,
+    }));
+    setActDetailInputs((current) =>
+      message
+        ? {
+            ...current,
+            [actNumber]: '',
+          }
+        : current,
+    );
 
     try {
       const response = await api.chatActDetail(token, scenario.id, actNumber, {
         action,
-        message: actDetailInputs[actNumber]?.trim() || undefined,
+        message,
+        step: stepOverride,
       });
 
       onScenarioChange(response.scenario);
@@ -289,11 +280,21 @@ export function Scenario({
         ...current,
         [actNumber]: response.reply,
       }));
-      setActDetailInputs((current) => ({
+      setActDetailSuggestions((current) => ({
         ...current,
-        [actNumber]: '',
+        [actNumber]: response.suggestions,
+      }));
+      setActDetailChangedSections((current) => ({
+        ...current,
+        [actNumber]: response.changedSections,
       }));
     } catch (caughtError) {
+      if (message) {
+        setActDetailInputs((current) => ({
+          ...current,
+          [actNumber]: message,
+        }));
+      }
       setError(
         caughtError instanceof ApiError
           ? caughtError.message
@@ -301,6 +302,36 @@ export function Scenario({
       );
     } finally {
       setBusyActNumber(null);
+      setActDetailPendingMessages((current) => ({
+        ...current,
+        [actNumber]: undefined,
+      }));
+    }
+  }
+
+  async function openActDetail(actNumber: number) {
+    if (!scenario) return;
+
+    setSelectedActNumber(actNumber);
+    setIsOpeningActDetail(true);
+    setError(null);
+
+    try {
+      const { scenario: detailedScenario } = await api.getScenario(
+        token,
+        scenario.id,
+      );
+
+      onScenarioChange(detailedScenario);
+      setActivePanel('act-detail');
+    } catch (caughtError) {
+      setError(
+        caughtError instanceof ApiError
+          ? caughtError.message
+          : "Impossible d'ouvrir le détail de cet acte.",
+      );
+    } finally {
+      setIsOpeningActDetail(false);
     }
   }
 
@@ -308,7 +339,7 @@ export function Scenario({
     return (
       <EmptyState
         title="Aucun scénario sélectionné"
-        text="Crée une aventure ou ouvre un scénario depuis l’administration."
+        text="Crée une aventure ou ouvre un scénario depuis l'accueil."
         actionLabel="Créer une aventure"
         onAction={onCreateScenario}
       />
@@ -327,52 +358,208 @@ export function Scenario({
     data.actes[0] ??
     null;
 
-  return (
-    <section className="flex h-full flex-col overflow-hidden bg-white">
-      <div className="grid min-h-0 flex-1 grid-cols-[360px_minmax(0,1fr)] overflow-hidden">
-        <aside className="space-y-3 overflow-y-auto border-r border-black/10 bg-[#f7f6f1] px-[18px] py-4">
-          <header className="rounded-xl bg-white p-4 ring-1 ring-black/10">
-            <div className="flex items-start justify-between gap-3">
-              <div className="min-w-0">
-                <p className="text-[11px] font-medium uppercase tracking-[0.18em] text-wizard-600">
-                  Fiche MJ
-                </p>
-                <h2 className="mt-1 text-[20px] font-semibold leading-7 text-slate-950">
-                  {scenario.title}
-                </h2>
-              </div>
-              <StatusPill status={scenario.status} />
-            </div>
+  if (activePanel === 'act-detail') {
+    return (
+      <section className="flex h-full flex-col overflow-hidden bg-white">
+        <Breadcrumb
+          current={
+            selectedAct
+              ? `Acte ${selectedAct.numero} · ${selectedAct.titre}`
+              : 'Détail acte'
+          }
+          onBack={() => setActivePanel('run')}
+        />
+        <ActReviewPanel
+          act={selectedAct}
+          encounters={selectedAct ? encountersForAct(selectedAct.numero) : []}
+          onEditWithMerlin={() => setActivePanel('acts')}
+          pnjs={data.pnjs}
+        />
+      </section>
+    );
+  }
 
-            <div className="mt-3 grid grid-cols-3 gap-2">
-              <InfoTile icon="spark" label="Ambiance" value={data.ambiance} />
-              <InfoTile icon="users" label="PNJs" value={`${data.pnjs.length}`} />
-              <InfoTile
-                icon="clock"
-                label="Durée"
-                value={totalDuration ? `~${totalDuration} min` : '—'}
-              />
-            </div>
-          </header>
+  if (activePanel === 'acts') {
+    return (
+      <section className="flex h-full flex-col overflow-hidden bg-white">
+        <Breadcrumb
+          current={
+            selectedAct
+              ? `Déroulé · Acte ${selectedAct.numero}`
+              : 'Déroulé · Acte'
+          }
+          onBack={() => setActivePanel('run')}
+        />
+        <ActWorkflowPanel
+          acts={data.actes}
+          busyActNumber={busyActNumber}
+          changedSections={
+            selectedAct ? actDetailChangedSections[selectedAct.numero] : undefined
+          }
+          input={selectedAct ? (actDetailInputs[selectedAct.numero] ?? '') : ''}
+          onAdvance={(actNumber, message, step) =>
+            void submitActWorkflow(actNumber, 'ADVANCE', message, step)
+          }
+          onInputChange={(actNumber, value) =>
+            setActDetailInputs((current) => ({
+              ...current,
+              [actNumber]: value,
+            }))
+          }
+          onReopen={(actNumber) => void submitActWorkflow(actNumber, 'REOPEN')}
+          onSelectAct={setSelectedActNumber}
+          onValidate={(actNumber) => void submitActWorkflow(actNumber, 'VALIDATE')}
+          pendingMessage={
+            selectedAct ? actDetailPendingMessages[selectedAct.numero] : undefined
+          }
+          reply={selectedAct ? actDetailReplies[selectedAct.numero] : undefined}
+          selectedAct={selectedAct}
+          suggestionsOverride={
+            selectedAct ? actDetailSuggestions[selectedAct.numero] : undefined
+          }
+        />
+      </section>
+    );
+  }
 
-          <SmallCard icon="location" label="Lieu">
-            {data.lieu ? (
-              <div>
-                <p className="font-medium text-slate-900">{data.lieu.nom}</p>
-                <p className="mt-1 text-slate-500">{data.lieu.description}</p>
+  if (activePanel === 'sessions') {
+    return (
+      <section className="flex h-full flex-col overflow-hidden bg-white">
+        <div className="min-h-0 flex-1 overflow-y-auto bg-[#faf9f5] px-[18px] py-4">
+          <div className="mx-auto max-w-[1000px]">
+            <SectionHeader
+              kicker="Sessions"
+              title={`${sessions.length} session${sessions.length > 1 ? 's' : ''} prévue${sessions.length > 1 ? 's' : ''}`}
+              action={null}
+            />
+            {sessions.length ? (
+              <div className="mt-3 grid gap-3 xl:grid-cols-2">
+                {sessions.map((session) => (
+                  <SessionDebriefCard
+                    busy={busySessionNumber === session.number}
+                    input={debriefInputs[session.number] ?? ''}
+                    key={session.id}
+                    onInputChange={(value) =>
+                      setDebriefInputs((current) => ({
+                        ...current,
+                        [session.number]: value,
+                      }))
+                    }
+                    onMarkPlayed={() => void markPlayed(session.number)}
+                    onSubmitDebrief={() => void submitDebrief(session.number)}
+                    reply={debriefReplies[session.number]}
+                    session={session}
+                  />
+                ))}
               </div>
             ) : (
-              'Pas encore défini.'
+              <EmptyPanel text="Disponible après génération des sessions." />
             )}
-          </SmallCard>
+          </div>
+        </div>
+      </section>
+    );
+  }
 
-          <SmallCard icon="spark" label="Quête principale">
+  return (
+    <section className="flex h-full flex-col overflow-hidden bg-white">
+      <div className="min-h-0 flex-1 overflow-y-auto bg-[#faf9f5]">
+        <div className="mx-auto flex max-w-[1000px] flex-col gap-5 px-6 py-5">
+          {error ? (
+            <p className="rounded-lg bg-rose-50 px-3 py-2 text-[12px] text-rose-700 ring-1 ring-rose-100">
+              {error}
+            </p>
+          ) : null}
+
+          <section className="grid gap-5 rounded-xl bg-white p-5 shadow-sm ring-1 ring-black/10 lg:grid-cols-[minmax(0,1fr)_360px]">
+            <div className="min-w-0">
+              <p className="text-[11px] font-medium uppercase tracking-[0.16em] text-wizard-600">
+                {data.lieu?.nom ?? 'Aventure'} · {data.ambiance ?? 'Sensation'}
+              </p>
+              <div className="mt-2 flex items-start gap-3">
+                <h1 className="min-w-0 flex-1 text-[24px] font-bold leading-tight text-slate-950">
+                  {scenario.title}
+                </h1>
+                <StatusPill status={scenario.status} />
+              </div>
+              <p className="mt-3 max-w-[680px] text-[13px] leading-6 text-slate-600">
+                {data.quete?.phraseSimple ??
+                  data.lieu?.description ??
+                  'Les grandes lignes du scénario apparaîtront ici quand Merlin aura terminé la création.'}
+              </p>
+              <div className="mt-4 flex flex-wrap gap-2">
+                <button
+                  className="inline-flex min-h-9 items-center gap-2 rounded-lg border border-black/15 bg-[#f5f5f3] px-3 text-[12px] font-medium text-slate-600 transition hover:bg-white"
+                  onClick={onCreateScenario}
+                >
+                  <Icon name="magic" className="h-4 w-4" />
+                  Modifier avec Merlin
+                </button>
+                <button
+                  className="inline-flex min-h-9 items-center gap-2 rounded-lg border border-black/15 bg-[#f5f5f3] px-3 text-[12px] font-medium text-slate-600 transition hover:bg-white disabled:opacity-60"
+                  disabled={isExportingPdf}
+                  onClick={exportPdf}
+                >
+                  <Icon name="note" className="h-4 w-4" />
+                  {isExportingPdf ? 'Export…' : 'Générer le PDF'}
+                </button>
+              </div>
+            </div>
+            <div className="grid grid-cols-3 gap-2 lg:grid-cols-1">
+              <OverviewMetric
+                icon="clock"
+                label="Durée"
+                value={totalDuration ? `~${totalDuration} min` : 'À définir'}
+              />
+              <OverviewMetric
+                icon="scenario"
+                label="Actes"
+                value={`${data.actes.length}`}
+              />
+              <OverviewMetric
+                icon="users"
+                label="PNJs"
+                value={`${data.pnjs.length}`}
+              />
+            </div>
+          </section>
+
+          <div className="grid gap-4 lg:grid-cols-2">
+            <OverviewInfoCard icon="location" label="Lieu principal">
+              {data.lieu ? (
+                <>
+                  <p className="font-medium text-slate-900">{data.lieu.nom}</p>
+                  <p className="mt-1 text-slate-600">{data.lieu.description}</p>
+                </>
+              ) : (
+                'Pas encore défini.'
+              )}
+            </OverviewInfoCard>
+
+            <OverviewInfoCard icon="skull" label="Antagoniste">
+              {data.antagoniste ? (
+                <>
+                  <p className="font-medium text-slate-900">
+                    {data.antagoniste.nom}
+                  </p>
+                  <p className="mt-1 text-slate-600">
+                    {data.antagoniste.motivation ??
+                      data.antagoniste.description}
+                  </p>
+                </>
+              ) : (
+                'Pas encore défini.'
+              )}
+            </OverviewInfoCard>
+          </div>
+
+          <OverviewInfoCard icon="spark" label="Quête principale">
             {data.quete ? (
-              <div>
+              <>
                 <p className="font-medium text-slate-900">
                   {data.quete.phraseSimple}
                 </p>
-                <dl className="mt-2 space-y-1.5 text-slate-500">
+                <dl className="mt-3 grid gap-2 md:grid-cols-2">
                   <QuestLine label="Ce qui ne va pas" value={data.quete.ceQuiNeVaPas} />
                   <QuestLine label="Pourquoi c'est grave" value={data.quete.pourquoiCestGrave} />
                   <QuestLine label="Pourquoi maintenant" value={data.quete.pourquoiMaintenant} />
@@ -381,306 +568,633 @@ export function Scenario({
                     value={data.quete.ceQuiArriveSiPersonneNagit}
                   />
                 </dl>
-              </div>
+              </>
             ) : (
               'Pas encore définie.'
             )}
-          </SmallCard>
+          </OverviewInfoCard>
 
-          <SmallCard icon="star" label="Objectif des héros">
+          <OverviewInfoCard icon="star" label="Objectif des héros">
             {data.objectifDesHeros ? (
-              <div>
+              <>
                 <p className="font-medium text-slate-900">
                   {data.objectifDesHeros.phraseSimple}
                 </p>
-                <p className="mt-1 text-slate-500">
+                <p className="mt-1 text-slate-600">
                   {data.objectifDesHeros.objectifVisible}
                 </p>
-                <p className="mt-1 text-slate-500">
+                <p className="mt-1 text-slate-600">
                   Réussite : {data.objectifDesHeros.signeDeReussite}
                 </p>
-              </div>
+              </>
             ) : (
               'Pas encore défini.'
             )}
-          </SmallCard>
+          </OverviewInfoCard>
 
-          <SmallCard icon="skull" label="Antagoniste">
-            {data.antagoniste ? (
-              <div>
-                <p className="font-medium text-slate-900">
-                  {data.antagoniste.nom}
-                </p>
-                <p className="mt-1 text-slate-500">
-                  {[
-                    data.antagoniste.type,
-                    data.antagoniste.nature,
-                    data.antagoniste.motivation,
-                  ]
-                    .filter(Boolean)
-                    .join(' · ')}
-                </p>
-                {data.antagoniste.faiblesseOuSolution ? (
-                  <p className="mt-1 text-slate-500">
-                    Solution : {data.antagoniste.faiblesseOuSolution}
-                  </p>
-                ) : null}
-              </div>
-            ) : (
-              'Pas encore défini.'
-            )}
-          </SmallCard>
-
-          <SmallCard icon="battle" label="Types de défis">
-            <div className="flex flex-wrap gap-1.5">
-              {(data.gameplay?.types.length
-                ? data.gameplay.types
-                : ['à définir']
-              ).map((type) => (
-                <span
-                  className="rounded-full bg-wizard-100 px-2.5 py-1 text-[11px] font-medium text-wizard-700"
-                  key={type}
-                >
-                  {type}
-                </span>
-              ))}
-            </div>
-            {data.gameplay?.notes ? (
-              <p className="mt-2 text-[11px] leading-5 text-slate-500">
-                {data.gameplay.notes}
-              </p>
-            ) : null}
-          </SmallCard>
-
-          <SmallCard icon="users" label="PNJs importants">
+          <section className="rounded-xl bg-white p-4 shadow-sm ring-1 ring-black/10">
+            <SectionHeader
+              kicker="Personnages"
+              title={`${data.pnjs.length} PNJ${data.pnjs.length > 1 ? 's' : ''} peuplent l'aventure`}
+              action={
+                <button className="inline-flex min-h-8 items-center gap-1.5 rounded-lg border border-black/15 bg-[#f5f5f3] px-3 text-[12px] font-medium text-slate-600 transition hover:bg-white">
+                  <Icon name="users" className="h-3.5 w-3.5" />
+                  Ajouter un PNJ
+                </button>
+              }
+            />
             {data.pnjs.length ? (
-              <div className="space-y-2">
+              <div className="mt-3 grid gap-3 md:grid-cols-2">
                 {data.pnjs.map((pnj) => (
-                  <div className="rounded-lg bg-white px-3 py-2" key={pnj.nom}>
-                    <p className="text-[12px] font-medium text-slate-900">
-                      {pnj.nom}{' '}
-                      <span className="font-normal text-slate-400">
-                        · {pnj.fonctionNarrative ?? pnj.role}
+                  <PnjOverviewCard key={pnj.nom} pnj={pnj} />
+                ))}
+              </div>
+            ) : (
+              <EmptyInline text="Aucun PNJ défini." />
+            )}
+          </section>
+
+          <section className="rounded-xl bg-white p-4 shadow-sm ring-1 ring-black/10">
+            <SectionHeader
+              kicker="Déroulé"
+              title={`${data.actes.length} acte${data.actes.length > 1 ? 's' : ''} pour guider la partie`}
+              action={null}
+            />
+            {data.actes.length ? (
+              <div className="mt-3 space-y-2">
+                {data.actes.map((acte) => (
+                  <ActOverviewRow
+                    act={acte}
+                    encounterCount={encountersForAct(acte.numero).length}
+                    key={acte.numero}
+                    busy={isOpeningActDetail && selectedActNumber === acte.numero}
+                    onOpen={() => void openActDetail(acte.numero)}
+                  />
+                ))}
+              </div>
+            ) : (
+              <EmptyInline text="Le déroulé sera généré pendant la création." />
+            )}
+          </section>
+
+          {data.fin || data.recompense || data.notesMJ ? (
+            <div className="grid gap-4 lg:grid-cols-2">
+              {data.fin ? (
+                <OverviewInfoCard icon="star" label="Fin satisfaisante">
+                  <p className="font-medium text-slate-900">
+                    {data.fin.conditionDeVictoire}
+                  </p>
+                  <p className="mt-1 text-slate-600">
+                    {data.fin.sceneDeResolution}
+                  </p>
+                </OverviewInfoCard>
+              ) : null}
+              {data.recompense || data.notesMJ ? (
+                <OverviewInfoCard icon="gem" label="Récompense & notes">
+                  {data.recompense ? (
+                    <p className="text-slate-600">{data.recompense}</p>
+                  ) : null}
+                  {data.notesMJ ? (
+                    <p className="mt-2 text-slate-600">{data.notesMJ}</p>
+                  ) : null}
+                </OverviewInfoCard>
+              ) : null}
+            </div>
+          ) : null}
+        </div>
+      </div>
+    </section>
+  );
+}
+
+function Breadcrumb({
+  current,
+  onBack,
+}: {
+  current: string;
+  onBack: () => void;
+}) {
+  return (
+    <div className="flex shrink-0 items-center gap-2 border-b border-black/10 bg-[#f7f6f1] px-[18px] py-2">
+      <button
+        className="inline-flex items-center gap-1 rounded-md px-2 py-1 text-[12px] font-medium text-slate-500 transition hover:bg-white hover:text-wizard-700"
+        onClick={onBack}
+      >
+        <Icon name="scenario" className="h-3.5 w-3.5" />
+        Vue d'ensemble
+      </button>
+      <span className="text-[11px] text-slate-400">/</span>
+      <span className="text-[12px] font-medium text-slate-800">{current}</span>
+    </div>
+  );
+}
+
+function OverviewMetric({
+  icon,
+  label,
+  value,
+}: {
+  icon: IconName;
+  label: string;
+  value: string;
+}) {
+  return (
+    <div className="rounded-lg bg-[#f5f5f3] px-4 py-3">
+      <p className="flex items-center gap-1.5 text-[11px] font-medium text-slate-500">
+        <Icon name={icon} className="h-3.5 w-3.5" />
+        {label}
+      </p>
+      <p className="mt-1 text-[18px] font-semibold text-slate-950">{value}</p>
+    </div>
+  );
+}
+
+function OverviewInfoCard({
+  children,
+  icon,
+  label,
+}: {
+  children: ReactNode;
+  icon: IconName;
+  label: string;
+}) {
+  return (
+    <section className="rounded-xl bg-white p-4 text-[13px] leading-6 shadow-sm ring-1 ring-black/10">
+      <p className="mb-2 flex items-center gap-2 text-[11px] font-medium uppercase tracking-[0.14em] text-wizard-600">
+        <Icon name={icon} className="h-4 w-4" />
+        {label}
+      </p>
+      <div className="text-slate-600">{children}</div>
+    </section>
+  );
+}
+
+function SectionHeader({
+  action,
+  kicker,
+  title,
+}: {
+  action: ReactNode;
+  kicker: string;
+  title: string;
+}) {
+  return (
+    <div className="flex items-start justify-between gap-3">
+      <div className="min-w-0">
+        <p className="text-[11px] font-medium uppercase tracking-[0.16em] text-wizard-600">
+          {kicker}
+        </p>
+        <h2 className="mt-1 text-[17px] font-semibold text-slate-950">
+          {title}
+        </h2>
+      </div>
+      {action}
+    </div>
+  );
+}
+
+function PnjOverviewCard({ pnj }: { pnj: ScenarioPnj }) {
+  return (
+    <article className="rounded-lg bg-[#f5f5f3] p-3 text-[13px] leading-5">
+      <div className="flex items-start gap-3">
+        <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-wizard-100 text-wizard-700">
+          <Icon name="user" className="h-4 w-4" />
+        </div>
+        <div className="min-w-0">
+          <p className="font-semibold text-slate-950">{pnj.nom}</p>
+          <p className="mt-0.5 text-[12px] text-wizard-600">
+            {pnj.fonctionNarrative ?? pnj.role}
+          </p>
+          <p className="mt-1 line-clamp-3 text-slate-600">
+            {pnj.description || pnj.attitude || 'À compléter.'}
+          </p>
+        </div>
+      </div>
+    </article>
+  );
+}
+
+function ActOverviewRow({
+  act,
+  busy,
+  encounterCount,
+  onOpen,
+}: {
+  act: ScenarioAct;
+  busy: boolean;
+  encounterCount: number;
+  onOpen: () => void;
+}) {
+  return (
+    <button
+      className="grid w-full grid-cols-[40px_minmax(0,1fr)_auto] items-start gap-3 rounded-lg bg-[#f5f5f3] px-3 py-3 text-left transition hover:bg-wizard-50 hover:ring-1 hover:ring-wizard-200"
+      disabled={busy}
+      onClick={onOpen}
+    >
+      <div className="flex h-8 w-8 items-center justify-center rounded-full bg-wizard-600 text-[12px] font-semibold text-white">
+        {act.numero}
+      </div>
+      <div className="min-w-0">
+        <p className="font-medium text-slate-950">{act.titre}</p>
+        <p className="mt-1 line-clamp-2 text-[12px] leading-5 text-slate-600">
+          {act.description}
+        </p>
+      </div>
+      <div className="flex flex-col items-end gap-1 text-[11px] text-slate-500">
+        <span>{act.dureeEstimeeMin} min</span>
+        {encounterCount ? <span>{encounterCount} rencontre(s)</span> : null}
+        <span className="font-medium text-wizard-600">
+          {busy ? 'Ouverture…' : 'Détailler'}
+        </span>
+      </div>
+    </button>
+  );
+}
+
+function ActReviewPanel({
+  act,
+  encounters,
+  onEditWithMerlin,
+  pnjs,
+}: {
+  act: ScenarioAct | null;
+  encounters: ScenarioEncounter[];
+  onEditWithMerlin: () => void;
+  pnjs: ScenarioPnj[];
+}) {
+  if (!act) {
+    return <EmptyPanel text="Aucun acte à afficher." />;
+  }
+
+  const detail = act.detailsMJ;
+  const actPnjs = findPnjsForAct(act, pnjs);
+
+  return (
+    <div className="flex min-h-0 flex-1 flex-col overflow-hidden bg-white">
+      <section className="grid shrink-0 grid-cols-[76px_minmax(0,1fr)_auto] items-center gap-5 border-b border-black/10 bg-white px-7 py-5">
+        <div className="flex h-[76px] w-[76px] items-center justify-center rounded-full border-[2.5px] border-wizard-200 bg-gradient-to-br from-wizard-500 to-wizard-700 text-[28px] font-bold text-white shadow-[0_4px_12px_rgba(83,74,183,0.25)]">
+          {act.numero}
+        </div>
+        <div className="min-w-0">
+          <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-wizard-600">
+            Acte {act.numero} · {act.type || act.roleDansLHistoire || 'Déroulé'}
+          </p>
+          <h2 className="mt-1 text-[22px] font-bold leading-tight text-slate-950">
+            {act.titre}
+          </h2>
+          <div className="mt-2 flex flex-wrap items-center gap-3">
+            <span className="inline-flex items-center gap-1 rounded-full bg-wizard-50 px-3 py-1 text-[11px] font-semibold text-wizard-700">
+              <Icon name="spark" className="h-3 w-3" />
+              {detail?.objectif.typePrincipal ?? act.type ?? 'À préciser'} dominant
+            </span>
+            <span className="inline-flex items-center gap-1 text-[12px] font-medium text-slate-500">
+              <Icon name="clock" className="h-3.5 w-3.5" />
+              ~{act.dureeEstimeeMin} min
+            </span>
+            {act.lieu ? (
+              <span className="inline-flex items-center gap-1 text-[12px] font-medium text-slate-500">
+                <Icon name="location" className="h-3.5 w-3.5 text-emerald-700" />
+                {act.lieu}
+              </span>
+            ) : null}
+          </div>
+        </div>
+        <button
+          className="inline-flex min-h-[42px] shrink-0 items-center gap-2 rounded-lg bg-wizard-600 px-5 text-[13px] font-semibold text-white shadow-[0_2px_6px_rgba(83,74,183,0.25)] transition hover:bg-wizard-700"
+          onClick={onEditWithMerlin}
+        >
+          <Icon name="magic" className="h-4 w-4" />
+          Modifier avec Merlin
+        </button>
+      </section>
+
+      <div className="min-h-0 flex-1 overflow-y-auto bg-[#faf9f5] px-7 py-5">
+        <div className="mx-auto flex max-w-[1000px] flex-col gap-5">
+          <section className="rounded-xl border-l-4 border-wizard-600 bg-white px-5 py-4 shadow-sm ring-1 ring-black/10">
+            <p className="flex items-center gap-2 text-[11px] font-bold uppercase tracking-[0.14em] text-wizard-600">
+              <Icon name="star" className="h-3.5 w-3.5" />
+              Objectif MJ
+            </p>
+            <p className="mt-2 text-[15px] font-medium leading-7 text-slate-950">
+              {detail?.objectif.principal ?? act.description}
+            </p>
+            <p className="mt-3 border-t border-black/10 pt-3 text-[13px] italic leading-6 text-slate-500">
+              <span className="font-semibold text-slate-700">Enjeu narratif :</span>{' '}
+              {detail?.objectif.enjeu ??
+                act.obstaclePrincipal ??
+                act.informationApprise ??
+                act.notesMJ ??
+                'À préciser avec Merlin.'}
+            </p>
+          </section>
+
+          {detail?.voies.length ? (
+            <section className="flex flex-col gap-3">
+              <ActSectionTitle
+                icon="map"
+                kicker="Voies offertes aux joueurs"
+                help="Différentes manières d'aborder l'acte selon les choix de la table."
+              />
+              <div className="grid gap-3 md:grid-cols-3">
+                {detail.voies.slice(0, 3).map((voie, index) => (
+                  <article
+                    className="relative min-h-[120px] rounded-xl bg-white px-4 py-4 shadow-sm ring-1 ring-black/10"
+                    key={voie.id}
+                  >
+                    <span className="absolute -top-2 left-4 flex h-[22px] w-[22px] items-center justify-center rounded-full border-[2.5px] border-[#faf9f5] bg-wizard-600 text-[11px] font-bold text-white">
+                      {index + 1}
+                    </span>
+                    <div className="mt-2 flex items-center gap-2">
+                      <span className="flex h-6 w-6 items-center justify-center rounded-md bg-wizard-50 text-wizard-700">
+                        <Icon name={voieIcon(index)} className="h-3.5 w-3.5" />
                       </span>
-                    </p>
-                    <p className="mt-0.5 text-[11px] leading-5 text-slate-500">
-                      {pnj.description}
-                    </p>
-                    {pnj.particularite ? (
-                      <p className="mt-0.5 text-[11px] leading-5 text-slate-500">
-                        Particularité : {pnj.particularite}
+                      <p className="text-[13px] font-semibold text-slate-950">
+                        {voie.label}
                       </p>
+                    </div>
+                    <p className="mt-2 text-[12px] leading-6 text-slate-500">
+                      {voie.actionJoueurs}
+                    </p>
+                    {voie.preparationMJ.length ? (
+                      <div className="mt-3 rounded-lg bg-[#f5f5f3] px-3 py-2">
+                        <p className="text-[10px] font-medium uppercase tracking-[0.12em] text-slate-400">
+                          À jouer côté MJ
+                        </p>
+                        <ul className="mt-1 space-y-1">
+                          {voie.preparationMJ.slice(0, 3).map((item) => (
+                            <li
+                              className="text-[11px] leading-5 text-slate-600"
+                              key={item}
+                            >
+                              {item}
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
                     ) : null}
+                  </article>
+                ))}
+              </div>
+            </section>
+          ) : act.options.length ? (
+            <section className="flex flex-col gap-3">
+              <ActSectionTitle
+                icon="map"
+                kicker="Voies offertes aux joueurs"
+                help="Différentes manières d'aborder l'acte selon les choix de la table."
+              />
+              <div className="grid gap-3 md:grid-cols-3">
+                {act.options.slice(0, 3).map((option, index) => (
+                  <article
+                    className="relative min-h-[110px] rounded-xl bg-white px-4 py-4 shadow-sm ring-1 ring-black/10"
+                    key={option}
+                  >
+                    <span className="absolute -top-2 left-4 flex h-[22px] w-[22px] items-center justify-center rounded-full border-[2.5px] border-[#faf9f5] bg-wizard-600 text-[11px] font-bold text-white">
+                      {index + 1}
+                    </span>
+                    <p className="mt-2 text-[13px] font-semibold text-slate-950">
+                      {option}
+                    </p>
+                  </article>
+                ))}
+              </div>
+            </section>
+          ) : null}
+
+          <section className="flex flex-col gap-3">
+            <ActSectionTitle
+              actionLabel="Ajouter"
+              icon="battle"
+              kicker="Rencontres clés"
+            />
+            {encounters.length ? (
+              <div className="flex flex-col gap-2">
+                {encounters.map((encounter, index) => (
+                  <article
+                    className="grid grid-cols-[42px_minmax(0,1fr)_auto] items-center gap-3 rounded-xl bg-white px-4 py-3 shadow-sm ring-1 ring-black/10"
+                    key={`${encounter.monsterId}-${index}`}
+                  >
+                    <span className="flex h-[42px] w-[42px] items-center justify-center rounded-lg bg-rose-50 text-rose-700">
+                      <Icon name="battle" className="h-5 w-5" />
+                    </span>
+                    <div className="min-w-0">
+                      <p className="text-[10px] font-bold uppercase tracking-[0.12em] text-slate-400">
+                        Rencontre · acte {encounter.acteNumero}
+                      </p>
+                      <p className="mt-0.5 text-[13.5px] font-semibold text-slate-950">
+                        {encounter.monsterId}
+                      </p>
+                      <p className="mt-1 text-[12px] leading-5 text-slate-500">
+                        {encounter.contexte}
+                      </p>
+                    </div>
+                    <div className="text-right text-[11px] font-medium text-slate-500">
+                      <p>{encounter.nombre} adversaire(s)</p>
+                      {encounter.carteBattleMat ? (
+                        <p className="mt-1">{encounter.carteBattleMat.nom}</p>
+                      ) : null}
+                    </div>
+                  </article>
+                ))}
+              </div>
+            ) : (
+              <EmptyInline text="Aucune rencontre dédiée à cet acte pour le moment." />
+            )}
+          </section>
+
+          {detail?.scenes.length ? (
+            <section className="flex flex-col gap-3">
+              <ActSectionTitle
+                icon="scenario"
+                kicker="Découpage MJ"
+                help="Scènes séquentielles"
+              />
+              <div className="rounded-xl bg-white px-5 py-4 shadow-sm ring-1 ring-black/10">
+                {detail.scenes.map((scene, index) => (
+                  <div
+                    className="relative grid grid-cols-[26px_minmax(0,1fr)] gap-4 py-2"
+                    key={`${scene.titre}-${scene.objectifMJ}`}
+                  >
+                    {index < detail.scenes.length - 1 ? (
+                      <span className="absolute bottom-[-10px] left-[13px] top-8 w-px bg-wizard-200" />
+                    ) : null}
+                    <span className="relative z-10 flex h-[26px] w-[26px] items-center justify-center rounded-full border border-wizard-200 bg-wizard-50 text-[11px] font-bold text-wizard-700">
+                      {String.fromCharCode(65 + index)}
+                    </span>
+                    <div className="min-w-0 pt-0.5">
+                      <p className="text-[13px] font-semibold text-slate-950">
+                        {scene.titre}{' '}
+                        <span className="ml-2 text-[10px] font-medium text-slate-400">
+                          +{Math.round((act.dureeEstimeeMin / detail.scenes.length) * index)} min
+                        </span>
+                      </p>
+                      <p className="mt-1 text-[12px] leading-6 text-slate-500">
+                        {scene.deroule}
+                      </p>
+                    </div>
                   </div>
                 ))}
               </div>
-            ) : (
-              'Aucun PNJ défini.'
-            )}
-          </SmallCard>
+            </section>
+          ) : null}
 
-          <SmallCard icon="clock" label="Sessions">
-            {sessions.length ? (
-              <div className="space-y-2">
-                <div className="flex items-center justify-between rounded-lg bg-white px-3 py-2 text-[12px]">
-                  <span className="text-slate-500">Progression</span>
-                  <span className="font-medium text-slate-900">
-                    {playedSessions} / {sessions.length} jouée
-                    {playedSessions > 1 ? 's' : ''}
-                  </span>
+          {detail ? (
+            <section className="flex flex-col gap-3">
+              <ActSectionTitle icon="clock" kicker="Timing & coupes" />
+              <div className="grid gap-3 md:grid-cols-3">
+                <TimingBox icon="clock" label="Durée prévue" value={`~${act.dureeEstimeeMin} min`} />
+                <TimingBox icon="zap" label="Tempo" value={detail.objectif.typePrincipal} />
+                <TimingBox icon="scenario" label="Acte suivant" value={`Acte ${act.numero + 1}`} />
+              </div>
+              <div className="flex gap-3 rounded-lg bg-gradient-to-br from-amber-50 to-white px-4 py-3 text-amber-900 ring-1 ring-amber-200">
+                <Icon name="todo" className="mt-0.5 h-4 w-4 shrink-0 text-amber-700" />
+                <div className="min-w-0">
+                  <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-amber-700">
+                    Point de coupe possible
+                  </p>
+                  <p className="mt-1 text-[12px] font-medium leading-6">
+                    {act.pointDeCoupure
+                      ? detail.timing.versionCourte
+                      : detail.timing.aCouperSiBesoin.join(', ') ||
+                        'À définir avec Merlin.'}
+                  </p>
                 </div>
-                {sessions.map((session) => (
-                  <button
-                    className="flex w-full gap-2 rounded-lg bg-white px-3 py-2 text-left transition hover:bg-wizard-50"
-                    key={session.id}
-                    onClick={() => setActivePanel('sessions')}
+              </div>
+            </section>
+          ) : null}
+
+          <section className="flex flex-col gap-3">
+            <ActSectionTitle icon="users" kicker="PNJs présents dans cet acte" />
+            {actPnjs.length ? (
+              <div className="flex flex-wrap gap-2">
+                {actPnjs.map((pnj) => (
+                  <span
+                    className="inline-flex items-center gap-2 rounded-full bg-white py-1 pl-1 pr-3 text-[12.5px] font-medium text-slate-950 shadow-sm ring-1 ring-black/10"
+                    key={pnj.nom}
                   >
-                    <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-wizard-600 text-[11px] font-medium text-white">
-                      {session.number}
-                    </div>
-                    <div className="min-w-0">
-                      <p className="truncate text-[12px] font-medium text-slate-800">
-                        Actes {session.plannedActes.join(', ')} ·{' '}
-                        {session.plannedDuration ?? '—'} min
-                      </p>
-                      {session.recapHook ? (
-                        <p className="mt-0.5 line-clamp-2 text-[11px] text-slate-500">
-                          {session.recapHook}
-                        </p>
-                      ) : null}
-                    </div>
-                  </button>
+                    <span className="flex h-7 w-7 items-center justify-center rounded-full border border-wizard-200 bg-gradient-to-br from-wizard-500 to-wizard-700 text-[10px] font-bold text-white">
+                      {initials(pnj.nom)}
+                    </span>
+                    {pnj.nom}
+                  </span>
                 ))}
               </div>
             ) : (
-              'Les sessions apparaîtront quand le scénario sera finalisé.'
+              <EmptyInline text="Aucun PNJ clairement associé à cet acte." />
             )}
-          </SmallCard>
-        </aside>
+          </section>
 
-        <main className="flex min-w-0 flex-col overflow-hidden bg-white">
-          <div className="shrink-0 border-b border-black/10 px-[18px] py-3">
-            <div className="flex items-center justify-between gap-3">
-              <div>
-                <p className="text-[11px] font-medium uppercase tracking-[0.18em] text-slate-400">
-                  Mode jeu
-                </p>
-                <p className="mt-0.5 text-[13px] text-slate-600">
-                  Déroulé lisible pendant la partie, puis debrief après chaque session.
-                </p>
-              </div>
-
-              <div className="flex rounded-lg bg-[#f5f5f3] p-1">
-                <PanelButton
-                  active={activePanel === 'run'}
-                  onClick={() => setActivePanel('run')}
-                >
-                  Déroulé
-                </PanelButton>
-                <PanelButton
-                  active={activePanel === 'acts'}
-                  onClick={() => {
-                    setActivePanel('acts');
-                    setSelectedActNumber(
-                      selectedActNumber ?? data.actes[0]?.numero ?? null,
-                    );
-                  }}
-                >
-                  Détail actes
-                </PanelButton>
-                <PanelButton
-                  active={activePanel === 'sessions'}
-                  onClick={() => setActivePanel('sessions')}
-                >
-                  Sessions & debrief
-                </PanelButton>
-              </div>
-            </div>
+          <div className="flex gap-3 rounded-lg bg-wizard-50 px-4 py-3 text-[13px] leading-6 text-wizard-900 ring-1 ring-wizard-100">
+            <Icon name="magic" className="mt-0.5 h-4 w-4 shrink-0 text-wizard-700" />
+            <p>
+              Cet acte est préparé via le workflow Merlin en 6 étapes. Pour
+              modifier n'importe quel élément, lance le bouton{' '}
+              <span className="font-semibold">Modifier avec Merlin</span> en haut.
+            </p>
           </div>
-
-          {activePanel === 'run' ? (
-            <div className="min-h-0 flex-1 overflow-y-auto px-[18px] py-4">
-              {data.actes.length ? (
-                <div className="space-y-3">
-                  {data.actes.map((acte) => (
-                    <ActCard
-                      act={acte}
-                      encounters={encountersForAct(acte.numero)}
-                      key={acte.numero}
-                    />
-                  ))}
-                </div>
-              ) : (
-                <EmptyPanel text="Le déroulé sera généré pendant la création." />
-              )}
-
-              {data.recompense || data.notesMJ ? (
-                <div className="mt-3 grid gap-3 md:grid-cols-2">
-                  {data.recompense ? (
-                    <SmallCard icon="star" label="Récompense">
-                      {data.recompense}
-                    </SmallCard>
-                  ) : null}
-                  {data.notesMJ ? (
-                    <SmallCard icon="note" label="Notes MJ globales">
-                      {data.notesMJ}
-                    </SmallCard>
-                  ) : null}
-                </div>
-              ) : null}
-            </div>
-          ) : activePanel === 'acts' ? (
-            <ActWorkflowPanel
-              acts={data.actes}
-              busyActNumber={busyActNumber}
-              input={selectedAct ? (actDetailInputs[selectedAct.numero] ?? '') : ''}
-              onAdvance={(actNumber) =>
-                void submitActWorkflow(actNumber, 'ADVANCE')
-              }
-              onInputChange={(actNumber, value) =>
-                setActDetailInputs((current) => ({
-                  ...current,
-                  [actNumber]: value,
-                }))
-              }
-              onReopen={(actNumber) =>
-                void submitActWorkflow(actNumber, 'REOPEN')
-              }
-              onSelectAct={setSelectedActNumber}
-              onValidate={(actNumber) =>
-                void submitActWorkflow(actNumber, 'VALIDATE')
-              }
-              reply={
-                selectedAct ? actDetailReplies[selectedAct.numero] : undefined
-              }
-              selectedAct={selectedAct}
-            />
-          ) : (
-            <div className="min-h-0 flex-1 overflow-y-auto px-[18px] py-4">
-              {sessions.length ? (
-                <div className="grid gap-3 xl:grid-cols-2">
-                  {sessions.map((session) => (
-                    <SessionDebriefCard
-                      busy={busySessionNumber === session.number}
-                      input={debriefInputs[session.number] ?? ''}
-                      key={session.id}
-                      onInputChange={(value) =>
-                        setDebriefInputs((current) => ({
-                          ...current,
-                          [session.number]: value,
-                        }))
-                      }
-                      onMarkPlayed={() => void markPlayed(session.number)}
-                      onSubmitDebrief={() => void submitDebrief(session.number)}
-                      reply={debriefReplies[session.number]}
-                      session={session}
-                    />
-                  ))}
-                </div>
-              ) : (
-                <EmptyPanel text="Disponible après génération des sessions." />
-              )}
-            </div>
-          )}
-        </main>
+        </div>
       </div>
+    </div>
+  );
+}
 
-      <footer className="flex shrink-0 items-center gap-2 border-t border-black/10 px-[18px] py-3">
-        <button
-          className="rounded-lg border border-black/20 bg-[#f5f5f3] px-4 py-2 text-[13px] text-slate-600 transition hover:bg-white disabled:opacity-60"
-          onClick={onCreateScenario}
-        >
-          Création / aventures
+function ActSectionTitle({
+  actionLabel,
+  help,
+  icon,
+  kicker,
+}: {
+  actionLabel?: string;
+  help?: string;
+  icon: IconName;
+  kicker: string;
+}) {
+  return (
+    <header className="flex items-center justify-between gap-3">
+      <div className="flex items-center gap-2">
+        <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-wizard-50 text-wizard-600">
+          <Icon name={icon} className="h-4 w-4" />
+        </span>
+        <p className="text-[11px] font-bold uppercase tracking-[0.14em] text-wizard-600">
+          {kicker}
+          {help ? (
+            <span className="ml-2 normal-case tracking-normal text-slate-500">
+              — {help}
+            </span>
+          ) : null}
+        </p>
+      </div>
+      {actionLabel ? (
+        <button className="inline-flex min-h-8 items-center gap-1 rounded-lg border border-black/15 bg-white px-3 text-[12px] font-medium text-slate-700 shadow-sm transition hover:bg-wizard-50 hover:text-wizard-700">
+          <Icon name="spark" className="h-3.5 w-3.5" />
+          {actionLabel}
         </button>
-        <button
-          className="rounded-lg border border-black/20 bg-[#f5f5f3] px-4 py-2 text-[13px] text-slate-600 transition hover:bg-white disabled:opacity-60"
-          disabled={isExportingPdf}
-          onClick={exportPdf}
-        >
-          {isExportingPdf ? 'Export…' : 'Exporter PDF'}
-        </button>
-        <button
-          className="rounded-lg border border-black/20 bg-[#f5f5f3] px-4 py-2 text-[13px] text-slate-600 transition hover:bg-white disabled:opacity-60"
-          disabled={isEditingWithMerlin}
-          onClick={editWithMerlin}
-        >
-          {isEditingWithMerlin ? 'Merlin…' : 'Modifier via Merlin'}
-        </button>
-        {scenario.status === 'COMPLETE' || scenario.status === 'IN_PROGRESS' ? (
-          <button
-            className="rounded-lg bg-wizard-600 px-4 py-2 text-[13px] font-medium text-white transition hover:bg-wizard-700"
-            onClick={onPrepareTodo}
-          >
-            Préparer la partie
-          </button>
-        ) : null}
-        {error ? (
-          <p className="ml-auto rounded-lg bg-rose-50 px-3 py-2 text-[12px] text-rose-700">
-            {error}
-          </p>
-        ) : null}
-      </footer>
-    </section>
+      ) : null}
+    </header>
+  );
+}
+
+function TimingBox({
+  icon,
+  label,
+  value,
+}: {
+  icon: IconName;
+  label: string;
+  value: string;
+}) {
+  return (
+    <div className="rounded-lg bg-white px-4 py-3 text-center shadow-sm ring-1 ring-black/10">
+      <Icon name={icon} className="mx-auto h-4 w-4 text-wizard-600" />
+      <p className="mt-2 text-[10px] font-semibold uppercase tracking-[0.12em] text-slate-400">
+        {label}
+      </p>
+      <p className="mt-1 text-[14px] font-bold text-slate-950">{value}</p>
+    </div>
+  );
+}
+
+function findPnjsForAct(act: ScenarioAct, pnjs: ScenarioPnj[]) {
+  const haystack = [
+    act.titre,
+    act.description,
+    act.lieu,
+    act.obstaclePrincipal,
+    act.informationApprise,
+    act.notesMJ,
+    ...(act.options ?? []),
+    ...(act.detailsMJ?.scenes.map((scene) => scene.deroule) ?? []),
+  ]
+    .filter(Boolean)
+    .join(' ')
+    .toLowerCase();
+
+  return pnjs.filter((pnj) =>
+    pnj.nom
+      .toLowerCase()
+      .split(/\s+/)
+      .some((part) => part.length > 2 && haystack.includes(part)),
+  );
+}
+
+function initials(name: string) {
+  return name
+    .split(/\s+/)
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((part) => part[0]?.toUpperCase())
+    .join('');
+}
+
+function voieIcon(index: number): IconName {
+  return index === 0 ? 'users' : index === 1 ? 'search' : 'zap';
+}
+
+function EmptyInline({ text }: { text: string }) {
+  return (
+    <div className="mt-3 rounded-lg bg-[#f5f5f3] px-4 py-6 text-center text-[13px] text-slate-500">
+      {text}
+    </div>
   );
 }
 
@@ -711,25 +1225,35 @@ function PanelButton({
 function ActWorkflowPanel({
   acts,
   busyActNumber,
+  changedSections,
   input,
   onAdvance,
   onInputChange,
   onReopen,
   onSelectAct,
   onValidate,
+  pendingMessage,
   reply,
   selectedAct,
+  suggestionsOverride,
 }: {
   acts: ScenarioAct[];
   busyActNumber: number | null;
+  changedSections?: ActWorkflowStep[];
   input: string;
-  onAdvance: (actNumber: number) => void;
+  onAdvance: (
+    actNumber: number,
+    message?: string,
+    step?: ActWorkflowStep,
+  ) => void;
   onInputChange: (actNumber: number, value: string) => void;
   onReopen: (actNumber: number) => void;
   onSelectAct: (actNumber: number) => void;
   onValidate: (actNumber: number) => void;
+  pendingMessage?: string;
   reply?: string;
   selectedAct: ScenarioAct | null;
+  suggestionsOverride?: string[];
 }) {
   const detail = selectedAct?.detailsMJ;
   const [viewedStep, setViewedStep] = useState<ActWorkflowStep>(
@@ -744,67 +1268,129 @@ function ActWorkflowPanel({
     return <EmptyPanel text="Aucun acte à détailler." />;
   }
 
+  if (!detail) {
+    return <EmptyPanel text="Cet acte sera initialisé au prochain chargement." />;
+  }
+
   const busy = busyActNumber === selectedAct.numero;
   const validatedCount = acts.filter(
     (acte) => acte.detailsMJ?.status === 'VALIDATED',
   ).length;
+  const currentStepIndex = ACT_WORKFLOW_STEPS.findIndex(
+    (item) => item.step === detail.currentStep,
+  );
+  const progressPct = Math.round(
+    ((Math.max(currentStepIndex, 0) + 1) / ACT_WORKFLOW_STEPS.length) * 100,
+  );
+  const suggestions = suggestionsOverride?.length
+    ? suggestionsOverride
+    : buildActWorkflowSuggestions(detail, viewedStep);
 
   return (
-    <div className="grid min-h-0 flex-1 grid-cols-[240px_minmax(0,1fr)] overflow-hidden bg-white">
-      <aside className="overflow-y-auto border-r border-black/10 bg-[#f7f6f1] px-[18px] py-4">
-        <p className="text-[11px] font-medium uppercase tracking-[0.16em] text-slate-400">
-          Workflow actes
-        </p>
-        <p className="mt-1 text-[12px] text-slate-500">
-          {validatedCount} / {acts.length} validés
-        </p>
-        <div className="mt-3 space-y-2">
-          {acts.map((acte) => (
-            <button
-              className={[
-                'w-full rounded-lg px-3 py-2 text-left ring-1 transition',
-                acte.numero === selectedAct.numero
-                  ? 'bg-white ring-wizard-300 shadow-sm'
-                  : 'bg-white/80 ring-black/10 hover:bg-white',
-              ].join(' ')}
-              key={acte.numero}
-              onClick={() => onSelectAct(acte.numero)}
-            >
-              <span className="block text-[12px] font-semibold text-slate-900">
-                Acte {acte.numero}
-              </span>
-              <span className="mt-0.5 line-clamp-2 block text-[11px] text-slate-500">
-                {acte.titre}
-              </span>
-              <span
-                className={[
-                  'mt-2 inline-flex rounded-full px-2 py-0.5 text-[10px]',
-                  acte.detailsMJ?.status === 'VALIDATED'
-                    ? 'bg-emerald-100 text-emerald-700'
-                    : acte.detailsMJ?.status === 'IN_PROGRESS'
-                      ? 'bg-amber-100 text-amber-700'
-                      : 'bg-slate-100 text-slate-500',
-                ].join(' ')}
-              >
-                {acte.detailsMJ?.status ?? 'TODO'}
-              </span>
-            </button>
-          ))}
-        </div>
-      </aside>
+    <div className="flex min-h-0 flex-1 flex-col overflow-hidden bg-white">
+      <ol className="flex items-center bg-[#f5f5f3] px-4 py-2">
+        {ACT_WORKFLOW_STEPS.map((stepMeta, index) => {
+          const state =
+            detail.status === 'VALIDATED' || index < currentStepIndex
+              ? 'done'
+              : index === currentStepIndex
+                ? 'active'
+                : 'todo';
+          const selected = viewedStep === stepMeta.step;
 
-      {detail ? (
-        <div className="grid min-h-0 grid-rows-[auto_auto_minmax(0,1fr)_auto] overflow-hidden">
-          <header className="border-b border-black/10 px-[18px] py-3">
+          return (
+            <li className="flex min-w-0 flex-1 items-center" key={stepMeta.step}>
+              <button
+                className="flex min-w-0 flex-1 flex-col items-center gap-1"
+                onClick={() => setViewedStep(stepMeta.step)}
+              >
+                <span
+                  className={[
+                    'flex h-6 w-6 shrink-0 items-center justify-center rounded-full border text-[11px] font-medium',
+                    state === 'done'
+                      ? 'border-wizard-300 bg-wizard-100 text-wizard-700'
+                      : state === 'active'
+                        ? 'border-wizard-600 bg-wizard-600 text-white'
+                        : 'border-black/10 bg-white text-slate-400',
+                    selected ? 'ring-2 ring-wizard-200 ring-offset-1' : '',
+                  ].join(' ')}
+                >
+                  {state === 'done' ? (
+                    <Icon name="check" className="h-3.5 w-3.5" />
+                  ) : state === 'active' ? (
+                    <Icon name="spark" className="h-3.5 w-3.5" />
+                  ) : null}
+                </span>
+                <span
+                  className={[
+                    'max-w-16 truncate text-center text-[9px]',
+                    state === 'active' || selected
+                      ? 'font-medium text-wizard-600'
+                      : 'text-slate-500',
+                  ].join(' ')}
+                >
+                  {stepMeta.label}
+                </span>
+              </button>
+              {index < ACT_WORKFLOW_STEPS.length - 1 ? (
+                <div className="mb-4 h-px flex-1 bg-black/10" />
+              ) : null}
+            </li>
+          );
+        })}
+      </ol>
+
+      <div className="shrink-0 border-b border-black/10 bg-white px-[18px] py-3">
+        <div className="flex flex-wrap items-center gap-3">
+          <div className="flex min-w-[220px] flex-1 items-center gap-3 rounded-lg bg-[#f5f5f3] px-4 py-2">
+            <span className="whitespace-nowrap text-[12px] text-slate-500">
+              Focus Merlin
+            </span>
+            <div className="h-[5px] flex-1 overflow-hidden rounded-full bg-black/10">
+              <div
+                className="h-full rounded-full bg-wizard-600"
+                style={{ width: `${progressPct}%` }}
+              />
+            </div>
+            <span className="whitespace-nowrap text-[12px] font-medium text-wizard-600">
+              {Math.max(currentStepIndex, 0) + 1} / {ACT_WORKFLOW_STEPS.length}
+            </span>
+          </div>
+
+          <div className="flex min-w-[280px] flex-wrap gap-2">
+            {acts.map((acte) => (
+              <button
+                className={[
+                  'inline-flex min-h-9 items-center gap-2 rounded-lg border px-3 text-[12px] font-medium transition',
+                  acte.numero === selectedAct.numero
+                    ? 'border-wizard-300 bg-wizard-50 text-wizard-700'
+                    : 'border-black/15 bg-[#f5f5f3] text-slate-600 hover:bg-white',
+                ].join(' ')}
+                key={acte.numero}
+                onClick={() => onSelectAct(acte.numero)}
+              >
+                <span className="flex h-5 w-5 items-center justify-center rounded-full bg-white text-[10px]">
+                  {acte.numero}
+                </span>
+                <span className="max-w-28 truncate">{acte.titre}</span>
+              </button>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      <div className="flex-1 overflow-y-auto bg-[#faf9f5] px-[18px] py-4">
+        <div className="mx-auto flex max-w-[840px] flex-col gap-3">
+          <section className="rounded-xl bg-white p-4 shadow-sm ring-1 ring-black/10">
             <div className="flex items-start justify-between gap-3">
               <div className="min-w-0">
                 <p className="text-[11px] font-medium uppercase tracking-[0.18em] text-wizard-600">
                   Acte {selectedAct.numero} avec Merlin
                 </p>
-                <h3 className="mt-1 truncate text-[20px] font-semibold text-slate-950">
+                <h3 className="mt-1 text-[20px] font-semibold leading-7 text-slate-950">
                   {selectedAct.titre}
                 </h3>
-                <p className="mt-1 line-clamp-2 text-[13px] text-slate-500">
+                <p className="mt-2 text-[13px] leading-6 text-slate-600">
                   {selectedAct.description}
                 </p>
               </div>
@@ -818,109 +1404,244 @@ function ActWorkflowPanel({
                       : 'bg-slate-100 text-slate-600',
                 ].join(' ')}
               >
-                {detail.status}
+                {validatedCount} / {acts.length} validés
               </span>
             </div>
-          </header>
+          </section>
 
-          <div className="border-b border-black/10 bg-[#f7f6f1] px-[18px] py-3">
-            <div className="grid grid-cols-6 gap-2">
-              {ACT_WORKFLOW_STEPS.map((stepMeta, index) => {
-                const active = viewedStep === stepMeta.step;
-                const current = detail.currentStep === stepMeta.step;
-                const reached =
-                  ACT_WORKFLOW_STEPS.findIndex(
-                    (item) => item.step === detail.currentStep,
-                  ) >= index || detail.status === 'VALIDATED';
+          <ActMerlinConversation
+            isMerlinWorking={busy}
+            changedSections={changedSections}
+            detail={detail}
+            onViewStep={setViewedStep}
+            pendingMessage={pendingMessage}
+            reply={reply}
+            selectedAct={selectedAct}
+            viewedStep={viewedStep}
+          />
 
-                return (
-                  <button
-                    className={[
-                      'min-h-[74px] rounded-lg px-2 py-2 text-left ring-1 transition',
-                      active
-                        ? 'bg-white ring-wizard-300 shadow-sm'
-                        : 'bg-white/70 ring-black/10 hover:bg-white',
-                    ].join(' ')}
-                    key={stepMeta.step}
-                    onClick={() => setViewedStep(stepMeta.step)}
-                  >
-                    <span
-                      className={[
-                        'flex h-5 w-5 items-center justify-center rounded-full text-[10px] font-semibold',
-                        current
-                          ? 'bg-wizard-600 text-white'
-                          : reached
-                            ? 'bg-emerald-100 text-emerald-700'
-                            : 'bg-slate-100 text-slate-400',
-                      ].join(' ')}
-                    >
-                      {index + 1}
-                    </span>
-                    <span className="mt-1 block text-[11px] font-semibold text-slate-900">
-                      {stepMeta.label}
-                    </span>
-                    <span className="mt-0.5 line-clamp-2 block text-[10px] leading-4 text-slate-500">
-                      {stepMeta.helper}
-                    </span>
-                  </button>
-                );
-              })}
-            </div>
-          </div>
-
-          <div className="grid min-h-0 grid-cols-[minmax(0,1fr)_340px] overflow-hidden">
-            <main className="min-h-0 overflow-y-auto px-[18px] py-4">
-              <ActMerlinConversation
-                detail={detail}
-                reply={reply}
-                selectedAct={selectedAct}
-                viewedStep={viewedStep}
-              />
-            </main>
-            <aside className="min-h-0 overflow-y-auto border-l border-black/10 bg-[#f7f6f1] px-[18px] py-4">
-              <ActStepSummary detail={detail} step={viewedStep} />
-            </aside>
-          </div>
-
-          <footer className="border-t border-black/10 bg-white px-[18px] py-3">
-            <textarea
-              className="min-h-20 w-full resize-none rounded-lg border border-black/10 bg-white px-3 py-2 text-[13px] outline-none transition focus:border-wizard-400"
-              disabled={busy}
-              onChange={(event) =>
-                onInputChange(selectedAct.numero, event.target.value)
+          {!busy ? (
+            <ActSuggestionPanel
+              detail={detail}
+              onAdvance={(message) =>
+                onAdvance(selectedAct.numero, message, viewedStep)
               }
-              placeholder="Réponds à Merlin pour cet acte : ajoute une voie, rends le combat plus tactique, simplifie l'enquête..."
-              value={input}
+              onReopen={() => onReopen(selectedAct.numero)}
+              onValidate={() => onValidate(selectedAct.numero)}
+              suggestions={suggestions}
             />
-            <div className="mt-2 flex flex-wrap gap-2">
-              <button
-                className="rounded-lg border border-black/20 bg-white px-3 py-2 text-[12px] text-slate-700 disabled:opacity-60"
-                disabled={busy || detail.status === 'VALIDATED'}
-                onClick={() => onAdvance(selectedAct.numero)}
-              >
-                Avancer avec Merlin
-              </button>
-              <button
-                className="rounded-lg bg-wizard-600 px-3 py-2 text-[12px] font-medium text-white disabled:opacity-60"
-                disabled={busy}
-                onClick={() =>
-                  detail.status === 'VALIDATED'
-                    ? onReopen(selectedAct.numero)
-                    : onValidate(selectedAct.numero)
-                }
-              >
-                {detail.status === 'VALIDATED'
-                  ? "Réouvrir l'acte"
-                  : "Valider l'acte"}
-              </button>
-            </div>
-          </footer>
+          ) : null}
         </div>
-      ) : (
-        <EmptyPanel text="Cet acte sera initialisé au prochain chargement." />
-      )}
+      </div>
+
+      <div className="flex shrink-0 gap-2 border-t border-black/10 bg-white px-[18px] py-3">
+        <form
+          className="flex min-w-0 flex-1 gap-2"
+          onSubmit={(event) => {
+            event.preventDefault();
+            onAdvance(selectedAct.numero, undefined, viewedStep);
+          }}
+        >
+          <button
+            className="flex min-h-11 w-11 shrink-0 items-center justify-center rounded-lg border border-black/15 bg-[#f5f5f3] text-slate-500 transition hover:bg-white hover:text-wizard-700 disabled:opacity-50"
+            disabled={busy || detail.status === 'VALIDATED'}
+            title="Répondre au micro"
+            type="button"
+          >
+            <Icon name="mic" className="h-4 w-4" />
+          </button>
+          <input
+            className="min-h-11 min-w-0 flex-1 rounded-lg border border-black/15 bg-[#f5f5f3] px-4 text-[13px] outline-none ring-wizard-300 transition focus:ring-4"
+            disabled={busy || detail.status === 'VALIDATED'}
+            onChange={(event) =>
+              onInputChange(selectedAct.numero, event.target.value)
+            }
+            placeholder={
+              busy
+                ? 'Merlin prépare la réponse…'
+                : "Écris une réponse à Merlin pour détailler l'acte…"
+            }
+            value={input}
+          />
+          <button
+            className="min-h-11 rounded-lg bg-wizard-600 px-5 text-[13px] font-medium text-white transition hover:bg-wizard-700 disabled:opacity-60"
+            disabled={busy || detail.status === 'VALIDATED'}
+          >
+            {busy ? 'Merlin…' : 'Envoyer'}
+          </button>
+        </form>
+      </div>
     </div>
   );
+}
+
+function ActSuggestionPanel({
+  detail,
+  onAdvance,
+  onReopen,
+  onValidate,
+  suggestions,
+}: {
+  detail: NonNullable<ScenarioAct['detailsMJ']>;
+  onAdvance: (message?: string) => void;
+  onReopen: () => void;
+  onValidate: () => void;
+  suggestions: string[];
+}) {
+  function handleSuggestion(suggestion: string) {
+    const normalized = suggestion
+      .toLowerCase()
+      .normalize('NFD')
+      .replace(/\p{Diacritic}/gu, '');
+
+    if (normalized.includes('reouvrir')) {
+      onReopen();
+      return;
+    }
+
+    if (normalized.includes('valider')) {
+      onValidate();
+      return;
+    }
+
+    onAdvance(normalized === 'avancer' ? undefined : suggestion);
+  }
+
+  return (
+    <section className="rounded-xl border border-black/10 bg-white p-4 shadow-sm">
+      <p className="text-[12px] font-semibold text-slate-900">
+        Suggestions de réponse
+      </p>
+      <p className="mt-1 text-[12px] text-slate-500">
+        ou écris librement en bas
+      </p>
+      <div className="mt-3 grid gap-2 md:grid-cols-2">
+        {suggestions.map((suggestion) => (
+          <button
+            className="group flex min-h-[58px] items-center gap-3 rounded-lg border border-black/10 bg-[#f5f5f3] px-3 py-2 text-left transition hover:border-wizard-200 hover:bg-wizard-50"
+            disabled={
+              detail.status === 'VALIDATED' &&
+              !suggestion.toLowerCase().includes('reouvrir')
+            }
+            key={suggestion}
+            onClick={() => handleSuggestion(suggestion)}
+          >
+            <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-white text-wizard-600 ring-1 ring-black/10 group-hover:ring-wizard-200">
+              <Icon name={actSuggestionIcon(suggestion)} className="h-4 w-4" />
+            </span>
+            <span className="min-w-0">
+              <span className="block text-[13px] font-medium text-slate-900">
+                {suggestion}
+              </span>
+              <span className="mt-0.5 block text-[11px] text-slate-500">
+                Merlin adapte la suite.
+              </span>
+            </span>
+          </button>
+        ))}
+      </div>
+    </section>
+  );
+}
+
+function buildActWorkflowSuggestions(
+  detail: NonNullable<ScenarioAct['detailsMJ']>,
+  step: ActWorkflowStep,
+) {
+  const lastUserNote =
+    detail.notesUtilisateur[detail.notesUtilisateur.length - 1] ??
+    detail.objectif.principal;
+  const context = summarizeActSuggestionContext(lastUserNote);
+
+  if (detail.status === 'VALIDATED') {
+    return ["Réouvrir l'acte"];
+  }
+
+  switch (step) {
+    case 'OBJECTIF':
+      return [
+        context
+          ? `Clarifier l'objectif : ${context}`
+          : 'Clarifier l’objectif de cet acte',
+        context
+          ? `Ajouter un enjeu lié à ${context}`
+          : 'Ajouter un enjeu plus clair',
+        'Prévoir une réussite partielle concrète',
+        "Rendre l'échec intéressant à jouer",
+      ];
+    case 'VOIES':
+      return [
+        context
+          ? `Trouver une piste autour de ${context}`
+          : 'Ajouter une piste concrète',
+        'Ajouter une voie discrète',
+        'Ajouter une voie sociale',
+        'Prévoir une voie risquée',
+      ];
+    case 'MODULE':
+      return [
+        'Avancer',
+        `Plus ${detail.moduleSpecialise.type}`,
+        'Ajouter une alternative',
+        'Rendre la scène plus interactive',
+      ];
+    case 'SCENES':
+      return [
+        'Avancer',
+        'Ajouter une scène courte',
+        'Ajouter une relance anti-blocage',
+        'Rendre une scène plus visuelle',
+      ];
+    case 'TIMING':
+      return [
+        'Avancer',
+        'Prévoir une version courte',
+        'Renforcer ce qui est essentiel',
+        'Prévoir quoi couper',
+      ];
+    case 'VALIDATION':
+      return [
+        "Valider l'acte",
+        'Ajouter une note MJ',
+        'Simplifier le déroulé',
+        'Renforcer la transition',
+      ];
+  }
+}
+
+function summarizeActSuggestionContext(value: string) {
+  const normalized = value
+    .replace(/^non\s+/i, '')
+    .replace(/^notes données à merlin\s+/i, '')
+    .trim();
+
+  if (!normalized) return '';
+
+  if (
+    normalized.toLowerCase().includes('grange') ||
+    normalized.toLowerCase().includes('souvenir')
+  ) {
+    return 'le réveil sans souvenir dans la grange';
+  }
+
+  return normalized.length > 46 ? `${normalized.slice(0, 43).trim()}...` : normalized;
+}
+
+function getActWorkflowStepLabel(step: ActWorkflowStep) {
+  return (
+    ACT_WORKFLOW_STEPS.find((stepMeta) => stepMeta.step === step)?.label ?? step
+  );
+}
+
+function actSuggestionIcon(suggestion: string): IconName {
+  const lower = suggestion.toLowerCase();
+  if (lower.includes('valider')) return 'check';
+  if (lower.includes('reouvrir')) return 'magic';
+  if (lower.includes('voie')) return 'map';
+  if (lower.includes('scene') || lower.includes('visuel')) return 'scenario';
+  if (lower.includes('court') || lower.includes('timing')) return 'clock';
+  if (lower.includes('risque') || lower.includes('echec')) return 'battle';
+  return 'spark';
 }
 
 function WorkflowSection({
@@ -939,12 +1660,20 @@ function WorkflowSection({
 }
 
 function ActMerlinConversation({
+  changedSections,
   detail,
+  isMerlinWorking,
+  onViewStep,
+  pendingMessage,
   reply,
   selectedAct,
   viewedStep,
 }: {
+  changedSections?: ActWorkflowStep[];
   detail: NonNullable<ScenarioAct['detailsMJ']>;
+  isMerlinWorking: boolean;
+  onViewStep: (step: ActWorkflowStep) => void;
+  pendingMessage?: string;
   reply?: string;
   selectedAct: ScenarioAct;
   viewedStep: ActWorkflowStep;
@@ -966,27 +1695,89 @@ function ActMerlinConversation({
 
       <ActStepContent detail={detail} step={viewedStep} />
 
-      {detail.notesUtilisateur.length ? (
-        <ChatBubble role="user">
-          <p className="text-[12px] font-semibold text-slate-900">
-            Notes données à Merlin
-          </p>
-          <ul className="mt-2 space-y-1">
-            {detail.notesUtilisateur.map((note, index) => (
-              <li className="text-[13px] leading-6 text-slate-700" key={`${note}-${index}`}>
-                {note}
-              </li>
-            ))}
-          </ul>
+      {detail.notesUtilisateur.map((note, index) => (
+        <ChatBubble key={`${note}-${index}`} role="user">
+          <p className="text-[13px] leading-6 text-slate-700">{note}</p>
         </ChatBubble>
-      ) : null}
+      ))}
 
       {reply ? (
         <ChatBubble role="assistant">
           <p className="text-[14px] leading-7 text-slate-800">{reply}</p>
         </ChatBubble>
       ) : null}
+
+      {changedSections?.length ? (
+        <ChangedSectionsNotice
+          onSelect={onViewStep}
+          sections={changedSections}
+        />
+      ) : null}
+
+      {pendingMessage ? (
+        <ChatBubble role="user">
+          <p className="text-[13px] leading-6 text-slate-700">
+            {pendingMessage}
+          </p>
+        </ChatBubble>
+      ) : null}
+
+      {isMerlinWorking ? <ActMerlinWorkingBubble /> : null}
     </div>
+  );
+}
+
+function ChangedSectionsNotice({
+  onSelect,
+  sections,
+}: {
+  onSelect: (step: ActWorkflowStep) => void;
+  sections: ActWorkflowStep[];
+}) {
+  const uniqueSections = sections.filter(
+    (section, index, array) => array.indexOf(section) === index,
+  );
+
+  return (
+    <ChatBubble role="assistant">
+      <p className="text-[12px] font-semibold text-wizard-700">
+        Merlin a modifié
+      </p>
+      <div className="mt-2 flex flex-wrap gap-2">
+        {uniqueSections.map((section) => (
+          <button
+            className="rounded-lg border border-wizard-200 bg-white px-3 py-1.5 text-[12px] font-medium text-wizard-700 transition hover:bg-wizard-50"
+            key={section}
+            onClick={() => onSelect(section)}
+            type="button"
+          >
+            {getActWorkflowStepLabel(section)}
+          </button>
+        ))}
+      </div>
+    </ChatBubble>
+  );
+}
+
+function ActMerlinWorkingBubble() {
+  return (
+    <ChatBubble role="assistant">
+      <div className="flex items-center gap-3 text-wizard-700">
+        <div className="flex gap-1" aria-hidden="true">
+          <span className="h-2 w-2 animate-bounce rounded-full bg-wizard-600 [animation-delay:-0.2s]" />
+          <span className="h-2 w-2 animate-bounce rounded-full bg-wizard-600 [animation-delay:-0.1s]" />
+          <span className="h-2 w-2 animate-bounce rounded-full bg-wizard-600" />
+        </div>
+        <div>
+          <p className="text-[13px] font-medium">
+            Merlin ajuste le détail de l'acte…
+          </p>
+          <p className="text-[11px] text-wizard-500">
+            La réponse arrive automatiquement.
+          </p>
+        </div>
+      </div>
+    </ChatBubble>
   );
 }
 
@@ -1037,7 +1828,7 @@ function ActStepContent({
   if (step === 'VOIES') {
     return (
       <WorkflowSection title="Voies possibles des joueurs">
-        <div className="grid gap-2 md:grid-cols-2">
+              <div className="grid gap-2 md:grid-cols-2">
           {detail.voies.map((voie) => (
             <div className="rounded-lg bg-[#f5f5f3] p-3" key={voie.id}>
               <p className="text-[12px] font-semibold text-slate-900">
@@ -1052,6 +1843,20 @@ function ActStepContent({
               <p className="mt-1 text-[11px] text-amber-700">
                 Risque : {voie.risque}
               </p>
+              {voie.preparationMJ.length ? (
+                <div className="mt-3 rounded bg-white px-3 py-2">
+                  <p className="text-[10px] font-medium uppercase tracking-[0.12em] text-slate-400">
+                    À jouer côté MJ
+                  </p>
+                  <ul className="mt-1 space-y-1">
+                    {voie.preparationMJ.map((item) => (
+                      <li className="text-[11px] leading-5 text-slate-600" key={item}>
+                        {item}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              ) : null}
             </div>
           ))}
         </div>

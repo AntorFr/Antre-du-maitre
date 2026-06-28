@@ -4,7 +4,10 @@ import type {
 } from '@antre-du-maitre/shared';
 
 import { getNextScenarioStep } from '../../domain/scenario-state.js';
+import { runActDetailWorkflow } from '../act-details.js';
 import type {
+  ActDetailInput,
+  ActDetailTurnResponse,
   LlmProvider,
   ScenarioChatInput,
   SessionDebriefInput,
@@ -286,6 +289,16 @@ export class MockLlmProvider implements LlmProvider {
       stepComplete: false,
       nextStep: null,
     };
+  }
+
+  async createActDetailTurn(
+    input: ActDetailInput,
+  ): Promise<ActDetailTurnResponse> {
+    return runActDetailWorkflow({
+      scenario: input.scenario,
+      actNumber: input.actNumber,
+      request: input.request,
+    });
   }
 
   async createSessionDebriefTurn(

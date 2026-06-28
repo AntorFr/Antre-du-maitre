@@ -271,12 +271,14 @@ export interface ScenarioChatRequest {
 
 export interface ActDetailChatRequest {
   message?: string;
+  step?: ActDetailStep;
   action: 'ADVANCE' | 'VALIDATE' | 'REOPEN';
 }
 
 export interface ActDetailChatResponse {
   reply: string;
   suggestions: string[];
+  changedSections: ActDetailStep[];
   scenario: ScenarioDetail;
 }
 

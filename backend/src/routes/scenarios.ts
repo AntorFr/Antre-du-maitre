@@ -14,8 +14,8 @@ import {
 import {
   ensureActDetails,
   needsActDetails,
-  runActDetailWorkflow,
 } from '../services/act-details.js';
+import { createLlmProvider } from '../services/llm/index.js';
 import { renderScenarioPdf } from '../services/scenario-pdf.js';
 import { toScenarioDetail, toScenarioSummary } from '../utils/scenarios.js';
 
@@ -24,10 +24,15 @@ const createScenarioSchema = z.object({
 });
 const actDetailChatSchema = z.object({
   message: z.string().trim().max(2_000).optional(),
+  step: z
+    .enum(['OBJECTIF', 'VOIES', 'MODULE', 'SCENES', 'TIMING', 'VALIDATION'])
+    .optional(),
   action: z.enum(['ADVANCE', 'VALIDATE', 'REOPEN']),
 });
 
 export async function registerScenarioRoutes(app: FastifyInstance) {
+  const llmProvider = createLlmProvider();
+
   app.get(
     '/api/scenarios',
     {
@@ -157,16 +162,21 @@ export async function registerScenarioRoutes(app: FastifyInstance) {
       }
 
       const normalizedData = normalizeScenarioData(scenario.data);
+      const shouldEnsureActDetails =
+        scenario.status !== 'DRAFT' ||
+        normalizedData.currentStep === 'STEP_10_RECAP';
       const detailedData =
-        scenario.status === 'DRAFT'
-          ? normalizedData
-          : ensureActDetails(normalizedData);
+        shouldEnsureActDetails ? ensureActDetails(normalizedData) : normalizedData;
       const scenarioDetail = {
         ...toScenarioDetail(scenario),
         data: detailedData,
       };
 
-      if (scenario.status !== 'DRAFT' && needsActDetails(normalizedData)) {
+      if (
+        shouldEnsureActDetails &&
+        (needsActDetails(normalizedData) ||
+          JSON.stringify(detailedData) !== JSON.stringify(normalizedData))
+      ) {
         await prisma.scenario.update({
           where: {
             id: scenario.id,
@@ -220,15 +230,31 @@ export async function registerScenarioRoutes(app: FastifyInstance) {
 
       let result;
       try {
-        result = runActDetailWorkflow({
-          scenario: normalizeScenarioData(scenario.data),
+        const scenarioData = ensureActDetails(normalizeScenarioData(scenario.data));
+
+        result = await llmProvider.createActDetailTurn({
+          scenario: scenarioData,
+          scenarioId: scenario.id,
+          userId: scenario.userId,
           actNumber,
           request: parsed.data,
         });
       } catch (error) {
-        return reply.code(404).send({
+        request.log.error(
+          {
+            error,
+            scenarioId: scenario.id,
+            actNumber,
+            action: parsed.data.action,
+          },
+          'Act detail LLM workflow failed.',
+        );
+
+        return reply.code(502).send({
           message:
-            error instanceof Error ? error.message : 'Act detail not found.',
+            error instanceof Error
+              ? error.message
+              : 'Act detail workflow failed.',
         });
       }
       const updatedScenario = await prisma.scenario.update({
@@ -243,6 +269,7 @@ export async function registerScenarioRoutes(app: FastifyInstance) {
       return {
         reply: result.reply,
         suggestions: result.suggestions,
+        changedSections: result.changedSections,
         scenario: {
           ...toScenarioDetail(updatedScenario),
           data: result.scenario,
