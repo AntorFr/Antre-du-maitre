@@ -41,12 +41,15 @@ export function normalizeScenarioData(value: unknown): ScenarioData {
     notesMJ: readOptionalString(candidate.notesMJ),
   };
 
-  const sessionning = normalizeSessionning(candidate.sessionning);
+  const sessionning = normalizeSessionning(
+    candidate.sessionning ?? candidate.sessioning,
+  );
   if (sessionning) {
     normalized.sessionning = sessionning;
   } else {
     delete normalized.sessionning;
   }
+  delete (normalized as unknown as Record<string, unknown>).sessioning;
 
   return normalized;
 }

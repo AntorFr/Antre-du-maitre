@@ -3,7 +3,7 @@ import type { ProposedWorldEntity } from './world.js';
 
 export interface ScenarioChatResponse {
   reply: string;
-  suggestions: [string, string, string];
+  suggestions: string[];
   scenarioUpdate: Partial<ScenarioData> | null;
   proposedEntities: ProposedWorldEntity[];
   stepComplete: boolean;
@@ -12,8 +12,7 @@ export interface ScenarioChatResponse {
 
 export interface SessionDebriefResponse {
   reply: string;
-  suggestions: [string, string, string];
+  suggestions: string[];
   proposedEntities: ProposedWorldEntity[];
   debriefComplete: boolean;
 }
-

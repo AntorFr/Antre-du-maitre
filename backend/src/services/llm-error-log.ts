@@ -6,7 +6,7 @@ import { ZodError } from 'zod';
 import { env } from '../config/env.js';
 
 type LlmErrorLogInput = {
-  kind: 'scenario-chat' | 'session-debrief';
+  kind: 'scenario-chat' | 'act-detail' | 'session-debrief';
   provider: string;
   model?: string;
   error: unknown;
