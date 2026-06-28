@@ -1,18 +1,22 @@
 import { AppShell } from './components/AppShell';
 import { useSession } from './hooks/useSession';
 import { Login } from './pages/Login';
+import { Hub } from './pages/Hub';
 import { Create } from './pages/Create';
 import { Scenario } from './pages/Scenario';
 import { Todo } from './pages/Todo';
-import { World } from './pages/World';
 import { Admin } from './pages/Admin';
 import type { ScenarioSummary } from '@antre-du-maitre/shared';
-import type { AppView } from './types/navigation';
+import type { AppView, HubSection, ScenarioTab } from './types/navigation';
 import { useState } from 'react';
 
 export function App() {
   const { session, isHydrating, login, logout } = useSession();
-  const [activeView, setActiveView] = useState<AppView>('create');
+  const [activeView, setActiveView] = useState<AppView>('hub');
+  const [hubSection, setHubSection] = useState<HubSection>('scenarios');
+  const [scenarioTab, setScenarioTab] = useState<ScenarioTab>('overview');
+  const [createStartsEmpty, setCreateStartsEmpty] = useState(false);
+  const [createScenarioId, setCreateScenarioId] = useState<string | null>(null);
   const [activeScenario, setActiveScenario] =
     useState<ScenarioSummary | null>(null);
   const [worldRefreshKey, setWorldRefreshKey] = useState(0);
@@ -29,42 +33,103 @@ export function App() {
     return <Login onLogin={login} />;
   }
 
+  function openHub(section: HubSection = 'scenarios') {
+    setHubSection(section);
+    setActiveView('hub');
+  }
+
+  function openScenario(scenario: ScenarioSummary, tab: ScenarioTab = 'overview') {
+    setActiveScenario(scenario);
+    setScenarioTab(tab);
+    setActiveView('scenario');
+  }
+
+  function resumeScenarioWorkflow(scenario: ScenarioSummary) {
+    setActiveScenario(scenario);
+    setCreateStartsEmpty(false);
+    setCreateScenarioId(scenario.id);
+    setActiveView('create');
+  }
+
+  function openScenarioTab(tab: ScenarioTab) {
+    setScenarioTab(tab);
+    setActiveView('scenario');
+  }
+
   let content = (
-    <Create
+    <Hub
       token={session.token}
-      onScenarioChange={setActiveScenario}
-      onOpenScenario={() => setActiveView('scenario')}
-      onWorldProposal={() => setWorldRefreshKey((current) => current + 1)}
-      onScenarioComplete={() => setActiveView('scenario')}
+      section={hubSection}
+      worldRefreshKey={worldRefreshKey}
+      onCreateScenario={() => {
+        setActiveScenario(null);
+        setCreateStartsEmpty(true);
+        setCreateScenarioId(null);
+        setActiveView('create');
+      }}
+      onOpenScenario={(scenario) => {
+        if (scenario.status === 'DRAFT') {
+          resumeScenarioWorkflow(scenario);
+          return;
+        }
+
+        openScenario(scenario);
+      }}
+      onSectionChange={setHubSection}
     />
   );
 
-  if (activeView === 'scenario') {
+  if (activeView === 'create') {
     content = (
-      <Scenario
+      <Create
         token={session.token}
-        scenario={activeScenario}
-        onCreateScenario={() => setActiveView('create')}
+        initialScenarioId={createScenarioId}
+        startEmpty={createStartsEmpty}
         onScenarioChange={setActiveScenario}
+        onOpenScenario={() => {
+          setCreateStartsEmpty(false);
+          setCreateScenarioId(null);
+          setScenarioTab('overview');
+          setActiveView('scenario');
+        }}
         onWorldProposal={() => setWorldRefreshKey((current) => current + 1)}
-        onPrepareTodo={() => setActiveView('todo')}
+        onScenarioComplete={() => {
+          setCreateStartsEmpty(false);
+          setCreateScenarioId(null);
+          setScenarioTab('overview');
+          setActiveView('scenario');
+        }}
       />
     );
   }
 
-  if (activeView === 'todo') {
-    content = (
-      <Todo
-        token={session.token}
-        scenario={activeScenario}
-        onCreateScenario={() => setActiveView('create')}
-        onOpenScenario={() => setActiveView('scenario')}
-      />
-    );
-  }
-
-  if (activeView === 'world') {
-    content = <World token={session.token} refreshKey={worldRefreshKey} />;
+  if (activeView === 'scenario') {
+    content =
+      scenarioTab === 'preparation' ? (
+        <Todo
+          token={session.token}
+          scenario={activeScenario}
+          onCreateScenario={() => {
+            setCreateStartsEmpty(false);
+            setCreateScenarioId(activeScenario?.id ?? null);
+            setActiveView('create');
+          }}
+          onOpenScenario={() => openScenarioTab('overview')}
+        />
+      ) : (
+        <Scenario
+          token={session.token}
+          scenario={activeScenario}
+          initialPanel={scenarioTab === 'sessions' ? 'sessions' : 'run'}
+          onCreateScenario={() => {
+            setCreateStartsEmpty(false);
+            setCreateScenarioId(activeScenario?.id ?? null);
+            setActiveView('create');
+          }}
+          onScenarioChange={setActiveScenario}
+          onWorldProposal={() => setWorldRefreshKey((current) => current + 1)}
+        />
+      );
   }
 
   if (activeView === 'admin' && session.user.role === 'ADMIN') {
@@ -73,8 +138,7 @@ export function App() {
         token={session.token}
         currentUserId={session.user.id}
         onOpenScenario={(scenario) => {
-          setActiveScenario(scenario);
-          setActiveView('scenario');
+          openScenario(scenario);
         }}
       />
     );
@@ -84,7 +148,11 @@ export function App() {
     <AppShell
       user={session.user}
       activeView={activeView}
-      onNavigate={setActiveView}
+      scenario={activeScenario}
+      scenarioTab={scenarioTab}
+      onOpenAdmin={() => setActiveView('admin')}
+      onOpenHub={() => openHub()}
+      onNavigateScenarioTab={openScenarioTab}
       onLogout={logout}
     >
       {content}
