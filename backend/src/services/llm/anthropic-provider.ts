@@ -192,16 +192,26 @@ export class AnthropicLlmProvider implements LlmProvider {
   ): Promise<ScenarioChatResponse> {
     const expectedNextStep = getNextScenarioStep(input.scenario.currentStep);
     const prompt = buildScenarioUserPrompt(input, expectedNextStep);
-    const raw = await this.createJsonMessage({
+
+    if (input.onReplyDelta) {
+      const streamed = await this.streamScenarioJson({
+        prompt,
+        onReplyDelta: input.onReplyDelta,
+      });
+
+      if (streamed) {
+        return buildScenarioResponse(streamed, expectedNextStep);
+      }
+      // Le streaming a échoué (JSON invalide) : on retombe sur l'appel
+      // non-streaming, qui réessaie puis journalise en cas d'échec.
+    }
+
+    const parsed = await this.createValidatedJsonMessage({
       system: SCENARIO_SYSTEM_PROMPT,
       user: prompt,
       maxTokens: 2_400,
-    });
-    const parsed = await parseAndValidateLlmResponse({
       kind: 'scenario-chat',
       schema: scenarioResponseSchema,
-      raw,
-      prompt,
       context: {
         scenarioId: input.scenarioId,
         userId: input.userId,
@@ -213,17 +223,55 @@ export class AnthropicLlmProvider implements LlmProvider {
       },
     });
 
-    return {
-      reply: parsed.reply,
-      suggestions: toSuggestionList(parsed.suggestions ?? []),
-      scenarioUpdate: parsed.scenarioUpdate as Partial<ScenarioData> | null,
-      proposedEntities: normalizeProposedEntities(
-        parsed.proposedEntities ?? [],
-        'CREATION',
-      ),
-      stepComplete: parsed.stepComplete,
-      nextStep: parsed.stepComplete ? expectedNextStep : null,
-    };
+    return buildScenarioResponse(parsed, expectedNextStep);
+  }
+
+  /**
+   * Variante streaming du tour de scénario : diffuse le texte de `reply` au
+   * fil de la génération. Renvoie la charge utile validée, ou `null` si le
+   * JSON final est invalide (l'appelant retombe alors sur le mode standard).
+   */
+  private async streamScenarioJson(input: {
+    prompt: string;
+    onReplyDelta: (replySoFar: string) => void;
+  }): Promise<ScenarioResponsePayload | null> {
+    try {
+      const stream = this.client.messages.stream({
+        model: env.ANTHROPIC_MODEL,
+        max_tokens: 2_400,
+        temperature: 0.4,
+        system: [
+          {
+            type: 'text',
+            text: SCENARIO_SYSTEM_PROMPT,
+            cache_control: { type: 'ephemeral' },
+          },
+        ],
+        messages: [{ role: 'user', content: input.prompt }],
+      });
+
+      let lastReply = '';
+
+      stream.on('text', (_delta, snapshot) => {
+        const reply = extractReplyValue(snapshot);
+
+        if (reply !== null && reply !== lastReply) {
+          lastReply = reply;
+          input.onReplyDelta(reply);
+        }
+      });
+
+      const finalMessage = await stream.finalMessage();
+      const text = finalMessage.content
+        .filter((block) => block.type === 'text')
+        .map((block) => block.text)
+        .join('\n')
+        .trim();
+
+      return scenarioResponseSchema.parse(parseJsonObject(text));
+    } catch {
+      return null;
+    }
   }
 
   async createActDetailTurn(
@@ -238,16 +286,12 @@ export class AnthropicLlmProvider implements LlmProvider {
     }
 
     const prompt = buildActDetailUserPrompt(input);
-    const raw = await this.createJsonMessage({
+    const parsed = await this.createValidatedJsonMessage({
       system: ACT_DETAIL_SYSTEM_PROMPT,
       user: prompt,
       maxTokens: 6_400,
-    });
-    const parsed = await parseAndValidateLlmResponse({
       kind: 'act-detail',
       schema: actDetailPatchResponseSchema,
-      raw,
-      prompt,
       context: {
         scenarioId: input.scenarioId,
         userId: input.userId,
@@ -288,16 +332,12 @@ export class AnthropicLlmProvider implements LlmProvider {
     input: SessionDebriefInput,
   ): Promise<SessionDebriefResponse> {
     const prompt = buildDebriefUserPrompt(input);
-    const raw = await this.createJsonMessage({
+    const parsed = await this.createValidatedJsonMessage({
       system: DEBRIEF_SYSTEM_PROMPT,
       user: prompt,
       maxTokens: 1_600,
-    });
-    const parsed = await parseAndValidateLlmResponse({
       kind: 'session-debrief',
       schema: debriefResponseSchema,
-      raw,
-      prompt,
       context: {
         scenarioId: input.scenarioId,
         userId: input.userId,
@@ -321,20 +361,23 @@ export class AnthropicLlmProvider implements LlmProvider {
 
   private async createJsonMessage(input: {
     system: string;
-    user: string;
+    messages: Anthropic.MessageParam[];
     maxTokens: number;
   }) {
     const message = await this.client.messages.create({
       model: env.ANTHROPIC_MODEL,
       max_tokens: input.maxTokens,
       temperature: 0.4,
-      system: input.system,
-      messages: [
+      // Le prompt système est volumineux et stable : on le met en cache
+      // Anthropic pour réduire latence et coût des tours successifs.
+      system: [
         {
-          role: 'user',
-          content: input.user,
+          type: 'text',
+          text: input.system,
+          cache_control: { type: 'ephemeral' },
         },
       ],
+      messages: input.messages,
     });
 
     const text = message.content
@@ -348,6 +391,75 @@ export class AnthropicLlmProvider implements LlmProvider {
     }
 
     return text;
+  }
+
+  /**
+   * Appelle le modèle et valide la réponse JSON contre un schéma. En cas de
+   * JSON malformé ou non conforme, réessaie en renvoyant au modèle sa réponse
+   * fautive avec une consigne de correction. N'écrit le log d'erreur qu'après
+   * l'échec de toutes les tentatives.
+   */
+  private async createValidatedJsonMessage<T>(input: {
+    system: string;
+    user: string;
+    maxTokens: number;
+    schema: z.ZodType<T>;
+    kind: 'scenario-chat' | 'act-detail' | 'session-debrief';
+    context: Record<string, unknown>;
+  }): Promise<T> {
+    const maxAttempts = 3;
+    let lastError: unknown;
+    let lastRaw = '';
+    let messages: Anthropic.MessageParam[] = [
+      { role: 'user', content: input.user },
+    ];
+
+    for (let attempt = 1; attempt <= maxAttempts; attempt += 1) {
+      let raw: string;
+
+      try {
+        raw = await this.createJsonMessage({
+          system: input.system,
+          messages,
+          maxTokens: input.maxTokens,
+        });
+      } catch (error) {
+        // Erreur réseau/API : on réessaie avec la même requête.
+        lastError = error;
+        continue;
+      }
+
+      lastRaw = raw;
+
+      try {
+        return input.schema.parse(parseJsonObject(raw));
+      } catch (error) {
+        lastError = error;
+        // On renvoie au modèle sa réponse fautive avec une consigne de
+        // correction pour le tour suivant.
+        messages = [
+          { role: 'user', content: input.user },
+          { role: 'assistant', content: raw },
+          {
+            role: 'user',
+            content:
+              "Ta réponse précédente n'était pas un objet JSON valide et conforme au schéma demandé. Renvoie uniquement un objet JSON valide, sans texte ni markdown autour.",
+          },
+        ];
+      }
+    }
+
+    await writeLlmErrorLog({
+      kind: input.kind,
+      provider: 'anthropic',
+      model: env.ANTHROPIC_MODEL,
+      error: lastError,
+      prompt: input.user,
+      rawResponse: lastRaw,
+      context: input.context,
+    });
+
+    throw lastError;
   }
 }
 
@@ -721,28 +833,130 @@ function parseJsonObject(text: string): unknown {
   }
 }
 
-async function parseAndValidateLlmResponse<T>(input: {
-  kind: 'scenario-chat' | 'act-detail' | 'session-debrief';
-  schema: z.ZodType<T>;
-  raw: string;
-  prompt: string;
-  context: Record<string, unknown>;
-}): Promise<T> {
-  try {
-    return input.schema.parse(parseJsonObject(input.raw));
-  } catch (error) {
-    await writeLlmErrorLog({
-      kind: input.kind,
-      provider: 'anthropic',
-      model: env.ANTHROPIC_MODEL,
-      error,
-      prompt: input.prompt,
-      rawResponse: input.raw,
-      context: input.context,
-    });
+type ScenarioResponsePayload = z.input<typeof scenarioResponseSchema>;
 
-    throw error;
+function buildScenarioResponse(
+  parsed: ScenarioResponsePayload,
+  expectedNextStep: ScenarioChatResponse['nextStep'],
+): ScenarioChatResponse {
+  return {
+    reply: parsed.reply,
+    suggestions: toSuggestionList(parsed.suggestions ?? []),
+    scenarioUpdate: parsed.scenarioUpdate as Partial<ScenarioData> | null,
+    proposedEntities: normalizeProposedEntities(
+      parsed.proposedEntities ?? [],
+      'CREATION',
+    ),
+    stepComplete: parsed.stepComplete,
+    nextStep: parsed.stepComplete ? expectedNextStep : null,
+  };
+}
+
+/**
+ * Extrait la valeur (potentiellement partielle) du champ `reply` d'un JSON en
+ * cours de génération, en décodant les échappements. Renvoie `null` tant que
+ * le champ n'a pas commencé. Robuste aux fins de chaîne incomplètes.
+ */
+function extractReplyValue(raw: string): string | null {
+  const keyIndex = raw.indexOf('"reply"');
+
+  if (keyIndex < 0) {
+    return null;
   }
+
+  let i = keyIndex + '"reply"'.length;
+
+  while (i < raw.length && raw[i] !== ':') {
+    i += 1;
+  }
+  if (i >= raw.length) {
+    return null;
+  }
+  i += 1;
+
+  while (i < raw.length && /\s/.test(raw[i] ?? '')) {
+    i += 1;
+  }
+  if (raw[i] !== '"') {
+    return null;
+  }
+  i += 1;
+
+  let result = '';
+
+  while (i < raw.length) {
+    const char = raw[i];
+
+    if (char === undefined) {
+      break;
+    }
+
+    if (char === '\\') {
+      const next = raw[i + 1];
+
+      if (next === undefined) {
+        break; // échappement incomplet en fin de flux
+      }
+
+      switch (next) {
+        case 'n':
+          result += '\n';
+          break;
+        case 't':
+          result += '\t';
+          break;
+        case 'r':
+          result += '\r';
+          break;
+        case 'b':
+          result += '\b';
+          break;
+        case 'f':
+          result += '\f';
+          break;
+        case '"':
+          result += '"';
+          break;
+        case '\\':
+          result += '\\';
+          break;
+        case '/':
+          result += '/';
+          break;
+        case 'u': {
+          const hex = raw.slice(i + 2, i + 6);
+
+          if (hex.length < 4) {
+            return result; // séquence unicode incomplète
+          }
+
+          const code = Number.parseInt(hex, 16);
+
+          if (Number.isNaN(code)) {
+            return result;
+          }
+
+          result += String.fromCharCode(code);
+          i += 6;
+          continue;
+        }
+        default:
+          result += next;
+      }
+
+      i += 2;
+      continue;
+    }
+
+    if (char === '"') {
+      return result; // guillemet fermant de la valeur
+    }
+
+    result += char;
+    i += 1;
+  }
+
+  return result;
 }
 
 function toSuggestionList(values: string[]): string[] {

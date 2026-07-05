@@ -169,6 +169,114 @@ export const api = {
     );
   },
 
+  /**
+   * Variante streaming du chat : `onDelta` reçoit le texte de Merlin au fil de
+   * sa génération ; la promesse se résout avec la réponse finale structurée.
+   */
+  async chatStream(
+    token: string,
+    scenarioId: string,
+    input: ScenarioChatRequest,
+    handlers: { onDelta: (reply: string) => void },
+  ): Promise<ScenarioChatResponse> {
+    const response = await fetch(
+      `${API_URL}/scenarios/${scenarioId}/chat/stream`,
+      {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify(input),
+      },
+    );
+
+    if (!response.ok || !response.body) {
+      let message = `Request failed with status ${response.status}.`;
+
+      try {
+        const payload = (await response.json()) as ApiErrorPayload;
+        if (payload?.message) {
+          message = payload.message;
+        }
+      } catch {
+        // corps non lisible : on garde le message par défaut
+      }
+
+      throw new ApiError(response.status, message);
+    }
+
+    const reader = response.body.getReader();
+    const decoder = new TextDecoder();
+    let buffer = '';
+    let finalResponse: ScenarioChatResponse | null = null;
+    let streamError: ApiErrorPayload | null = null;
+
+    const processEvent = (rawEvent: string) => {
+      let eventName = 'message';
+      const dataLines: string[] = [];
+
+      for (const line of rawEvent.split('\n')) {
+        if (line.startsWith('event:')) {
+          eventName = line.slice(6).trim();
+        } else if (line.startsWith('data:')) {
+          dataLines.push(line.slice(5).replace(/^ /, ''));
+        }
+      }
+
+      if (dataLines.length === 0) {
+        return;
+      }
+
+      const data = JSON.parse(dataLines.join('\n')) as unknown;
+
+      if (eventName === 'delta') {
+        handlers.onDelta((data as { reply: string }).reply);
+      } else if (eventName === 'done') {
+        finalResponse = data as ScenarioChatResponse;
+      } else if (eventName === 'error') {
+        streamError = data as ApiErrorPayload;
+      }
+    };
+
+    for (;;) {
+      const { done, value } = await reader.read();
+      if (done) {
+        break;
+      }
+
+      buffer += decoder.decode(value, { stream: true });
+
+      let separatorIndex = buffer.indexOf('\n\n');
+      while (separatorIndex >= 0) {
+        const rawEvent = buffer.slice(0, separatorIndex);
+        buffer = buffer.slice(separatorIndex + 2);
+        if (rawEvent.trim()) {
+          processEvent(rawEvent);
+        }
+        separatorIndex = buffer.indexOf('\n\n');
+      }
+    }
+
+    if (buffer.trim()) {
+      processEvent(buffer);
+    }
+
+    if (streamError) {
+      throw new ApiError(
+        502,
+        (streamError as ApiErrorPayload).message ??
+          'Merlin ne peut pas répondre pour le moment.',
+      );
+    }
+
+    if (!finalResponse) {
+      throw new ApiError(502, 'Réponse incomplète de Merlin.');
+    }
+
+    return finalResponse;
+  },
+
   chatActDetail(
     token: string,
     scenarioId: string,

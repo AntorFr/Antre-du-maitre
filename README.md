@@ -123,16 +123,35 @@ ANTHROPIC_MODEL=claude-3-5-sonnet-latest
 ```
 
 Le provider réel répond en JSON strict pour conserver la machine d'état du
-scénario côté backend.
+scénario côté backend. Le prompt système, volumineux et stable, est mis en
+cache Anthropic (`cache_control`) pour réduire la latence et le coût des tours
+successifs.
 
-Si le LLM renvoie un JSON mal formé ou un objet qui ne respecte pas le schéma,
-le backend écrit un log JSONL local avec le contexte, le prompt et la réponse
-brute :
+### Streaming des réponses
+
+La création de scénario expose une variante SSE `POST /api/scenarios/:id/chat/stream`
+qui diffuse le texte de Merlin au fil de sa génération, puis envoie la réponse
+finale structurée (`event: done`). L'endpoint `POST .../chat` classique reste
+disponible et sert de repli. Le provider mock streame aussi en développement.
+
+### Réessai sur JSON invalide
+
+Si le LLM renvoie un JSON mal formé ou non conforme au schéma, le backend
+réessaie (jusqu'à 3 tentatives) en renvoyant au modèle sa réponse fautive avec
+une consigne de correction. Le log d'erreur JSONL n'est écrit qu'après l'échec
+de toutes les tentatives, avec le contexte, le prompt et la réponse brute :
 
 - dev local : `logs/llm-errors/llm-errors-YYYY-MM-DD.jsonl`
 - Docker : `/data/logs/llm-errors-YYYY-MM-DD.jsonl`
 
 Ces fichiers sont ignorés par Git.
+
+## Saisie vocale
+
+Les zones de chat (création, détail d'acte, debrief) proposent une dictée via la
+Web Speech API du navigateur (Safari iPad). La reconnaissance est locale : aucun
+audio n'est envoyé au serveur. Le bouton micro se masque si le navigateur ne
+supporte pas la dictée.
 
 ## Bestiaire DRS
 

@@ -6,20 +6,83 @@ import { Create } from './pages/Create';
 import { Scenario } from './pages/Scenario';
 import { Todo } from './pages/Todo';
 import { Admin } from './pages/Admin';
+import { api } from './lib/api';
+import { buildPath, parseLocation, type Route } from './lib/router';
 import type { ScenarioSummary } from '@antre-du-maitre/shared';
-import type { AppView, HubSection, ScenarioTab } from './types/navigation';
-import { useState } from 'react';
+import type { HubSection, ScenarioTab } from './types/navigation';
+import { useCallback, useEffect, useState } from 'react';
 
 export function App() {
   const { session, isHydrating, login, logout } = useSession();
-  const [activeView, setActiveView] = useState<AppView>('hub');
-  const [hubSection, setHubSection] = useState<HubSection>('scenarios');
-  const [scenarioTab, setScenarioTab] = useState<ScenarioTab>('overview');
-  const [createStartsEmpty, setCreateStartsEmpty] = useState(false);
-  const [createScenarioId, setCreateScenarioId] = useState<string | null>(null);
+  const [route, setRoute] = useState<Route>(() =>
+    parseLocation(window.location.pathname),
+  );
   const [activeScenario, setActiveScenario] =
     useState<ScenarioSummary | null>(null);
   const [worldRefreshKey, setWorldRefreshKey] = useState(0);
+
+  // Navigation : on écrit dans l'historique du navigateur puis on met à jour
+  // l'état local. Le bouton précédent est géré par l'écouteur popstate.
+  const navigate = useCallback(
+    (next: Route, options?: { replace?: boolean }) => {
+      const path = buildPath(next);
+
+      if (path !== window.location.pathname) {
+        if (options?.replace) {
+          window.history.replaceState({}, '', path);
+        } else {
+          window.history.pushState({}, '', path);
+        }
+      }
+
+      setRoute(next);
+    },
+    [],
+  );
+
+  useEffect(() => {
+    const onPopState = () => setRoute(parseLocation(window.location.pathname));
+    window.addEventListener('popstate', onPopState);
+    return () => window.removeEventListener('popstate', onPopState);
+  }, []);
+
+  // Un accès direct à /admin sans droits repart vers le hub.
+  useEffect(() => {
+    if (session && route.view === 'admin' && session.user.role !== 'ADMIN') {
+      navigate({ view: 'hub', section: 'scenarios' }, { replace: true });
+    }
+  }, [session, route, navigate]);
+
+  // Sur accès direct ou rafraîchissement d'une route scénario, on ne dispose
+  // que de l'identifiant : on recharge le scénario complet.
+  useEffect(() => {
+    if (!session || route.view !== 'scenario') {
+      return;
+    }
+
+    if (activeScenario?.id === route.scenarioId) {
+      return;
+    }
+
+    let cancelled = false;
+
+    api
+      .getScenario(session.token, route.scenarioId)
+      .then(({ scenario }) => {
+        if (!cancelled) {
+          setActiveScenario(scenario);
+        }
+      })
+      .catch(() => {
+        if (!cancelled) {
+          navigate({ view: 'hub', section: 'scenarios' }, { replace: true });
+        }
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [session, route, activeScenario, navigate]);
 
   if (isHydrating) {
     return (
@@ -34,27 +97,20 @@ export function App() {
   }
 
   function openHub(section: HubSection = 'scenarios') {
-    setHubSection(section);
-    setActiveView('hub');
-  }
-
-  function openScenario(scenario: ScenarioSummary, tab: ScenarioTab = 'overview') {
-    setActiveScenario(scenario);
-    setScenarioTab(tab);
-    setActiveView('scenario');
-  }
-
-  function resumeScenarioWorkflow(scenario: ScenarioSummary) {
-    setActiveScenario(scenario);
-    setCreateStartsEmpty(false);
-    setCreateScenarioId(scenario.id);
-    setActiveView('create');
+    navigate({ view: 'hub', section });
   }
 
   function openScenarioTab(tab: ScenarioTab) {
-    setScenarioTab(tab);
-    setActiveView('scenario');
+    if (!activeScenario) {
+      return;
+    }
+
+    navigate({ view: 'scenario', scenarioId: activeScenario.id, tab });
   }
+
+  const scenarioTab: ScenarioTab =
+    route.view === 'scenario' ? route.tab : 'overview';
+  const hubSection = route.view === 'hub' ? route.section : 'scenarios';
 
   let content = (
     <Hub
@@ -63,82 +119,95 @@ export function App() {
       worldRefreshKey={worldRefreshKey}
       onCreateScenario={() => {
         setActiveScenario(null);
-        setCreateStartsEmpty(true);
-        setCreateScenarioId(null);
-        setActiveView('create');
+        navigate({ view: 'create', scenarioId: null });
       }}
       onOpenScenario={(scenario) => {
+        setActiveScenario(scenario);
+
         if (scenario.status === 'DRAFT') {
-          resumeScenarioWorkflow(scenario);
+          navigate({ view: 'create', scenarioId: scenario.id });
           return;
         }
 
-        openScenario(scenario);
+        navigate({ view: 'scenario', scenarioId: scenario.id, tab: 'overview' });
       }}
-      onSectionChange={setHubSection}
+      onSectionChange={(section) => navigate({ view: 'hub', section })}
     />
   );
 
-  if (activeView === 'create') {
+  if (route.view === 'create') {
     content = (
       <Create
         token={session.token}
-        initialScenarioId={createScenarioId}
-        startEmpty={createStartsEmpty}
+        initialScenarioId={route.scenarioId}
+        startEmpty={route.scenarioId === null}
         onScenarioChange={setActiveScenario}
         onOpenScenario={() => {
-          setCreateStartsEmpty(false);
-          setCreateScenarioId(null);
-          setScenarioTab('overview');
-          setActiveView('scenario');
+          if (activeScenario) {
+            navigate({
+              view: 'scenario',
+              scenarioId: activeScenario.id,
+              tab: 'overview',
+            });
+          }
         }}
         onWorldProposal={() => setWorldRefreshKey((current) => current + 1)}
         onScenarioComplete={() => {
-          setCreateStartsEmpty(false);
-          setCreateScenarioId(null);
-          setScenarioTab('overview');
-          setActiveView('scenario');
+          if (activeScenario) {
+            navigate({
+              view: 'scenario',
+              scenarioId: activeScenario.id,
+              tab: 'overview',
+            });
+          }
         }}
       />
     );
   }
 
-  if (activeView === 'scenario') {
+  if (route.view === 'scenario') {
     content =
-      scenarioTab === 'preparation' ? (
+      route.tab === 'preparation' ? (
         <Todo
           token={session.token}
           scenario={activeScenario}
-          onCreateScenario={() => {
-            setCreateStartsEmpty(false);
-            setCreateScenarioId(activeScenario?.id ?? null);
-            setActiveView('create');
-          }}
+          onCreateScenario={() =>
+            navigate({
+              view: 'create',
+              scenarioId: activeScenario?.id ?? null,
+            })
+          }
           onOpenScenario={() => openScenarioTab('overview')}
         />
       ) : (
         <Scenario
           token={session.token}
           scenario={activeScenario}
-          initialPanel={scenarioTab === 'sessions' ? 'sessions' : 'run'}
-          onCreateScenario={() => {
-            setCreateStartsEmpty(false);
-            setCreateScenarioId(activeScenario?.id ?? null);
-            setActiveView('create');
-          }}
+          initialPanel={route.tab === 'sessions' ? 'sessions' : 'run'}
+          onCreateScenario={() =>
+            navigate({
+              view: 'create',
+              scenarioId: activeScenario?.id ?? null,
+            })
+          }
           onScenarioChange={setActiveScenario}
           onWorldProposal={() => setWorldRefreshKey((current) => current + 1)}
         />
       );
   }
 
-  if (activeView === 'admin' && session.user.role === 'ADMIN') {
+  if (route.view === 'admin' && session.user.role === 'ADMIN') {
     content = (
       <Admin
         token={session.token}
         currentUserId={session.user.id}
         onOpenScenario={(scenario) => {
-          openScenario(scenario);
+          setActiveScenario(scenario);
+          navigate({
+            view: 'scenario',
+            scenarioId: scenario.id,
+            tab: 'overview',
+          });
         }}
       />
     );
@@ -147,13 +216,16 @@ export function App() {
   return (
     <AppShell
       user={session.user}
-      activeView={activeView}
+      activeView={route.view}
       scenario={activeScenario}
       scenarioTab={scenarioTab}
-      onOpenAdmin={() => setActiveView('admin')}
+      onOpenAdmin={() => navigate({ view: 'admin' })}
       onOpenHub={() => openHub()}
       onNavigateScenarioTab={openScenarioTab}
-      onLogout={logout}
+      onLogout={() => {
+        logout();
+        navigate({ view: 'hub', section: 'scenarios' }, { replace: true });
+      }}
     >
       {content}
     </AppShell>

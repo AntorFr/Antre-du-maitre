@@ -4,6 +4,7 @@ import type { ReactNode } from 'react';
 
 import { FormattedText } from '../components/FormattedText';
 import { Icon, type IconName } from '../components/Icon';
+import { MicButton } from '../components/MicButton';
 import { api, ApiError } from '../lib/api';
 
 type ScenarioProps = {
@@ -1442,14 +1443,12 @@ function ActWorkflowPanel({
             onAdvance(selectedAct.numero, undefined, viewedStep);
           }}
         >
-          <button
-            className="flex min-h-11 w-11 shrink-0 items-center justify-center rounded-lg border border-black/15 bg-[#f5f5f3] text-slate-500 transition hover:bg-white hover:text-wizard-700 disabled:opacity-50"
+          <MicButton
             disabled={busy || detail.status === 'VALIDATED'}
-            title="Répondre au micro"
-            type="button"
-          >
-            <Icon name="mic" className="h-4 w-4" />
-          </button>
+            onTranscript={(transcript) =>
+              onInputChange(selectedAct.numero, transcript)
+            }
+          />
           <input
             className="min-h-11 min-w-0 flex-1 rounded-lg border border-black/15 bg-[#f5f5f3] px-4 text-[13px] outline-none ring-wizard-300 transition focus:ring-4"
             disabled={busy || detail.status === 'VALIDATED'}
@@ -2218,13 +2217,20 @@ function SessionDebriefCard({
         value={input}
         onChange={(event) => onInputChange(event.target.value)}
       />
-      <button
-        className="mt-2 rounded-full bg-wizard-600 px-3 py-1.5 text-[12px] font-medium text-white disabled:opacity-60"
-        disabled={busy || !input.trim()}
-        onClick={onSubmitDebrief}
-      >
-        Envoyer le debrief
-      </button>
+      <div className="mt-2 flex items-center gap-2">
+        <MicButton
+          className="flex min-h-9 w-9 shrink-0 items-center justify-center rounded-full border border-black/15 bg-[#f5f5f3] text-slate-500 transition hover:bg-white hover:text-wizard-700 disabled:opacity-50"
+          disabled={busy}
+          onTranscript={(transcript) => onInputChange(transcript)}
+        />
+        <button
+          className="rounded-full bg-wizard-600 px-3 py-1.5 text-[12px] font-medium text-white disabled:opacity-60"
+          disabled={busy || !input.trim()}
+          onClick={onSubmitDebrief}
+        >
+          Envoyer le debrief
+        </button>
+      </div>
 
       {reply ? (
         <div className="mt-3 rounded-lg bg-wizard-100 px-3 py-2 text-[11px] leading-5 text-wizard-700">

@@ -17,6 +17,16 @@ export class MockLlmProvider implements LlmProvider {
   async createScenarioTurn(
     input: ScenarioChatInput,
   ): Promise<ScenarioChatResponse> {
+    const response = this.buildScenarioTurn(input);
+
+    if (input.onReplyDelta) {
+      await streamReplyText(response.reply, input.onReplyDelta);
+    }
+
+    return response;
+  }
+
+  private buildScenarioTurn(input: ScenarioChatInput): ScenarioChatResponse {
     const currentStep = input.scenario.currentStep;
     const nextStep = getNextScenarioStep(currentStep);
     const trimmedMessage = input.message.trim();
@@ -320,5 +330,23 @@ export class MockLlmProvider implements LlmProvider {
       ],
       debriefComplete: true,
     };
+  }
+}
+
+/**
+ * Simule une génération progressive en diffusant le texte mot à mot, pour
+ * reproduire le ressenti du streaming en développement (provider mock).
+ */
+async function streamReplyText(
+  reply: string,
+  onReplyDelta: (replySoFar: string) => void,
+) {
+  const words = reply.split(/(\s+)/);
+  let accumulated = '';
+
+  for (const word of words) {
+    accumulated += word;
+    onReplyDelta(accumulated);
+    await new Promise((resolve) => setTimeout(resolve, 18));
   }
 }

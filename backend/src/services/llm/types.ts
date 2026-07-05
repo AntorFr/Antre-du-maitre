@@ -15,6 +15,12 @@ export interface ScenarioChatInput {
   scenario: ScenarioData;
   worldSummary: string;
   monsterCatalog: MonsterSummary[];
+  /**
+   * Si fourni, le provider diffuse le texte de `reply` au fil de sa
+   * génération (texte accumulé à chaque appel). La réponse finale reste
+   * validée et retournée normalement.
+   */
+  onReplyDelta?: (replySoFar: string) => void;
 }
 
 export interface SessionDebriefInput {

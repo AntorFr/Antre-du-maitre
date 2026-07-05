@@ -21,6 +21,7 @@ export type IconName =
   | 'skull'
   | 'spark'
   | 'star'
+  | 'stop'
   | 'todo'
   | 'user'
   | 'users'
@@ -110,6 +111,7 @@ const ICONS: Record<IconName, ReactNode> = {
       <path d="M8.5 21h7" />
     </>
   ),
+  stop: <rect x="6" y="6" width="12" height="12" rx="2" />,
   monster: (
     <>
       <path d="M7 9V6.5A2.5 2.5 0 0 1 9.5 4h5A2.5 2.5 0 0 1 17 6.5V9" />

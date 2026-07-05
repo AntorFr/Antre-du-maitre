@@ -1,11 +1,12 @@
 import type {
   ScenarioChatHistoryEntry,
+  ScenarioChatResponse,
   ScenarioData,
   ScenarioStep,
 } from '@antre-du-maitre/shared';
 import { Prisma } from '@prisma/client';
 import { z } from 'zod';
-import type { FastifyInstance } from 'fastify';
+import type { FastifyInstance, FastifyRequest } from 'fastify';
 
 import {
   canTransitionToScenarioStep,
@@ -18,6 +19,7 @@ import {
 } from '../middleware/auth.js';
 import { ensureActDetails } from '../services/act-details.js';
 import { createLlmProvider } from '../services/llm/index.js';
+import type { LlmProvider } from '../services/llm/types.js';
 import { searchMonsters } from '../services/monsters.js';
 import { generateMockTodoItems } from '../services/todo.js';
 import { buildWorldSummary } from '../services/world-summary.js';
@@ -33,6 +35,10 @@ function readChatHistory(value: Prisma.JsonValue): ScenarioChatHistoryEntry[] {
     : [];
 }
 
+type ScenarioChatResult =
+  | { kind: 'ok'; response: ScenarioChatResponse }
+  | { kind: 'error'; status: number; body: unknown };
+
 export async function registerChatRoutes(app: FastifyInstance) {
   const llmProvider = createLlmProvider();
 
@@ -42,14 +48,82 @@ export async function registerChatRoutes(app: FastifyInstance) {
       preHandler: authenticate,
     },
     async (request, reply) => {
-      const { id } = request.params as { id: string };
-      const parsed = chatRequestSchema.safeParse(request.body);
+      const result = await runScenarioChat(llmProvider, request);
+
+      if (result.kind === 'error') {
+        return reply.code(result.status).send(result.body);
+      }
+
+      return result.response;
+    },
+  );
+
+  // Variante SSE : diffuse le texte de Merlin au fil de l'eau, puis envoie la
+  // réponse finale structurée. La persistance est identique au POST classique.
+  app.post(
+    '/api/scenarios/:id/chat/stream',
+    {
+      preHandler: authenticate,
+    },
+    async (request, reply) => {
+      reply.hijack();
+      const raw = reply.raw;
+
+      raw.writeHead(200, {
+        'Content-Type': 'text/event-stream; charset=utf-8',
+        'Cache-Control': 'no-cache, no-transform',
+        Connection: 'keep-alive',
+        'X-Accel-Buffering': 'no',
+        // CORS : on reflète l'origine car le hijack court-circuite le plugin.
+        'Access-Control-Allow-Origin': request.headers.origin ?? '*',
+        Vary: 'Origin',
+      });
+
+      const send = (event: string, data: unknown) => {
+        raw.write(`event: ${event}\ndata: ${JSON.stringify(data)}\n\n`);
+      };
+
+      try {
+        const result = await runScenarioChat(
+          llmProvider,
+          request,
+          (replySoFar) => send('delta', { reply: replySoFar }),
+        );
+
+        if (result.kind === 'error') {
+          send('error', result.body);
+        } else {
+          send('done', result.response);
+        }
+      } catch (error) {
+        request.log.error(error);
+        send('error', {
+          message: 'Merlin ne peut pas répondre pour le moment.',
+        });
+      } finally {
+        raw.end();
+      }
+    },
+  );
+}
+
+async function runScenarioChat(
+  llmProvider: LlmProvider,
+  request: FastifyRequest,
+  onReplyDelta?: (replySoFar: string) => void,
+): Promise<ScenarioChatResult> {
+  const { id } = request.params as { id: string };
+  const parsed = chatRequestSchema.safeParse(request.body);
 
       if (!parsed.success) {
-        return reply.code(400).send({
-          message: 'Invalid chat payload.',
-          issues: parsed.error.issues,
-        });
+        return {
+          kind: 'error',
+          status: 400,
+          body: {
+            message: 'Invalid chat payload.',
+            issues: parsed.error.issues,
+          },
+        };
       }
 
       const scenario = await prisma.scenario.findUnique({
@@ -59,15 +133,19 @@ export async function registerChatRoutes(app: FastifyInstance) {
       });
 
       if (!scenario) {
-        return reply.code(404).send({
-          message: 'Scenario not found.',
-        });
+        return {
+          kind: 'error',
+          status: 404,
+          body: { message: 'Scenario not found.' },
+        };
       }
 
       if (!canAccessOwnedResource(request.user, scenario.userId)) {
-        return reply.code(403).send({
-          message: 'You cannot access this scenario.',
-        });
+        return {
+          kind: 'error',
+          status: 403,
+          body: { message: 'You cannot access this scenario.' },
+        };
       }
 
       const world = await prisma.world.findUnique({
@@ -80,9 +158,11 @@ export async function registerChatRoutes(app: FastifyInstance) {
       });
 
       if (!world) {
-        return reply.code(409).send({
-          message: 'Scenario owner has no world.',
-        });
+        return {
+          kind: 'error',
+          status: 409,
+          body: { message: 'Scenario owner has no world.' },
+        };
       }
 
       const currentData = normalizeScenarioData(scenario.data);
@@ -156,12 +236,15 @@ export async function registerChatRoutes(app: FastifyInstance) {
         });
 
         return {
-          reply: responseReply,
-          suggestions: ['Voir la fiche', 'Préparer la partie'],
-          scenarioUpdate: null,
-          proposedEntities: [],
-          stepComplete: true,
-          nextStep: null,
+          kind: 'ok',
+          response: {
+            reply: responseReply,
+            suggestions: ['Voir la fiche', 'Préparer la partie'],
+            scenarioUpdate: null,
+            proposedEntities: [],
+            stepComplete: true,
+            nextStep: null,
+          },
         };
       }
 
@@ -177,6 +260,7 @@ export async function registerChatRoutes(app: FastifyInstance) {
         scenario: currentData,
         worldSummary: buildWorldSummary(world.entities),
         monsterCatalog,
+        onReplyDelta,
       });
 
       if (
@@ -192,9 +276,11 @@ export async function registerChatRoutes(app: FastifyInstance) {
           'Rejected invalid LLM step transition.',
         );
 
-        return reply.code(502).send({
-          message: 'Invalid step transition returned by LLM.',
-        });
+        return {
+          kind: 'error',
+          status: 502,
+          body: { message: 'Invalid step transition returned by LLM.' },
+        };
       }
 
       const nextData: ScenarioData = normalizeScenarioData({
@@ -310,14 +396,15 @@ export async function registerChatRoutes(app: FastifyInstance) {
       };
 
       return {
-        ...response,
-        reply: responseReply,
-        suggestions: responseSuggestions,
-        scenarioUpdate:
-          Object.keys(scenarioPatch).length > 0 ? scenarioPatch : null,
+        kind: 'ok',
+        response: {
+          ...response,
+          reply: responseReply,
+          suggestions: responseSuggestions,
+          scenarioUpdate:
+            Object.keys(scenarioPatch).length > 0 ? scenarioPatch : null,
+        },
       };
-    },
-  );
 }
 
 function isScenarioValidationMessage(message: string) {

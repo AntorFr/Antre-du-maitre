@@ -9,6 +9,7 @@ import { useEffect, useRef, useState } from 'react';
 
 import { FormattedText } from '../components/FormattedText';
 import { Icon, type IconName } from '../components/Icon';
+import { MicButton } from '../components/MicButton';
 import { api, ApiError } from '../lib/api';
 import { ProgressSteps } from '../components/ProgressSteps';
 
@@ -64,6 +65,9 @@ export function Create({
     },
   ]);
   const [input, setInput] = useState('');
+  // Mémorise si la saisie courante provient de la dictée vocale, pour le
+  // signaler au backend lors de l'envoi.
+  const voiceUsedRef = useRef(false);
   const [suggestions, setSuggestions] = useState(DEFAULT_SUGGESTIONS);
   const [isLoading, setIsLoading] = useState(true);
   const [isCreating, setIsCreating] = useState(false);
@@ -222,30 +226,51 @@ export function Create({
     }
   }
 
-  async function sendMessage(message: string) {
+  async function sendMessage(message: string, viaVoice = false) {
     if (!activeScenario || isSending || !message.trim()) {
       return;
     }
 
     setError(null);
     setIsSending(true);
+    // On ajoute le message utilisateur et un message assistant vide qui se
+    // remplira au fil du streaming.
     setMessages((current) => [
       ...current,
       {
         role: 'user',
         content: message.trim(),
       },
+      {
+        role: 'assistant',
+        content: '',
+      },
     ]);
     setInput('');
+    voiceUsedRef.current = false;
 
     try {
-      const response = await api.chat(token, activeScenario.id, {
-        message: message.trim(),
-        voiceInput: false,
-      });
+      const response = await api.chatStream(
+        token,
+        activeScenario.id,
+        {
+          message: message.trim(),
+          voiceInput: viaVoice,
+        },
+        {
+          onDelta: (reply) => updateStreamingAssistantMessage(reply),
+        },
+      );
 
       await applyChatResponse(response);
     } catch (caughtError) {
+      // On retire le message assistant resté vide avant d'afficher l'erreur.
+      setMessages((current) => {
+        const last = current[current.length - 1];
+        return last && last.role === 'assistant' && !last.content
+          ? current.slice(0, -1)
+          : current;
+      });
       setError(
         caughtError instanceof ApiError
           ? caughtError.message
@@ -254,6 +279,21 @@ export function Create({
     } finally {
       setIsSending(false);
     }
+  }
+
+  function updateStreamingAssistantMessage(content: string) {
+    setMessages((current) => {
+      const lastIndex = current.length - 1;
+      const last = current[lastIndex];
+
+      if (!last || last.role !== 'assistant') {
+        return current;
+      }
+
+      const next = [...current];
+      next[lastIndex] = { role: 'assistant', content };
+      return next;
+    });
   }
 
   async function applyChatResponse(response: ScenarioChatResponse) {
@@ -265,13 +305,24 @@ export function Create({
 
     setActiveScenario(scenario);
     onScenarioChange(scenario);
-    setMessages((current) => [
-      ...current,
-      {
-        role: 'assistant',
+    // La réponse finale (parfois enrichie côté serveur) remplace le texte
+    // diffusé en streaming.
+    setMessages((current) => {
+      const lastIndex = current.length - 1;
+      const last = current[lastIndex];
+      const finalMessage = {
+        role: 'assistant' as const,
         content: response.reply,
-      },
-    ]);
+      };
+
+      if (last && last.role === 'assistant') {
+        const next = [...current];
+        next[lastIndex] = finalMessage;
+        return next;
+      }
+
+      return [...current, finalMessage];
+    });
     setSuggestions(response.suggestions);
 
     if (response.proposedEntities.length > 0) {
@@ -381,17 +432,16 @@ export function Create({
             className="flex min-w-0 flex-1 gap-2"
             onSubmit={(event) => {
               event.preventDefault();
-              void sendMessage(input);
+              void sendMessage(input, voiceUsedRef.current);
             }}
           >
-            <button
-              className="flex min-h-11 w-11 shrink-0 items-center justify-center rounded-lg border border-black/15 bg-[#f5f5f3] text-slate-500 transition hover:bg-white hover:text-wizard-700 disabled:opacity-50"
+            <MicButton
               disabled={isMerlinWorking}
-              title="Répondre au micro"
-              type="button"
-            >
-              <Icon name="mic" className="h-4 w-4" />
-            </button>
+              onTranscript={(transcript) => {
+                voiceUsedRef.current = true;
+                setInput(transcript);
+              }}
+            />
             <input
               className="min-h-11 min-w-0 flex-1 rounded-lg border border-black/15 bg-[#f5f5f3] px-4 text-[13px] outline-none ring-wizard-300 transition focus:ring-4"
               disabled={isMerlinWorking}
@@ -401,7 +451,10 @@ export function Create({
                   : 'Écris une réponse à Merlin…'
               }
               value={input}
-              onChange={(event) => setInput(event.target.value)}
+              onChange={(event) => {
+                voiceUsedRef.current = false;
+                setInput(event.target.value);
+              }}
             />
             <button
               className="min-h-11 rounded-lg bg-wizard-600 px-5 text-[13px] font-medium text-white transition hover:bg-wizard-700 disabled:opacity-60"
