@@ -45,8 +45,18 @@ COPY --from=build /app/packages/shared/dist ./packages/shared/dist
 COPY --from=build /app/packages/shared/package.json ./packages/shared/package.json
 COPY scripts/docker-entrypoint.sh ./scripts/docker-entrypoint.sh
 
-RUN chmod +x ./scripts/docker-entrypoint.sh
+# Run as the non-root "node" user (uid 1000) shipped by the base image.
+# /data is a mounted volume: its host directory must be writable by uid 1000
+# (see the cluster manifest for the hostPath ownership note).
+RUN chmod +x ./scripts/docker-entrypoint.sh \
+  && mkdir -p /data \
+  && chown -R node:node /data /app
+
+USER node
 
 EXPOSE 3001
+
+HEALTHCHECK --interval=30s --timeout=5s --start-period=20s --retries=3 \
+  CMD node -e "fetch('http://127.0.0.1:'+(process.env.PORT||3001)+'/api/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"
 
 CMD ["./scripts/docker-entrypoint.sh"]

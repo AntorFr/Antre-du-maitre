@@ -1,0 +1,77 @@
+name: docker-publish
+
+on:
+  push:
+    branches: [main]        # → tag :main (dev image)
+    tags: ['v*']            # → SemVer tags :X.Y.Z :X.Y :X
+  release:
+    types: [published]      # → also tag :latest
+  pull_request:
+    branches: [main]        # validation build, no push
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  packages: write
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_NAME: ${{ github.repository }}   # metadata-action lowercases it
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+      - run: npm ci
+      - run: npm run db:generate
+      - run: npm run typecheck
+
+  build:
+    needs: test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: docker/setup-qemu-action@v3      # multi-arch
+      - uses: docker/setup-buildx-action@v3
+
+      - name: Login GHCR
+        if: github.event_name != 'pull_request'
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Docker metadata
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
+          tags: |
+            type=ref,event=branch                       # :main
+            type=semver,pattern={{version}}             # :X.Y.Z
+            type=semver,pattern={{major}}.{{minor}}     # :X.Y
+            type=semver,pattern={{major}}               # :X
+            type=raw,value=latest,enable=${{ github.event_name == 'release' }}
+            type=sha,prefix=sha-                        # :sha-abc1234
+
+      - name: Build & push
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          # Multi-arch only on a clean stable tag (vX.Y.Z without suffix);
+          # main / pre-releases stay amd64-only for fast builds.
+          platforms: >-
+            ${{ (startsWith(github.ref, 'refs/tags/v') && !contains(github.ref, '-'))
+                && 'linux/amd64,linux/arm64' || 'linux/amd64' }}
+          push: ${{ github.event_name != 'pull_request' }}
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
