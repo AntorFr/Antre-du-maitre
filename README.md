@@ -117,7 +117,7 @@ Deux modes coexistent :
   se connecte via Authelia. L'app est cliente OIDC (Authorization Code + PKCE) :
 
   ```env
-  OIDC_ISSUER=https://auth.homenode.berard.me
+  OIDC_ISSUER=https://auth.berard.me
   OIDC_CLIENT_ID=merlin
   OIDC_CLIENT_SECRET=...
   OIDC_REDIRECT_URI=https://merlin.berard.me/api/auth/oidc/callback
