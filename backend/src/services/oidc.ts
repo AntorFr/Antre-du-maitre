@@ -47,8 +47,15 @@ let cachedConfiguration: Promise<oidc.Configuration> | null = null;
 
 export function getOidcConfiguration(settings: OidcSettings) {
   if (!cachedConfiguration) {
+    // client_secret_basic explicite : openid-client v6 utilise
+    // client_secret_post par défaut, qu'Authelia refuse (son défaut est basic).
     cachedConfiguration = oidc
-      .discovery(new URL(settings.issuer), settings.clientId, settings.clientSecret)
+      .discovery(
+        new URL(settings.issuer),
+        settings.clientId,
+        undefined,
+        oidc.ClientSecretBasic(settings.clientSecret),
+      )
       .catch((error: unknown) => {
         cachedConfiguration = null;
         throw error;

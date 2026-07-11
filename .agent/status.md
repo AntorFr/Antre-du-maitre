@@ -9,8 +9,8 @@ pour le dev.
 
 **Prochaines étapes :**
 
-- [ ] Tester le login OIDC dans un vrai navigateur (bouton Authelia → retour
-      connecté en ADMIN pour un membre de `parents`)
+- [ ] Tester le login OIDC dans un vrai navigateur (v0.2.1 : fix
+      client_secret_basic + SSO seul chemin visible, login local en dépannage)
 - [ ] Créer les comptes Authelia des autres membres de la famille (enfant +
       parent 2) — hashes à générer, pas encore dans `authelia-users`
 - [ ] Envisager la suppression des comptes locaux `DEV_*` en prod une fois le

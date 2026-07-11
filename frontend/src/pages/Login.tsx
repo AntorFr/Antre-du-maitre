@@ -27,12 +27,11 @@ export function Login({ onLogin }: LoginProps) {
   const [username, setUsername] = useState('merlin');
   const [password, setPassword] = useState('merlin12345');
   const [error, setError] = useState<string | null>(() =>
-    consumeOidcError()
-      ? 'La connexion via Authelia a échoué. Réessaie ou utilise le mot de passe.'
-      : null,
+    consumeOidcError() ? 'La connexion a échoué. Réessaie.' : null,
   );
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [oidcEnabled, setOidcEnabled] = useState(false);
+  const [showLocalLogin, setShowLocalLogin] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -138,44 +137,15 @@ export function Login({ onLogin }: LoginProps) {
               </p>
 
               {oidcEnabled ? (
-                <>
-                  <button
-                    type="button"
-                    className="mt-6 flex h-11 w-full items-center justify-center gap-2 rounded-lg bg-wizard-900 px-4 text-[13px] font-medium text-white transition hover:bg-wizard-950"
-                    onClick={() => window.location.assign(OIDC_LOGIN_URL)}
-                  >
-                    <Icon name="magic" className="h-4 w-4" />
-                    Se connecter avec Authelia
-                  </button>
-
-                  <div className="mt-5 flex items-center gap-3 text-[11px] uppercase tracking-[0.18em] text-slate-400">
-                    <span className="h-px flex-1 bg-black/10" />
-                    ou mot de passe
-                    <span className="h-px flex-1 bg-black/10" />
-                  </div>
-                </>
+                <button
+                  type="button"
+                  className="mt-6 flex h-12 w-full items-center justify-center gap-2 rounded-lg bg-wizard-600 px-4 text-[14px] font-medium text-white transition hover:bg-wizard-700"
+                  onClick={() => window.location.assign(OIDC_LOGIN_URL)}
+                >
+                  <Icon name="magic" className="h-4 w-4" />
+                  Se connecter
+                </button>
               ) : null}
-
-              <label className="mt-6 block text-[13px] font-medium text-slate-700">
-                Nom d'utilisateur
-                <input
-                  className="mt-2 h-11 w-full rounded-lg border border-black/10 bg-white px-4 text-[14px] outline-none ring-wizard-300 transition focus:ring-4"
-                  autoComplete="username"
-                  value={username}
-                  onChange={(event) => setUsername(event.target.value)}
-                />
-              </label>
-
-              <label className="mt-4 block text-[13px] font-medium text-slate-700">
-                Mot de passe
-                <input
-                  className="mt-2 h-11 w-full rounded-lg border border-black/10 bg-white px-4 text-[14px] outline-none ring-wizard-300 transition focus:ring-4"
-                  autoComplete="current-password"
-                  type="password"
-                  value={password}
-                  onChange={(event) => setPassword(event.target.value)}
-                />
-              </label>
 
               {error ? (
                 <p className="mt-4 rounded-lg bg-rose-50 px-4 py-3 text-[13px] text-rose-700">
@@ -183,14 +153,39 @@ export function Login({ onLogin }: LoginProps) {
                 </p>
               ) : null}
 
-              <button
-                className="mt-5 h-11 w-full rounded-lg bg-wizard-600 px-4 text-[13px] font-medium text-white transition hover:bg-wizard-700 disabled:cursor-not-allowed disabled:opacity-60"
-                disabled={isSubmitting}
-              >
-                {isSubmitting ? 'Connexion…' : 'Se connecter'}
-              </button>
+              {!oidcEnabled || showLocalLogin ? (
+                <>
+                  <label className="mt-6 block text-[13px] font-medium text-slate-700">
+                    Nom d'utilisateur
+                    <input
+                      className="mt-2 h-11 w-full rounded-lg border border-black/10 bg-white px-4 text-[14px] outline-none ring-wizard-300 transition focus:ring-4"
+                      autoComplete="username"
+                      value={username}
+                      onChange={(event) => setUsername(event.target.value)}
+                    />
+                  </label>
 
-              {oidcEnabled ? null : (
+                  <label className="mt-4 block text-[13px] font-medium text-slate-700">
+                    Mot de passe
+                    <input
+                      className="mt-2 h-11 w-full rounded-lg border border-black/10 bg-white px-4 text-[14px] outline-none ring-wizard-300 transition focus:ring-4"
+                      autoComplete="current-password"
+                      type="password"
+                      value={password}
+                      onChange={(event) => setPassword(event.target.value)}
+                    />
+                  </label>
+
+                  <button
+                    className="mt-5 h-11 w-full rounded-lg bg-wizard-600 px-4 text-[13px] font-medium text-white transition hover:bg-wizard-700 disabled:cursor-not-allowed disabled:opacity-60"
+                    disabled={isSubmitting}
+                  >
+                    {isSubmitting ? 'Connexion…' : 'Se connecter'}
+                  </button>
+                </>
+              ) : null}
+
+              {!oidcEnabled ? (
                 <div className="mt-4 rounded-lg bg-white px-4 py-3 text-[12px] leading-5 text-slate-500 ring-1 ring-black/10">
                   Dev :{' '}
                   <span className="font-medium text-slate-700">merlin</span> /{' '}
@@ -204,6 +199,17 @@ export function Login({ onLogin }: LoginProps) {
                     admin12345
                   </span>
                 </div>
+              ) : (
+                // Login local relégué en mode dépannage : lien discret, formulaire replié.
+                <button
+                  type="button"
+                  className="mt-5 block w-full text-center text-[11px] text-slate-400 underline-offset-2 hover:underline"
+                  onClick={() => setShowLocalLogin((value) => !value)}
+                >
+                  {showLocalLogin
+                    ? 'Masquer la connexion locale'
+                    : 'Connexion locale (dépannage)'}
+                </button>
               )}
             </form>
           </section>

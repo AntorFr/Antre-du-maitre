@@ -128,8 +128,11 @@ Deux modes coexistent :
   callback, l'utilisateur est provisionné automatiquement (username =
   `preferred_username`) et son rôle est resynchronisé à chaque login depuis
   les groupes Authelia : membre de `OIDC_ADMIN_GROUP` → `ADMIN`, sinon
-  `CHILD`. La session émise est le même JWT que le login local, qui reste
-  disponible en secours sur la page de connexion.
+  `CHILD`. La session émise est le même JWT que le login local.
+
+  Quand le SSO est actif, la page de connexion n'affiche qu'un bouton
+  « Se connecter » (sans jargon) ; le login local reste accessible en
+  dépannage derrière un lien discret.
 
 ## LLM
 
