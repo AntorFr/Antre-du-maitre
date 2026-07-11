@@ -1,3 +1,5 @@
+import { randomBytes } from 'node:crypto';
+
 import bcrypt from 'bcrypt';
 import type { Role } from '@prisma/client';
 
@@ -36,6 +38,54 @@ export async function createUserWithWorld(input: {
         },
       },
     },
+  });
+}
+
+/**
+ * Provisionne / met à jour un utilisateur authentifié via OIDC (Authelia).
+ * Le rôle est re-synchronisé à chaque login ; le mot de passe local ne sert
+ * jamais pour ces comptes -> valeur aléatoire jetée après hachage.
+ */
+export async function upsertOidcUser(input: { username: string; role: Role }) {
+  const existing = await prisma.user.findUnique({
+    where: {
+      username: input.username,
+    },
+    include: {
+      world: {
+        select: {
+          id: true,
+        },
+      },
+    },
+  });
+
+  if (existing) {
+    if (existing.role === input.role) {
+      return existing;
+    }
+
+    return prisma.user.update({
+      where: {
+        id: existing.id,
+      },
+      data: {
+        role: input.role,
+      },
+      include: {
+        world: {
+          select: {
+            id: true,
+          },
+        },
+      },
+    });
+  }
+
+  return createUserWithWorld({
+    username: input.username,
+    password: randomBytes(32).toString('hex'),
+    role: input.role,
   });
 }
 

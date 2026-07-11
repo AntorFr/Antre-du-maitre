@@ -109,12 +109,20 @@ async function requestBlob(
   return response.blob();
 }
 
+// URL de redirection vers le login SSO (Authelia) : navigation plein écran,
+// pas un appel fetch.
+export const OIDC_LOGIN_URL = `${API_URL}/auth/oidc/login`;
+
 export const api = {
   login(input: LoginRequest) {
     return request<LoginResponse>('/auth/login', {
       method: 'POST',
       body: JSON.stringify(input),
     });
+  },
+
+  authConfig() {
+    return request<{ oidcEnabled: boolean }>('/auth/config');
   },
 
   me(token: string) {

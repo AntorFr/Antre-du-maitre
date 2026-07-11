@@ -1,18 +1,57 @@
 import type { FormEvent } from 'react';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 
 import { Icon, type IconName } from '../components/Icon';
-import { ApiError } from '../lib/api';
+import { api, ApiError, OIDC_LOGIN_URL } from '../lib/api';
 
 type LoginProps = {
   onLogin: (input: { username: string; password: string }) => Promise<void>;
 };
 
+/** Signale un échec du login SSO (/#oidc-error=1) et nettoie l'URL. */
+function consumeOidcError(): boolean {
+  if (!window.location.hash.startsWith('#oidc-error=')) {
+    return false;
+  }
+
+  window.history.replaceState(
+    null,
+    '',
+    window.location.pathname + window.location.search,
+  );
+
+  return true;
+}
+
 export function Login({ onLogin }: LoginProps) {
   const [username, setUsername] = useState('merlin');
   const [password, setPassword] = useState('merlin12345');
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(() =>
+    consumeOidcError()
+      ? 'La connexion via Authelia a échoué. Réessaie ou utilise le mot de passe.'
+      : null,
+  );
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [oidcEnabled, setOidcEnabled] = useState(false);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    api
+      .authConfig()
+      .then(({ oidcEnabled: enabled }) => {
+        if (!cancelled) {
+          setOidcEnabled(enabled);
+        }
+      })
+      .catch(() => {
+        // Config indisponible -> on reste sur le login local.
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -98,6 +137,25 @@ export function Login({ onLogin }: LoginProps) {
                 suivre et modifier tous les mondes.
               </p>
 
+              {oidcEnabled ? (
+                <>
+                  <button
+                    type="button"
+                    className="mt-6 flex h-11 w-full items-center justify-center gap-2 rounded-lg bg-wizard-900 px-4 text-[13px] font-medium text-white transition hover:bg-wizard-950"
+                    onClick={() => window.location.assign(OIDC_LOGIN_URL)}
+                  >
+                    <Icon name="magic" className="h-4 w-4" />
+                    Se connecter avec Authelia
+                  </button>
+
+                  <div className="mt-5 flex items-center gap-3 text-[11px] uppercase tracking-[0.18em] text-slate-400">
+                    <span className="h-px flex-1 bg-black/10" />
+                    ou mot de passe
+                    <span className="h-px flex-1 bg-black/10" />
+                  </div>
+                </>
+              ) : null}
+
               <label className="mt-6 block text-[13px] font-medium text-slate-700">
                 Nom d'utilisateur
                 <input
@@ -132,13 +190,21 @@ export function Login({ onLogin }: LoginProps) {
                 {isSubmitting ? 'Connexion…' : 'Se connecter'}
               </button>
 
-              <div className="mt-4 rounded-lg bg-white px-4 py-3 text-[12px] leading-5 text-slate-500 ring-1 ring-black/10">
-                Dev : <span className="font-medium text-slate-700">merlin</span>{' '}
-                / <span className="font-medium text-slate-700">merlin12345</span>
-                <br />
-                Admin : <span className="font-medium text-slate-700">admin</span>{' '}
-                / <span className="font-medium text-slate-700">admin12345</span>
-              </div>
+              {oidcEnabled ? null : (
+                <div className="mt-4 rounded-lg bg-white px-4 py-3 text-[12px] leading-5 text-slate-500 ring-1 ring-black/10">
+                  Dev :{' '}
+                  <span className="font-medium text-slate-700">merlin</span> /{' '}
+                  <span className="font-medium text-slate-700">
+                    merlin12345
+                  </span>
+                  <br />
+                  Admin :{' '}
+                  <span className="font-medium text-slate-700">admin</span> /{' '}
+                  <span className="font-medium text-slate-700">
+                    admin12345
+                  </span>
+                </div>
+              )}
             </form>
           </section>
         </div>

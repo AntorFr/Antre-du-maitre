@@ -13,14 +13,41 @@ type SessionState = {
   user: AuthUser;
 };
 
+/**
+ * Récupère le token déposé en fragment d'URL par le callback OIDC
+ * (/#oidc-token=...), puis nettoie l'URL pour ne pas laisser traîner le token
+ * dans l'historique du navigateur.
+ */
+function consumeOidcToken(): string | null {
+  const match = window.location.hash.match(/^#oidc-token=(.+)$/);
+
+  if (!match) {
+    return null;
+  }
+
+  window.history.replaceState(
+    null,
+    '',
+    window.location.pathname + window.location.search,
+  );
+
+  return match[1] ?? null;
+}
+
 export function useSession() {
   const [session, setSession] = useState<SessionState | null>(() =>
     readStoredSession(),
   );
-  const [isHydrating, setIsHydrating] = useState(Boolean(session));
+  const [oidcToken] = useState(() => consumeOidcToken());
+  const [isHydrating, setIsHydrating] = useState(
+    Boolean(session) || Boolean(oidcToken),
+  );
 
   useEffect(() => {
-    if (!session) {
+    // Le token OIDC fraîchement reçu prime sur une éventuelle session stockée.
+    const token = oidcToken ?? session?.token;
+
+    if (!token) {
       setIsHydrating(false);
       return;
     }
@@ -28,12 +55,12 @@ export function useSession() {
     let cancelled = false;
 
     api
-      .me(session.token)
+      .me(token)
       .then(({ user }) => {
         if (cancelled) return;
 
         const nextSession = {
-          token: session.token,
+          token,
           user,
         };
 

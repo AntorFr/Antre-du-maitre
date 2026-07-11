@@ -8,6 +8,9 @@ Toutes les routes applicatives sont préfixées par `/api`.
 POST /auth/login
 GET  /auth/me
 POST /auth/logout
+GET  /auth/config          -> { oidcEnabled }
+GET  /auth/oidc/login      -> 302 vers Authelia (Authorization Code + PKCE)
+GET  /auth/oidc/callback   -> 302 vers /#oidc-token=... (ou /#oidc-error=1)
 ```
 
 ## Utilisateurs

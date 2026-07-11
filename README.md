@@ -106,6 +106,31 @@ Pour lire les derniers problèmes :
 docker exec antre-du-maitre sh -lc 'tail -n 5 /data/logs/llm-errors-$(date +%F).jsonl'
 ```
 
+## Authentification
+
+Deux modes coexistent :
+
+- **Login local** (dev) : comptes username/mot de passe stockés dans la base
+  (seed `DEV_*`), session JWT 30 jours. C'est le seul mode quand les variables
+  OIDC sont absentes.
+- **SSO OIDC (Authelia)** : en production, tout le monde (parents et enfant)
+  se connecte via Authelia. L'app est cliente OIDC (Authorization Code + PKCE) :
+
+  ```env
+  OIDC_ISSUER=https://auth.homenode.berard.me
+  OIDC_CLIENT_ID=merlin
+  OIDC_CLIENT_SECRET=...
+  OIDC_REDIRECT_URI=https://merlin.berard.me/api/auth/oidc/callback
+  OIDC_ADMIN_GROUP=parents
+  ```
+
+  Les quatre premières variables activent le mode (toutes ou aucune). Au
+  callback, l'utilisateur est provisionné automatiquement (username =
+  `preferred_username`) et son rôle est resynchronisé à chaque login depuis
+  les groupes Authelia : membre de `OIDC_ADMIN_GROUP` → `ADMIN`, sinon
+  `CHILD`. La session émise est le même JWT que le login local, qui reste
+  disponible en secours sur la page de connexion.
+
 ## LLM
 
 Le développement local utilise le mock par défaut :

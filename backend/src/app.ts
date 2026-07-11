@@ -1,3 +1,4 @@
+import cookie from '@fastify/cookie';
 import cors from '@fastify/cors';
 import jwt from '@fastify/jwt';
 import Fastify from 'fastify';
@@ -34,6 +35,12 @@ export async function buildApp() {
   });
 
   await app.register(jwt, {
+    secret: env.JWT_SECRET,
+  });
+
+  // Cookie signé porteur de la transaction OIDC (state + PKCE) entre la
+  // redirection vers Authelia et le callback.
+  await app.register(cookie, {
     secret: env.JWT_SECRET,
   });
 

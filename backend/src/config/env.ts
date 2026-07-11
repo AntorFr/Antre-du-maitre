@@ -15,6 +15,11 @@ const envSchema = z.object({
   NODE_ENV: z.enum(['development', 'test', 'production']).default('development'),
   LLM_PROVIDER: z.enum(['mock', 'anthropic']).default('mock'),
   LLM_ERROR_LOG_DIR: z.string().min(1).optional(),
+  OIDC_ISSUER: z.string().url().optional(),
+  OIDC_CLIENT_ID: z.string().min(1).optional(),
+  OIDC_CLIENT_SECRET: z.string().min(1).optional(),
+  OIDC_REDIRECT_URI: z.string().url().optional(),
+  OIDC_ADMIN_GROUP: z.string().min(1).default('parents'),
 });
 
 export const env = envSchema.parse(process.env);
