@@ -207,6 +207,57 @@ export function Admin({ token, currentUserId, onOpenScenario }: AdminProps) {
     }
   }
 
+  async function transferScenario(
+    scenario: ScenarioSummary,
+    targetUserId: string,
+  ) {
+    const targetUser = users.find((user) => user.id === targetUserId);
+
+    if (
+      !targetUser ||
+      !window.confirm(
+        `Transférer « ${scenario.title} » (et son monde associé) à ${targetUser.username} ?`,
+      )
+    ) {
+      return;
+    }
+
+    setBusyId(scenario.id);
+    setError(null);
+
+    try {
+      await api.adminTransferScenario(token, scenario.id, targetUserId);
+
+      setScenarios((current) =>
+        current.filter((currentScenario) => currentScenario.id !== scenario.id),
+      );
+      setUsers((current) =>
+        current.map((user) =>
+          user.id === selectedUserId
+            ? { ...user, scenarioCount: Math.max(0, user.scenarioCount - 1) }
+            : user.id === targetUserId
+              ? { ...user, scenarioCount: user.scenarioCount + 1 }
+              : user,
+        ),
+      );
+
+      // Les entités/propositions liées au scénario ont pu quitter ce monde.
+      if (selectedUserId) {
+        const { world } = await api.adminGetUserWorld(token, selectedUserId);
+        setEntities(world.entities);
+        setProposals(world.proposals);
+      }
+    } catch (caughtError) {
+      setError(
+        caughtError instanceof ApiError
+          ? caughtError.message
+          : 'Impossible de transférer ce scénario.',
+      );
+    } finally {
+      setBusyId(null);
+    }
+  }
+
   async function acceptProposal(proposal: WorldEntityProposal) {
     setBusyId(proposal.id);
     setError(null);
@@ -616,6 +667,27 @@ export function Admin({ token, currentUserId, onOpenScenario }: AdminProps) {
                       >
                         Supprimer
                       </button>
+                      <select
+                        className="rounded-full bg-white px-3 py-1.5 text-[12px] font-medium text-slate-700 ring-1 ring-black/10 disabled:opacity-60"
+                        disabled={busyId === scenario.id || users.length < 2}
+                        value=""
+                        onChange={(event) => {
+                          if (event.target.value) {
+                            void transferScenario(scenario, event.target.value);
+                          }
+                        }}
+                      >
+                        <option value="" disabled>
+                          Transférer à…
+                        </option>
+                        {users
+                          .filter((user) => user.id !== selectedUserId)
+                          .map((user) => (
+                            <option key={user.id} value={user.id}>
+                              {user.username}
+                            </option>
+                          ))}
+                      </select>
                     </div>
                   </article>
                 ))}

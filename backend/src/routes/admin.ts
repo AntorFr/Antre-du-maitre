@@ -13,6 +13,10 @@ const createWorldEntitySchema = z.object({
   tags: z.array(z.string().trim().min(1).max(80)).default([]),
 });
 
+const transferScenarioSchema = z.object({
+  targetUserId: z.string().min(1),
+});
+
 export async function registerAdminRoutes(app: FastifyInstance) {
   app.get(
     '/api/admin/users/:userId/scenarios',
@@ -127,6 +131,123 @@ export async function registerAdminRoutes(app: FastifyInstance) {
       return reply.code(201).send({
         entity,
       });
+    },
+  );
+
+  // Transfère un scénario à un autre utilisateur : sessions et todos suivent
+  // par cascade (FK scenarioId) ; les entités et propositions de monde issues
+  // de ce scénario déménagent vers le monde du nouveau propriétaire.
+  app.post(
+    '/api/admin/scenarios/:scenarioId/transfer',
+    {
+      preHandler: requireAdmin,
+    },
+    async (request, reply) => {
+      const { scenarioId } = request.params as { scenarioId: string };
+      const parsed = transferScenarioSchema.safeParse(request.body);
+
+      if (!parsed.success) {
+        return reply.code(400).send({
+          message: 'Invalid transfer payload.',
+          issues: parsed.error.issues,
+        });
+      }
+
+      const scenario = await prisma.scenario.findUnique({
+        where: {
+          id: scenarioId,
+        },
+        include: {
+          user: {
+            include: {
+              world: true,
+            },
+          },
+        },
+      });
+
+      if (!scenario) {
+        return reply.code(404).send({
+          message: 'Scenario not found.',
+        });
+      }
+
+      if (scenario.userId === parsed.data.targetUserId) {
+        return reply.code(400).send({
+          message: 'Scenario already belongs to this user.',
+        });
+      }
+
+      const targetUser = await prisma.user.findUnique({
+        where: {
+          id: parsed.data.targetUserId,
+        },
+        include: {
+          world: true,
+        },
+      });
+
+      if (!targetUser) {
+        return reply.code(404).send({
+          message: 'Target user not found.',
+        });
+      }
+
+      const sourceWorldId = scenario.user.world?.id ?? null;
+
+      const [movedEntities, movedProposals, updatedScenario] =
+        await prisma.$transaction(async (tx) => {
+          // Filet de sécurité : un monde existe normalement dès la création
+          // du compte, mais on ne transfère jamais vers un monde absent.
+          const targetWorld =
+            targetUser.world ??
+            (await tx.world.create({
+              data: {
+                userId: targetUser.id,
+              },
+            }));
+
+          const entities = sourceWorldId
+            ? await tx.worldEntity.updateMany({
+                where: {
+                  worldId: sourceWorldId,
+                  sourceScenarioId: scenarioId,
+                },
+                data: {
+                  worldId: targetWorld.id,
+                },
+              })
+            : { count: 0 };
+
+          const proposals = sourceWorldId
+            ? await tx.worldEntityProposal.updateMany({
+                where: {
+                  worldId: sourceWorldId,
+                  scenarioId,
+                },
+                data: {
+                  worldId: targetWorld.id,
+                },
+              })
+            : { count: 0 };
+
+          const moved = await tx.scenario.update({
+            where: {
+              id: scenarioId,
+            },
+            data: {
+              userId: targetUser.id,
+            },
+          });
+
+          return [entities.count, proposals.count, moved];
+        });
+
+      return {
+        scenario: toScenarioSummary(updatedScenario),
+        movedEntities,
+        movedProposals,
+      };
     },
   );
 }

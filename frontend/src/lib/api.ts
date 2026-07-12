@@ -524,4 +524,15 @@ export const api = {
       token,
     );
   },
+
+  adminTransferScenario(token: string, scenarioId: string, targetUserId: string) {
+    return request<{
+      scenario: ScenarioSummary;
+      movedEntities: number;
+      movedProposals: number;
+    }>(`/admin/scenarios/${scenarioId}/transfer`, {
+      method: 'POST',
+      body: JSON.stringify({ targetUserId }),
+    }, token);
+  },
 };

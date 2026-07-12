@@ -9,8 +9,9 @@ pour le dev.
 
 **Prochaines étapes :**
 
-- [ ] Tester le login OIDC dans un vrai navigateur (v0.2.1 : fix
-      client_secret_basic + SSO seul chemin visible, login local en dépannage)
+- [x] Login OIDC validé en prod (Sébastien connecté en ADMIN via `parents`)
+- [ ] v0.3.0 : transférer le scénario + monde du compte local `merlin` vers
+      `Sébastien` via la nouvelle action « Transférer à… » de la vue admin
 - [ ] Créer les comptes Authelia des autres membres de la famille (enfant +
       parent 2) — hashes à générer, pas encore dans `authelia-users`
 - [ ] Envisager la suppression des comptes locaux `DEV_*` en prod une fois le

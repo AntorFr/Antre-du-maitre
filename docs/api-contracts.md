@@ -13,6 +13,15 @@ GET  /auth/oidc/login      -> 302 vers Authelia (Authorization Code + PKCE)
 GET  /auth/oidc/callback   -> 302 vers /#oidc-token=... (ou /#oidc-error=1)
 ```
 
+## Admin
+
+```txt
+POST /admin/scenarios/:id/transfer   { targetUserId }
+     -> réaffecte le scénario (sessions/todos suivent) et déplace les
+        entités/propositions de monde issues de ce scénario vers le monde
+        du nouveau propriétaire
+```
+
 ## Utilisateurs
 
 ```txt
