@@ -39,17 +39,23 @@ async function ensureUser(input: {
 }
 
 async function main() {
+  // Compte admin local : toujours garanti (secours si le SSO est en panne).
   await ensureUser({
     username: process.env.DEV_ADMIN_USERNAME ?? 'admin',
     password: process.env.DEV_ADMIN_PASSWORD ?? 'admin12345',
     role: Role.ADMIN,
   });
 
-  await ensureUser({
-    username: process.env.DEV_CHILD_USERNAME ?? 'merlin',
-    password: process.env.DEV_CHILD_PASSWORD ?? 'merlin12345',
-    role: Role.CHILD,
-  });
+  // Compte enfant de dev : uniquement si demandé explicitement. En production
+  // (SSO Authelia), ne pas définir DEV_CHILD_* — sinon le seed recréerait le
+  // compte à chaque démarrage du conteneur, même après sa suppression.
+  if (process.env.DEV_CHILD_USERNAME && process.env.DEV_CHILD_PASSWORD) {
+    await ensureUser({
+      username: process.env.DEV_CHILD_USERNAME,
+      password: process.env.DEV_CHILD_PASSWORD,
+      role: Role.CHILD,
+    });
+  }
 }
 
 main()

@@ -41,12 +41,11 @@ files/            Artefacts initiaux fournis (spec, mockup, Battle Mats)
    npm run dev:frontend
    ```
 
-Le seed crée par défaut deux comptes de développement :
-
-- `admin / admin12345`
-- `merlin / merlin12345`
-
-Ces identifiants sont configurables via les variables `DEV_*` de `.env`.
+Le seed garantit toujours le compte admin local (`admin / admin12345`,
+configurable via `DEV_ADMIN_*`) — c'est le secours si le SSO est indisponible.
+Le compte enfant de dev (`merlin / merlin12345` dans `.env.example`) n'est créé
+que si `DEV_CHILD_USERNAME` **et** `DEV_CHILD_PASSWORD` sont définis : en
+production SSO, ne pas les définir.
 
 En développement Vite, le frontend appelle par défaut
 `http://localhost:3001/api`. En build Docker/production, il appelle `/api`,
@@ -91,8 +90,8 @@ http://192.168.x.x:3001
 ```
 
 Au démarrage du container, les migrations Prisma sont appliquées et le seed
-garantit les comptes admin/enfant. Le volume `antre-data` conserve la base
-SQLite entre deux lancements.
+garantit le compte admin local (+ le compte enfant si `DEV_CHILD_*` sont
+définis). Le volume `antre-data` conserve la base SQLite entre deux lancements.
 
 Les erreurs de réponse LLM invalide sont également conservées dans le volume :
 

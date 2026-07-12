@@ -10,8 +10,10 @@ pour le dev.
 **Prochaines étapes :**
 
 - [x] Login OIDC validé en prod (Sébastien connecté en ADMIN via `parents`)
-- [ ] v0.3.0 : transférer le scénario + monde du compte local `merlin` vers
-      `Sébastien` via la nouvelle action « Transférer à… » de la vue admin
+- [x] Migration merlin→Sébastien faite via l'UI de transfert, compte `merlin`
+      supprimé (v0.3.1 : seed enfant conditionnel pour qu'il ne renaisse pas)
+- [ ] Créer les comptes Authelia enfants dans `parents`/famille selon besoin
+      pour l'Antre du Maître (Laurine, Émilie, Timothée existent déjà)
 - [ ] Créer les comptes Authelia des autres membres de la famille (enfant +
       parent 2) — hashes à générer, pas encore dans `authelia-users`
 - [ ] Envisager la suppression des comptes locaux `DEV_*` en prod une fois le
