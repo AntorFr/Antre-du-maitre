@@ -169,7 +169,13 @@ const actDetailResponseSchema = z.object({
 const actDetailPatchResponseSchema = z.object({
   reply: z.string().min(1),
   suggestions: z.array(z.string().min(1)).default([]),
-  changedSections: z.array(actDetailStepSchema).default([]),
+  // Le modèle nomme souvent la *section* qu'il a modifiée (INDICES, CHOIX,
+  // CHOIX_CONSEQUENCES…) plutôt qu'une des 6 étapes du workflow. On accepte donc
+  // n'importe quelle chaîne ici — au lieu de faire échouer tout le parse (et de
+  // jeter un detailUpdate parfaitement valide) — puis on filtre les valeurs
+  // hors-enum au point d'appel. Les sections réellement modifiées sont de toute
+  // façon re-déduites du detailUpdate par inferChangedActDetailSections.
+  changedSections: z.array(z.string()).default([]),
   actUpdate: actDetailResponseSchema.shape.actUpdate,
   detailUpdate: z.record(z.unknown()).nullable().default(null),
 });
@@ -322,7 +328,10 @@ export class AnthropicLlmProvider implements LlmProvider {
         actUpdate: parsed.actUpdate,
         detailUpdate: parsed.detailUpdate,
         fallbackStep: detail.currentStep,
-        parsedSections: parsed.changedSections ?? [],
+        parsedSections: (parsed.changedSections ?? []).filter(
+          (section): section is ActDetailStep =>
+            (actDetailStepSchema.options as readonly string[]).includes(section),
+        ),
       }),
       scenario,
     };

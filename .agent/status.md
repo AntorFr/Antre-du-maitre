@@ -1,14 +1,17 @@
 # Status — L'Antre du Maître
 
-> MàJ : 2026-07-11
+> MàJ : 2026-07-20
 
-**État :** SSO OIDC via Authelia implémenté (Authorization Code + PKCE, rôle
-piloté par le groupe `parents`) et **déployé en v0.2.0** sur tantive
-(merlin.berard.me) ; client `merlin` accepté par Authelia, login local conservé
-pour le dev.
+**État :** SSO OIDC via Authelia déployé (v0.2.0, tantive, merlin.berard.me).
+Fix (non encore déployé) : le workflow « détailler un acte » plantait
+silencieusement — le LLM renvoyait dans `changedSections` des noms de *sections*
+(INDICES, CHOIX…) hors des 6 étapes, ce qui faisait échouer tout le parse Zod et
+jeter un `detailUpdate` valide. Schéma rendu tolérant + erreur désormais visible
+dans le panneau d'acte côté frontend.
 
 **Prochaines étapes :**
 
+- [ ] Déployer le fix act-detail (bump image → chart → manifeste tantive)
 - [x] Login OIDC validé en prod (Sébastien connecté en ADMIN via `parents`)
 - [x] Migration merlin→Sébastien faite via l'UI de transfert, compte `merlin`
       supprimé (v0.3.1 : seed enfant conditionnel pour qu'il ne renaisse pas)

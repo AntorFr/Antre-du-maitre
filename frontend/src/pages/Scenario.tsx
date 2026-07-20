@@ -394,6 +394,7 @@ export function Scenario({
         <ActWorkflowPanel
           acts={data.actes}
           busyActNumber={busyActNumber}
+          error={error}
           changedSections={
             selectedAct ? actDetailChangedSections[selectedAct.numero] : undefined
           }
@@ -1227,6 +1228,7 @@ function ActWorkflowPanel({
   acts,
   busyActNumber,
   changedSections,
+  error,
   input,
   onAdvance,
   onInputChange,
@@ -1241,6 +1243,7 @@ function ActWorkflowPanel({
   acts: ScenarioAct[];
   busyActNumber: number | null;
   changedSections?: ActWorkflowStep[];
+  error?: string | null;
   input: string;
   onAdvance: (
     actNumber: number,
@@ -1434,6 +1437,12 @@ function ActWorkflowPanel({
           ) : null}
         </div>
       </div>
+
+      {error ? (
+        <p className="shrink-0 border-t border-rose-100 bg-rose-50 px-[18px] py-2 text-[12px] text-rose-700">
+          {error}
+        </p>
+      ) : null}
 
       <div className="flex shrink-0 gap-2 border-t border-black/10 bg-white px-[18px] py-3">
         <form
