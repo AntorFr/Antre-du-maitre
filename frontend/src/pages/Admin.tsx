@@ -9,6 +9,7 @@ import type {
 import { useEffect, useMemo, useState } from 'react';
 
 import { api, ApiError } from '../lib/api';
+import { ClaudeTokenPanel } from '../components/ClaudeTokenPanel';
 
 type AdminUser = AuthUser & { scenarioCount: number };
 
@@ -550,6 +551,8 @@ export function Admin({ token, currentUserId, onOpenScenario }: AdminProps) {
             8 caractères minimum.
           </p>
         </div>
+
+        <ClaudeTokenPanel token={token} />
 
         {isLoadingUsers ? (
           <p className="mt-4 px-2 text-[13px] text-slate-500">Chargement…</p>

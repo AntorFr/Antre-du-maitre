@@ -5,6 +5,7 @@ import Fastify from 'fastify';
 
 import { env } from './config/env.js';
 import { registerAdminRoutes } from './routes/admin.js';
+import { registerClaudeTokenRoutes } from './routes/claude-token.js';
 import { registerAuthRoutes } from './routes/auth.js';
 import { registerChatRoutes } from './routes/chat.js';
 import { registerCofRoutes } from './routes/cof.js';
@@ -50,6 +51,7 @@ export async function buildApp() {
   await registerUserRoutes(app);
   await registerScenarioRoutes(app);
   await registerAdminRoutes(app);
+  await registerClaudeTokenRoutes(app);
   await registerChatRoutes(app);
   await registerSessionRoutes(app);
   await registerTodoRoutes(app);

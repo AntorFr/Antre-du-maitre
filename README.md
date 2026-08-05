@@ -165,6 +165,14 @@ CLAUDE_CODE_OAUTH_TOKEN=sk-ant-oat01-...
 En dev local, `CLAUDE_CODE_OAUTH_TOKEN` est inutile si la machine est déjà
 connectée via `claude login` (le runtime réutilise ces credentials).
 
+Alternative sans terminal : la page **Admin** propose un panneau « Abonnement
+Claude » qui pilote `claude setup-token` côté backend — le backend génère
+l'URL d'autorisation, l'admin l'ouvre, autorise, puis colle le code affiché.
+Le token est stocké dans `/data/claude/oauth-token` (jamais renvoyé au
+client) et pris en compte immédiatement par le provider `claude-agent`, sans
+redémarrage. Le TUI de `setup-token` exigeant un terminal, le backend le
+lance sous `script(1)` (util-linux, présent dans l'image).
+
 Tous les providers répondent en JSON strict, validé côté backend (schémas Zod
 partagés). Avec le provider `anthropic`, le prompt système, volumineux et
 stable, est mis en cache Anthropic (`cache_control`) pour réduire la latence

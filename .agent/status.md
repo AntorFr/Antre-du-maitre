@@ -22,6 +22,9 @@ Smoke tests OK (mock bout-en-bout + appel réel Agent SDK).
 
 **Prochaines étapes :**
 
+- [x] Fenêtre admin « Abonnement Claude » (setup-token piloté, testée en
+      conteneur) — même option à ajouter côté agent-pods (en cours)
+
 - [ ] Déployer (bump image → chart → manifeste tantive) : inclut le fix
       act-detail (v0.3.2, jamais déployé) + les deux chantiers du jour.
       Pour activer l'abonnement en prod : `claude setup-token` puis secret

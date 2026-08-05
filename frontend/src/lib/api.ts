@@ -166,6 +166,38 @@ export const api = {
     return requestBlob(`/scenarios/${scenarioId}/export.pdf`, token);
   },
 
+  claudeTokenStatus(token: string) {
+    return request<{ tokenPresent: boolean; savedAt: string | null }>(
+      '/admin/claude-token/status',
+      {},
+      token,
+    );
+  },
+
+  claudeTokenStart(token: string) {
+    return request<{ sessionId: string; authorizeUrl: string }>(
+      '/admin/claude-token/start',
+      {
+        method: 'POST',
+      },
+      token,
+    );
+  },
+
+  claudeTokenSubmitCode(
+    token: string,
+    input: { sessionId: string; code: string },
+  ) {
+    return request<{ tokenPresent: boolean; savedAt: string | null }>(
+      '/admin/claude-token/code',
+      {
+        method: 'POST',
+        body: JSON.stringify(input),
+      },
+      token,
+    );
+  },
+
   chat(token: string, scenarioId: string, input: ScenarioChatRequest) {
     return request<ScenarioChatResponse>(
       `/scenarios/${scenarioId}/chat`,

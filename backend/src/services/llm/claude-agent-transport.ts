@@ -1,6 +1,7 @@
 import { query } from '@anthropic-ai/claude-agent-sdk';
 
 import { env } from '../../config/env.js';
+import { getStoredClaudeToken } from '../claude-token.js';
 import type {
   LlmCompletionInput,
   LlmTextTransport,
@@ -26,6 +27,10 @@ export class ClaudeAgentTransport implements LlmTextTransport {
     let result: string | null = null;
     let failure: string | null = null;
 
+    // Token généré depuis l'admin (fenêtre setup-token) : prioritaire sur
+    // l'environnement, prise d'effet immédiate sans redémarrage.
+    const storedToken = await getStoredClaudeToken();
+
     for await (const message of query({
       prompt: renderPrompt(input.messages),
       options: {
@@ -35,6 +40,14 @@ export class ClaudeAgentTransport implements LlmTextTransport {
         allowedTools: [],
         permissionMode: 'dontAsk',
         includePartialMessages: Boolean(input.onTextDelta),
+        ...(storedToken
+          ? {
+              env: {
+                ...(process.env as Record<string, string>),
+                CLAUDE_CODE_OAUTH_TOKEN: storedToken,
+              },
+            }
+          : {}),
       },
     })) {
       if (message.type === 'stream_event' && input.onTextDelta) {
