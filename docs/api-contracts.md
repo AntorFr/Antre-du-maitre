@@ -49,10 +49,18 @@ POST   /scenarios/:id/npcs/:name/combat-sheet
 
 ### `POST /scenarios/:id/chat`
 
+La création est une discussion **libre** : le scénario est une fiche en 9
+sections (`SCENARIO_SECTIONS`) dont l'état (`EMPTY`/`PARTIAL`/`COMPLETE`) est
+dérivé des données. Un tour peut remplir plusieurs sections, dans n'importe
+quel ordre. La finalisation a lieu quand toutes les sections sont complètes et
+que l'utilisateur demande la validation.
+
 ```ts
 type ScenarioChatRequest = {
   message: string;
   voiceInput: boolean;
+  // Section demandée explicitement (clic sur la checklist) — simple indice.
+  focusSection?: ScenarioSection;
 };
 
 type ScenarioChatResponse = {
@@ -60,8 +68,10 @@ type ScenarioChatResponse = {
   suggestions: string[];
   scenarioUpdate: Partial<ScenarioData> | null;
   proposedEntities: ProposedWorldEntity[];
-  stepComplete: boolean;
-  nextStep: ScenarioStep | null;
+  changedSections: ScenarioSection[]; // sections touchées par scenarioUpdate
+  focusSection: ScenarioSection | null; // prochaine section conseillée
+  readyToValidate: boolean; // toutes les sections sont complètes
+  validationRequested: boolean; // l'utilisateur a demandé la validation
 };
 ```
 

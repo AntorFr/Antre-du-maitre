@@ -1,3 +1,7 @@
+// Import type-only : pas de cycle à l'exécution, scenario-sections.ts ne
+// réimporte que des types d'ici.
+import type { ScenarioSection } from './scenario-sections.js';
+
 export const SCENARIO_STEPS = [
   'STEP_1_SENSATION',
   'STEP_2_LIEU',
@@ -267,6 +271,11 @@ export interface ScenarioDetail extends ScenarioSummary {
 export interface ScenarioChatRequest {
   message: string;
   voiceInput: boolean;
+  /**
+   * Section sur laquelle l'utilisateur veut travailler (clic sur la
+   * checklist). Simple indice de contexte pour Merlin, jamais une contrainte.
+   */
+  focusSection?: ScenarioSection;
 }
 
 export interface ActDetailChatRequest {

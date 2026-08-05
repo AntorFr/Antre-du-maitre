@@ -1,8 +1,10 @@
 import {
-  SCENARIO_STEPS,
+  SCENARIO_SECTIONS,
+  computeScenarioSections,
+  firstIncompleteScenarioSection,
   type ScenarioChatResponse,
   type ScenarioDetail,
-  type ScenarioStep,
+  type ScenarioSection,
   type ScenarioSummary,
 } from '@antre-du-maitre/shared';
 import { useEffect, useRef, useState } from 'react';
@@ -11,7 +13,8 @@ import { FormattedText } from '../components/FormattedText';
 import { Icon, type IconName } from '../components/Icon';
 import { MicButton } from '../components/MicButton';
 import { api, ApiError } from '../lib/api';
-import { ProgressSteps } from '../components/ProgressSteps';
+import { SectionChecklist } from '../components/SectionChecklist';
+import { SECTION_LABELS, SECTION_QUESTIONS } from '../constants/scenario';
 
 type CreateProps = {
   token: string;
@@ -29,7 +32,7 @@ type Message = {
 };
 
 const WELCOME_MESSAGE =
-  "Quelle sensation veux-tu donner à ton aventure ? Elle peut être mystérieuse, drôle, pleine d’action, un peu inquiétante, merveilleuse ou héroïque.";
+  "Raconte-moi ton idée d'aventure — un lieu, un problème, un méchant, tout à la fois ou juste une envie. Je remplis la fiche avec toi, dans l'ordre que tu veux. Pour commencer simple : quelle sensation veux-tu donner à ton aventure ?";
 const DEFAULT_SUGGESTIONS = [
   'Mystère',
   'Humour',
@@ -69,6 +72,10 @@ export function Create({
   // signaler au backend lors de l'envoi.
   const voiceUsedRef = useRef(false);
   const [suggestions, setSuggestions] = useState(DEFAULT_SUGGESTIONS);
+  // Section conseillée par Merlin (mise en avant dans la checklist).
+  const [focusSection, setFocusSection] = useState<ScenarioSection | null>(
+    'SENSATION',
+  );
   const [isLoading, setIsLoading] = useState(true);
   const [isCreating, setIsCreating] = useState(false);
   const [isSending, setIsSending] = useState(false);
@@ -156,6 +163,12 @@ export function Create({
       scenario?.status === 'COMPLETE' || scenario?.status === 'PLAYED';
     const history = hasChatHistory(scenario) ? scenario.chatHistory : [];
 
+    setFocusSection(
+      scenario
+        ? firstIncompleteScenarioSection(computeScenarioSections(scenario.data))
+        : 'SENSATION',
+    );
+
     if (history.length > 0) {
       const lastAssistantWithSuggestions = [...history]
         .reverse()
@@ -175,10 +188,9 @@ export function Create({
       setSuggestions(
         isComplete
           ? COMPLETE_SUGGESTIONS
-          : resolveSuggestionsForScenarioStep({
-              suggestions: lastAssistantWithSuggestions?.suggestions ?? [],
-              targetStep: scenario?.data.currentStep,
-            }),
+          : lastAssistantWithSuggestions?.suggestions?.length
+            ? lastAssistantWithSuggestions.suggestions
+            : DEFAULT_SUGGESTIONS,
       );
       setInput('');
       return;
@@ -190,11 +202,7 @@ export function Create({
         content: isComplete ? COMPLETE_MESSAGE : WELCOME_MESSAGE,
       },
     ]);
-    setSuggestions(
-      isComplete
-        ? COMPLETE_SUGGESTIONS
-        : buildSuggestionsForScenarioStep(scenario?.data.currentStep),
-    );
+    setSuggestions(isComplete ? COMPLETE_SUGGESTIONS : DEFAULT_SUGGESTIONS);
     setInput('');
   }
 
@@ -226,7 +234,11 @@ export function Create({
     }
   }
 
-  async function sendMessage(message: string, viaVoice = false) {
+  async function sendMessage(
+    message: string,
+    viaVoice = false,
+    requestedSection?: ScenarioSection,
+  ) {
     if (!activeScenario || isSending || !message.trim()) {
       return;
     }
@@ -256,6 +268,7 @@ export function Create({
         {
           message: message.trim(),
           voiceInput: viaVoice,
+          ...(requestedSection ? { focusSection: requestedSection } : {}),
         },
         {
           onDelta: (reply) => updateStreamingAssistantMessage(reply),
@@ -324,6 +337,7 @@ export function Create({
       return [...current, finalMessage];
     });
     setSuggestions(response.suggestions);
+    setFocusSection(response.focusSection);
 
     if (response.proposedEntities.length > 0) {
       onWorldProposal();
@@ -353,8 +367,8 @@ export function Create({
             Créons une aventure
           </h2>
           <p className="mt-4 leading-7 text-slate-600">
-            Merlin te guidera étape par étape pour construire l'histoire, les
-            défis et la préparation.
+            Raconte ton idée à Merlin : il remplit la fiche avec toi, dans
+            l'ordre que tu veux — histoire, défis et préparation.
           </p>
           <button
             className="mt-6 rounded-2xl bg-wizard-600 px-5 py-3 font-medium text-white transition hover:bg-wizard-700 disabled:opacity-60"
@@ -369,23 +383,36 @@ export function Create({
   }
 
   const data = activeScenario.data;
-  const currentStepIndex = SCENARIO_STEPS.indexOf(data.currentStep);
-  const progressPct = Math.round(((currentStepIndex + 1) / SCENARIO_STEPS.length) * 100);
+  const sections = computeScenarioSections(data);
+  const completedSections = SCENARIO_SECTIONS.filter(
+    (section) => sections[section] === 'COMPLETE',
+  ).length;
+  const progressPct = Math.round(
+    (completedSections / SCENARIO_SECTIONS.length) * 100,
+  );
   const isMerlinWorking = isSending;
 
   return (
     <div className="flex h-full min-w-0 bg-white">
       <section className="flex min-w-0 flex-1 flex-col overflow-hidden bg-white">
-        <ProgressSteps
-          currentStep={activeScenario.data.currentStep}
-          variant="horizontal"
+        <SectionChecklist
+          disabled={isMerlinWorking}
+          focusSection={focusSection}
+          onSelectSection={(section) => {
+            void sendMessage(
+              `Travaillons sur la section « ${SECTION_LABELS[section]} ».`,
+              false,
+              section,
+            );
+          }}
+          sections={sections}
         />
 
         <div className="shrink-0 border-b border-black/10 bg-white px-[18px] py-3">
           <div className="flex items-center gap-3">
             <div className="flex min-w-[220px] flex-1 items-center gap-3 rounded-lg bg-[#f5f5f3] px-4 py-2">
               <span className="whitespace-nowrap text-[12px] text-slate-500">
-                Avancement
+                Sections complètes
               </span>
               <div className="h-[5px] flex-1 overflow-hidden rounded-full bg-black/10">
                 <div
@@ -394,7 +421,7 @@ export function Create({
                 />
               </div>
               <span className="whitespace-nowrap text-[12px] font-medium text-wizard-600">
-                {currentStepIndex + 1} / {SCENARIO_STEPS.length}
+                {completedSections} / {SCENARIO_SECTIONS.length}
               </span>
             </div>
 
@@ -417,7 +444,7 @@ export function Create({
 
             {!isMerlinWorking ? (
               <SuggestionPanel
-                currentStep={activeScenario.data.currentStep}
+                focusSection={focusSection}
                 onSelect={(suggestion) => void sendMessage(suggestion)}
                 suggestions={suggestions}
               />
@@ -578,11 +605,11 @@ function MerlinWorkingBubble() {
 }
 
 function SuggestionPanel({
-  currentStep,
+  focusSection,
   onSelect,
   suggestions,
 }: {
-  currentStep: ScenarioStep;
+  focusSection: ScenarioSection | null;
   onSelect: (suggestion: string) => void;
   suggestions: string[];
 }) {
@@ -594,7 +621,9 @@ function SuggestionPanel({
     <section className="rounded-xl bg-white p-3 shadow-sm ring-1 ring-black/10">
       <div className="mb-2 flex items-center justify-between gap-3">
         <p className="text-[12px] font-medium text-slate-600">
-          {buildQuestionForScenarioStep(currentStep)}
+          {focusSection
+            ? SECTION_QUESTIONS[focusSection]
+            : 'Des idées pour la suite'}
         </p>
         <p className="text-[11px] italic text-wizard-400">
           ou écris librement en bas
@@ -779,254 +808,3 @@ function hasChatHistory(
   );
 }
 
-function buildSuggestionsForScenarioStep(step?: ScenarioStep): string[] {
-  switch (step) {
-    case 'STEP_2_LIEU':
-      return [
-        'Une forêt aux chemins mouvants',
-        'Un village dans la brume',
-        'Une grotte qui chante',
-        'Une île aux ruines lumineuses',
-        'Un château qui change de pièces',
-        'Un marais plein de lucioles',
-      ];
-    case 'STEP_3_QUETE':
-      return [
-        'Un objet magique a disparu',
-        'Une créature bloque le village',
-        'Une magie se dérègle ce soir',
-        'Quelqu’un appelle à l’aide',
-        'Un lieu devient dangereux',
-        'Un secret doit être compris',
-      ];
-    case 'STEP_4_ANTAGONISTE':
-      return [
-        'Une créature incomprise',
-        'Une malédiction',
-        'Un rival jaloux',
-        'Un accident magique',
-        'Un malentendu',
-        'Une catastrophe naturelle',
-      ];
-    case 'STEP_5_OBJECTIF_HEROS':
-      return [
-        "Retrouver l'objet avant la nuit",
-        'Apaiser la créature',
-        'Stopper la magie déréglée',
-        'Protéger le village',
-        'Ouvrir le passage secret',
-        'Réunir deux anciens amis',
-      ];
-    case 'STEP_6_ACTES':
-      return [
-        'Départ, exploration, révélation, final',
-        'Un début très fort',
-        'Un final spectaculaire',
-        'Une fausse piste au milieu',
-        'Un choix difficile mais doux',
-        'Une révélation amusante',
-      ];
-    case 'STEP_7_PNJS':
-      return [
-        "Quelqu'un qui demande de l'aide",
-        'Un guide amusant',
-        'Quelqu’un qui bloque les héros',
-        'Un témoin qui a peur',
-        'Un rival pas si méchant',
-        'Une créature à rassurer',
-      ];
-    case 'STEP_8_DUREE':
-      return [
-        'Une session de 90 minutes',
-        'Deux sessions courtes',
-        'Raccourcir le milieu',
-        'Un final plus long',
-        'Une intro très rapide',
-        'Trois petites sessions',
-      ];
-    case 'STEP_9_FIN':
-      return [
-        'Une fête au village',
-        'Une surprise magique',
-        'Une récompense amusante',
-        'Un nouveau gardien du lieu',
-        'Un objet souvenir',
-        'Une promesse pour la suite',
-      ];
-    case 'STEP_10_RECAP':
-      return [
-        'Valider',
-        'Changer un détail',
-        'Réentendre le résumé',
-        'Rendre plus drôle',
-        'Rendre plus simple',
-        'Renforcer le final',
-      ];
-    case 'STEP_1_SENSATION':
-    default:
-      return DEFAULT_SUGGESTIONS;
-  }
-}
-
-function resolveSuggestionsForScenarioStep(input: {
-  suggestions: string[];
-  targetStep?: ScenarioStep;
-}) {
-  const normalized = normalizeSuggestions(input.suggestions);
-
-  if (
-    normalized.length > 0 &&
-    !hasStrongSuggestionOverlap(
-      normalized,
-      buildPreviousStepSuggestions(input.targetStep),
-    ) &&
-    !hasSuggestionStepDrift({
-      suggestions: normalized,
-      targetStep: input.targetStep,
-    })
-  ) {
-    return normalized;
-  }
-
-  return buildSuggestionsForScenarioStep(input.targetStep);
-}
-
-function buildPreviousStepSuggestions(step?: ScenarioStep) {
-  switch (step) {
-    case 'STEP_2_LIEU':
-      return buildSuggestionsForScenarioStep('STEP_1_SENSATION');
-    case 'STEP_3_QUETE':
-      return buildSuggestionsForScenarioStep('STEP_2_LIEU');
-    case 'STEP_4_ANTAGONISTE':
-      return buildSuggestionsForScenarioStep('STEP_3_QUETE');
-    case 'STEP_5_OBJECTIF_HEROS':
-      return buildSuggestionsForScenarioStep('STEP_4_ANTAGONISTE');
-    case 'STEP_6_ACTES':
-      return buildSuggestionsForScenarioStep('STEP_5_OBJECTIF_HEROS');
-    case 'STEP_7_PNJS':
-      return buildSuggestionsForScenarioStep('STEP_6_ACTES');
-    case 'STEP_8_DUREE':
-      return buildSuggestionsForScenarioStep('STEP_7_PNJS');
-    case 'STEP_9_FIN':
-      return buildSuggestionsForScenarioStep('STEP_8_DUREE');
-    case 'STEP_10_RECAP':
-      return buildSuggestionsForScenarioStep('STEP_9_FIN');
-    case 'STEP_1_SENSATION':
-    default:
-      return [];
-  }
-}
-
-function normalizeSuggestions(suggestions: string[]) {
-  const seen = new Set<string>();
-  const normalized: string[] = [];
-
-  for (const suggestion of suggestions) {
-    const trimmed = suggestion.trim();
-    const key = normalizeSuggestionKey(trimmed);
-
-    if (!trimmed || seen.has(key)) continue;
-
-    seen.add(key);
-    normalized.push(trimmed);
-
-    if (normalized.length === 6) break;
-  }
-
-  return normalized;
-}
-
-function hasStrongSuggestionOverlap(
-  suggestions: string[],
-  referenceSuggestions: string[],
-) {
-  const referenceKeys = new Set(
-    referenceSuggestions.map((suggestion) => normalizeSuggestionKey(suggestion)),
-  );
-  const matchingCount = suggestions.filter((suggestion) =>
-    referenceKeys.has(normalizeSuggestionKey(suggestion)),
-  ).length;
-
-  return matchingCount >= Math.min(3, suggestions.length);
-}
-
-function hasSuggestionStepDrift(input: {
-  suggestions: string[];
-  targetStep?: ScenarioStep;
-}) {
-  const previousStep = getPreviousScenarioStep(input.targetStep);
-  if (!input.targetStep || !previousStep) return false;
-
-  const previousKeywords = getSuggestionKeywordsForScenarioStep(previousStep);
-  const targetKeywords = getSuggestionKeywordsForScenarioStep(input.targetStep);
-  const previousMatches = input.suggestions.filter((suggestion) =>
-    containsAnyKeyword(suggestion, previousKeywords),
-  ).length;
-  const targetMatches = input.suggestions.filter((suggestion) =>
-    containsAnyKeyword(suggestion, targetKeywords),
-  ).length;
-
-  return previousMatches >= Math.ceil(input.suggestions.length / 2) && targetMatches === 0;
-}
-
-function getPreviousScenarioStep(step?: ScenarioStep): ScenarioStep | null {
-  const index = step ? SCENARIO_STEPS.indexOf(step) : -1;
-  return index > 0 ? (SCENARIO_STEPS[index - 1] ?? null) : null;
-}
-
-function containsAnyKeyword(value: string, keywords: string[]) {
-  const normalized = normalizeSuggestionKey(value);
-  return keywords.some((keyword) => normalized.includes(keyword));
-}
-
-function getSuggestionKeywordsForScenarioStep(step: ScenarioStep) {
-  const keywords: Record<ScenarioStep, string[]> = {
-    STEP_1_SENSATION: ['mystere', 'humour', 'action', 'frisson', 'merveille', 'exploration', 'ambiance', 'sensation'],
-    STEP_2_LIEU: ['lieu', 'donjon', 'village', 'foret', 'grotte', 'ile', 'chateau', 'marais', 'nom', 'detail rigolo'],
-    STEP_3_QUETE: ['probleme', 'quete', 'grave', 'maintenant', 'urgence', 'catastrophe', 'disparu', 'bloque', 'secret', 'aide'],
-    STEP_4_ANTAGONISTE: ['antagoniste', 'creature', 'malediction', 'rival', 'accident', 'malentendu', 'cause', 'mechant'],
-    STEP_5_OBJECTIF_HEROS: ['objectif', 'heros', 'retrouver', 'apaiser', 'stopper', 'proteger', 'ouvrir', 'reunir'],
-    STEP_6_ACTES: ['acte', 'depart', 'exploration', 'revelation', 'final', 'etape', 'deroule'],
-    STEP_7_PNJS: ['pnj', 'guide', 'temoin', 'rival', 'demande', 'aide', 'creature'],
-    STEP_8_DUREE: ['session', 'minutes', 'duree', 'rythme', 'raccourcir', 'long', 'court'],
-    STEP_9_FIN: ['fin', 'fete', 'surprise', 'recompense', 'gardien', 'souvenir', 'promesse'],
-    STEP_10_RECAP: ['valider', 'changer', 'resume', 'recap', 'drole', 'simple', 'final'],
-  };
-
-  return keywords[step];
-}
-
-function normalizeSuggestionKey(value: string) {
-  return value
-    .trim()
-    .toLowerCase()
-    .normalize('NFD')
-    .replace(/\p{Diacritic}/gu, '')
-    .replace(/[’']/g, "'")
-    .replace(/\s+/g, ' ');
-}
-
-function buildQuestionForScenarioStep(step: ScenarioStep): string {
-  switch (step) {
-    case 'STEP_1_SENSATION':
-      return "Quelle sensation veux-tu donner à ton aventure ?";
-    case 'STEP_2_LIEU':
-      return 'Où se déroule surtout cette aventure ?';
-    case 'STEP_3_QUETE':
-      return 'Quel est le problème central de cette aventure ?';
-    case 'STEP_4_ANTAGONISTE':
-      return 'Quelle est la cause du problème ?';
-    case 'STEP_5_OBJECTIF_HEROS':
-      return 'Que doivent réussir les héros ?';
-    case 'STEP_6_ACTES':
-      return "Quelles sont les grandes étapes de l'aventure ?";
-    case 'STEP_7_PNJS':
-      return 'Quels PNJs importants faut-il préparer ?';
-    case 'STEP_8_DUREE':
-      return 'Quelle durée et quel rythme veux-tu pour la partie ?';
-    case 'STEP_9_FIN':
-      return 'Quelle fin satisfaisante veux-tu créer ?';
-    case 'STEP_10_RECAP':
-      return 'Veux-tu valider ou ajuster le scénario ?';
-  }
-}

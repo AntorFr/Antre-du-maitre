@@ -13,7 +13,7 @@ const envSchema = z.object({
   JWT_SECRET: z.string().min(16),
   PORT: z.coerce.number().int().positive().default(3001),
   NODE_ENV: z.enum(['development', 'test', 'production']).default('development'),
-  LLM_PROVIDER: z.enum(['mock', 'anthropic']).default('mock'),
+  LLM_PROVIDER: z.enum(['mock', 'anthropic', 'claude-agent']).default('mock'),
   LLM_ERROR_LOG_DIR: z.string().min(1).optional(),
   OIDC_ISSUER: z.string().url().optional(),
   OIDC_CLIENT_ID: z.string().min(1).optional(),

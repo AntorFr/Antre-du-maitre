@@ -1,3 +1,4 @@
+import { isScenarioReadyToValidate } from '@antre-du-maitre/shared';
 import { Prisma } from '@prisma/client';
 import { z } from 'zod';
 import type { FastifyInstance } from 'fastify';
@@ -163,8 +164,7 @@ export async function registerScenarioRoutes(app: FastifyInstance) {
 
       const normalizedData = normalizeScenarioData(scenario.data);
       const shouldEnsureActDetails =
-        scenario.status !== 'DRAFT' ||
-        normalizedData.currentStep === 'STEP_10_RECAP';
+        scenario.status !== 'DRAFT' || isScenarioReadyToValidate(normalizedData);
       const detailedData =
         shouldEnsureActDetails ? ensureActDetails(normalizedData) : normalizedData;
       const scenarioDetail = {

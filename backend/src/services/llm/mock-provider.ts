@@ -3,8 +3,11 @@ import type {
   SessionDebriefResponse,
 } from '@antre-du-maitre/shared';
 
-import { getNextScenarioStep } from '../../domain/scenario-state.js';
 import { runActDetailWorkflow } from '../act-details.js';
+import {
+  composeScenarioChatResponse,
+  type ScenarioTurnDraft,
+} from './scenario-response.js';
 import type {
   ActDetailInput,
   ActDetailTurnResponse,
@@ -17,7 +20,10 @@ export class MockLlmProvider implements LlmProvider {
   async createScenarioTurn(
     input: ScenarioChatInput,
   ): Promise<ScenarioChatResponse> {
-    const response = this.buildScenarioTurn(input);
+    const response = composeScenarioChatResponse(
+      this.buildScenarioTurn(input),
+      input.scenario,
+    );
 
     if (input.onReplyDelta) {
       await streamReplyText(response.reply, input.onReplyDelta);
@@ -26,9 +32,11 @@ export class MockLlmProvider implements LlmProvider {
     return response;
   }
 
-  private buildScenarioTurn(input: ScenarioChatInput): ScenarioChatResponse {
+  // Le mock reste un guide séquentiel simple : il se cale sur currentStep
+  // (dérivé des données) pour scripter ses réponses, mais parle le même
+  // contrat libre que les vrais providers.
+  private buildScenarioTurn(input: ScenarioChatInput): ScenarioTurnDraft {
     const currentStep = input.scenario.currentStep;
-    const nextStep = getNextScenarioStep(currentStep);
     const trimmedMessage = input.message.trim();
 
     if (currentStep === 'STEP_1_SENSATION') {
@@ -52,8 +60,6 @@ export class MockLlmProvider implements LlmProvider {
           ambiance,
         },
         proposedEntities: [],
-        stepComplete: true,
-        nextStep,
       };
     }
 
@@ -81,8 +87,6 @@ export class MockLlmProvider implements LlmProvider {
             source: 'CREATION',
           },
         ],
-        stepComplete: true,
-        nextStep,
       };
     }
 
@@ -100,8 +104,6 @@ export class MockLlmProvider implements LlmProvider {
           },
         },
         proposedEntities: [],
-        stepComplete: true,
-        nextStep,
       };
     }
 
@@ -126,8 +128,6 @@ export class MockLlmProvider implements LlmProvider {
           },
         },
         proposedEntities: [],
-        stepComplete: true,
-        nextStep,
       };
     }
 
@@ -143,8 +143,6 @@ export class MockLlmProvider implements LlmProvider {
           },
         },
         proposedEntities: [],
-        stepComplete: true,
-        nextStep,
       };
     }
 
@@ -205,8 +203,6 @@ export class MockLlmProvider implements LlmProvider {
           ],
         },
         proposedEntities: [],
-        stepComplete: true,
-        nextStep,
       };
     }
 
@@ -230,8 +226,6 @@ export class MockLlmProvider implements LlmProvider {
           ],
         },
         proposedEntities: [],
-        stepComplete: true,
-        nextStep,
       };
     }
 
@@ -254,8 +248,6 @@ export class MockLlmProvider implements LlmProvider {
           },
         },
         proposedEntities: [],
-        stepComplete: true,
-        nextStep,
       };
     }
 
@@ -273,8 +265,6 @@ export class MockLlmProvider implements LlmProvider {
           recompense: 'Les héros reçoivent une récompense utile ou amusante.',
         },
         proposedEntities: [],
-        stepComplete: true,
-        nextStep,
       };
     }
 
@@ -286,8 +276,7 @@ export class MockLlmProvider implements LlmProvider {
           notesMJ: trimmedMessage,
         },
         proposedEntities: [],
-        stepComplete: true,
-        nextStep: null,
+        validationRequested: true,
       };
     }
 
@@ -296,8 +285,6 @@ export class MockLlmProvider implements LlmProvider {
       suggestions: ['Continuer', 'Changer une idée', 'Me proposer autre chose'],
       scenarioUpdate: null,
       proposedEntities: [],
-      stepComplete: false,
-      nextStep: null,
     };
   }
 

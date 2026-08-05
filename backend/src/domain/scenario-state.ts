@@ -6,10 +6,6 @@ import {
 
 type ScenarioSessionPlan = NonNullable<ScenarioData['sessionning']>['sessions'];
 
-const scenarioStepOrder = new Map(
-  SCENARIO_STEPS.map((step, index) => [step, index]),
-);
-
 export function createEmptyScenarioData(): ScenarioData {
   return {
     currentStep: 'STEP_1_SENSATION',
@@ -52,27 +48,6 @@ export function normalizeScenarioData(value: unknown): ScenarioData {
   delete (normalized as unknown as Record<string, unknown>).sessioning;
 
   return normalized;
-}
-
-export function getNextScenarioStep(step: ScenarioStep): ScenarioStep | null {
-  const index = scenarioStepOrder.get(step);
-
-  if (index === undefined) {
-    throw new Error(`Unknown scenario step: ${step}`);
-  }
-
-  return SCENARIO_STEPS[index + 1] ?? null;
-}
-
-export function canTransitionToScenarioStep(
-  currentStep: ScenarioStep,
-  nextStep: ScenarioStep | null,
-): boolean {
-  if (nextStep === null) {
-    return currentStep === 'STEP_10_RECAP';
-  }
-
-  return getNextScenarioStep(currentStep) === nextStep;
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {

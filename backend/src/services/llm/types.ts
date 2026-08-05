@@ -4,12 +4,15 @@ import type {
   MonsterSummary,
   ScenarioChatResponse,
   ScenarioData,
+  ScenarioSection,
   SessionDebriefResponse,
 } from '@antre-du-maitre/shared';
 
 export interface ScenarioChatInput {
   message: string;
   voiceInput: boolean;
+  /** Section demandée explicitement par l'utilisateur (clic checklist). */
+  focusSection?: ScenarioSection;
   scenarioId?: string;
   userId?: string;
   scenario: ScenarioData;

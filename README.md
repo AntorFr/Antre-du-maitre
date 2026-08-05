@@ -135,24 +135,40 @@ Deux modes coexistent :
 
 ## LLM
 
-Le développement local utilise le mock par défaut :
+Trois providers, sélectionnés par `LLM_PROVIDER` (mock par défaut en dev) :
 
 ```env
 LLM_PROVIDER=mock
 ```
 
-Pour tester le provider réel :
+**API Anthropic directe** (facturée à la clé API) :
 
 ```env
 LLM_PROVIDER=anthropic
 ANTHROPIC_API_KEY=...
-ANTHROPIC_MODEL=claude-3-5-sonnet-latest
+ANTHROPIC_MODEL=claude-sonnet-4-6
 ```
 
-Le provider réel répond en JSON strict pour conserver la machine d'état du
-scénario côté backend. Le prompt système, volumineux et stable, est mis en
-cache Anthropic (`cache_control`) pour réduire la latence et le coût des tours
-successifs.
+**Claude Agent SDK** — consomme l'abonnement Claude (Pro/Max) au lieu d'une
+clé API. Le SDK embarque le runtime Claude Code (aucune installation
+supplémentaire) et sert de simple tuyau vers le modèle : un tour unique, aucun
+outil, prompt système custom.
+
+```env
+LLM_PROVIDER=claude-agent
+ANTHROPIC_MODEL=claude-sonnet-4-6
+# Prod/Docker : token OAuth d'abonnement, généré une fois (valable 1 an) :
+#   claude setup-token
+CLAUDE_CODE_OAUTH_TOKEN=sk-ant-oat01-...
+```
+
+En dev local, `CLAUDE_CODE_OAUTH_TOKEN` est inutile si la machine est déjà
+connectée via `claude login` (le runtime réutilise ces credentials).
+
+Tous les providers répondent en JSON strict, validé côté backend (schémas Zod
+partagés). Avec le provider `anthropic`, le prompt système, volumineux et
+stable, est mis en cache Anthropic (`cache_control`) pour réduire la latence
+et le coût des tours successifs.
 
 ### Streaming des réponses
 
