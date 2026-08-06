@@ -23,19 +23,13 @@ Côté agent-pods : fenêtre « Connexion Claude » livrée ET déployée
 
 **Prochaines étapes :**
 
-- [x] Déployé : v0.4.0 taguée (image CI) + manifeste tantive bumpé, avec
-      bascule `LLM_PROVIDER=claude-agent` (abonnement Claude Max).
-      `ANTHROPIC_API_KEY` reste au coffre : rollback = repasser le provider
-      à `anthropic`.
-- [ ] ⚠️ Juste après le rollout : Admin → « Abonnement Claude » pour générer
-      le token (sans lui, Merlin ne répond pas en prod). Ce premier passage
-      valide aussi la capture du token (deux filets en place).
-- [ ] v0.4.1 (fix résolution binaire Claude Code) et v0.5.0 (mode hors
-      ligne : shell + dés + lecture scénarios) taguées — builds bloqués par
-      la PANNE MAJEURE GitHub Actions du 2026-08-06 ; bumps k8s commités en
-      local (0.4.1 puis 0.5.0), à pousser dès les images publiées.
-- [ ] Tester une création D&D + le lanceur de dés sur mobile en prod.
-- [ ] Tester une création D&D de bout en bout avec le provider réel.
+- [x] Déployé en prod : v0.5.2 (workflow libre, mobile, multi-systèmes, dés,
+      hors-ligne PWA, fenêtre abonnement). Provider `claude-agent` actif.
+- [x] **Abonnement Claude Max branché** : token OAuth (1 an) capturé et
+      stocké dans `/data/claude/oauth-token` (volume, 600). Survit aux
+      redéploiements. Rollback LLM = `LLM_PROVIDER: "anthropic"`.
+- [ ] Tester en prod : création D&D de bout en bout, dés sur mobile,
+      lecture hors ligne d'un scénario déjà ouvert.
 - [ ] Créer les comptes Authelia enfants dans `parents`/famille selon besoin
       pour l'Antre du Maître (Laurine, Émilie, Timothée existent déjà)
 - [ ] Créer les comptes Authelia des autres membres de la famille (enfant +
