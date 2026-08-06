@@ -7,6 +7,7 @@ import { Scenario } from './pages/Scenario';
 import { Todo } from './pages/Todo';
 import { Admin } from './pages/Admin';
 import { api } from './lib/api';
+import { clearOfflineCaches } from './lib/offline';
 import { buildPath, parseLocation, type Route } from './lib/router';
 import type { ScenarioSummary } from '@antre-du-maitre/shared';
 import type { HubSection, ScenarioTab } from './types/navigation';
@@ -223,6 +224,7 @@ export function App() {
       onOpenHub={() => openHub()}
       onNavigateScenarioTab={openScenarioTab}
       onLogout={() => {
+        void clearOfflineCaches();
         logout();
         navigate({ view: 'hub', section: 'scenarios' }, { replace: true });
       }}

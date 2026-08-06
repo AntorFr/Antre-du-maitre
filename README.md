@@ -198,6 +198,19 @@ de toutes les tentatives, avec le contexte, le prompt et la réponse brute :
 
 Ces fichiers sont ignorés par Git.
 
+## Hors ligne (PWA)
+
+Une fois installée (ou simplement visitée), l'appli fonctionne sans réseau :
+
+- le **shell complet est pré-caché** (service worker Workbox via
+  `vite-plugin-pwa`) — l'appli se lance hors ligne, et le lanceur de dés,
+  100 % client, fonctionne partout ;
+- les **lectures de scénarios** (`GET /api/scenarios*` : détail, todo,
+  sessions) sont servies en *NetworkFirst* — fraîches en ligne, dernière
+  version vue sinon. Les écritures et le chat Merlin exigent le réseau.
+- le cache scénarios est **purgé au logout** (appareil partagé entre
+  comptes).
+
 ## Lancer de dés
 
 Le bouton d20 du bandeau ouvre un lanceur plein écran (d4, d6, d8, d10, d12,

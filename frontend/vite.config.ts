@@ -8,9 +8,33 @@ export default defineConfig({
     VitePWA({
       registerType: 'autoUpdate',
       workbox: {
-        globPatterns: [],
-        navigateFallback: null,
-        runtimeCaching: [],
+        // Hors-ligne : le shell complet est pré-caché — l'appli (et donc le
+        // lanceur de dés, 100 % client) se lance sans réseau.
+        globPatterns: ['**/*.{js,css,html,svg,png,webmanifest}'],
+        navigateFallback: 'index.html',
+        navigateFallbackDenylist: [/^\/api\//],
+        runtimeCaching: [
+          {
+            // Lecture hors ligne des scénarios (détail, todo, sessions) :
+            // NetworkFirst — frais en ligne, dernière version vue sinon.
+            // GET uniquement (défaut Workbox) : le chat Merlin et toute
+            // écriture restent réseau. Cache purgé au logout (iPad partagé),
+            // cf. clearOfflineCaches().
+            urlPattern: /\/api\/scenarios/,
+            handler: 'NetworkFirst',
+            options: {
+              cacheName: 'antre-scenarios',
+              networkTimeoutSeconds: 4,
+              expiration: {
+                maxEntries: 80,
+                maxAgeSeconds: 30 * 24 * 60 * 60,
+              },
+              cacheableResponse: {
+                statuses: [200],
+              },
+            },
+          },
+        ],
       },
       manifest: {
         name: "L'Antre du Maître",
