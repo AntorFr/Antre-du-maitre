@@ -180,10 +180,21 @@ class ClaudeSetupSession {
     }
 
     this.state = 'exchanging';
-    // \r et non \n : le pty est en mode brut (TUI Ink), la touche Entrée y est
-    // CR. Avec \n le champ ne se soumet JAMAIS (vécu en prod v0.4.1, prouvé
-    // en conteneur : LF = saisie muette, CR = soumission).
-    this.child.stdin.write(`${code}\r`);
+    // Deux subtilités du TUI, chacune vécue en prod :
+    // 1. la touche Entrée d'un pty brut est \r, pas \n (v0.4.1) ;
+    // 2. un \r collé DANS le même flot que le code est avalé par la garde
+    //    anti-collage — il faut l'envoyer séparément, après une pause (v0.5.1 ;
+    //    un code court y échappait, d'où un test conteneur trompeusement vert).
+    this.child.stdin.write(code);
+    const enter = setTimeout(() => this.child.stdin.write('\r'), 500);
+    enter.unref();
+    // Filet : certains écrans redemandent une validation.
+    const retry = setTimeout(() => {
+      if (this.state === 'exchanging' && !this.exited) {
+        this.child.stdin.write('\r');
+      }
+    }, 6_000);
+    retry.unref();
 
     await new Promise<void>((resolvePromise) => {
       const timer = setTimeout(() => {
