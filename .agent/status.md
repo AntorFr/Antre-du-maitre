@@ -30,6 +30,10 @@ Côté agent-pods : fenêtre « Connexion Claude » livrée ET déployée
 - [ ] ⚠️ Juste après le rollout : Admin → « Abonnement Claude » pour générer
       le token (sans lui, Merlin ne répond pas en prod). Ce premier passage
       valide aussi la capture du token (deux filets en place).
+- [ ] v0.4.1 (fix résolution binaire Claude Code) et v0.5.0 (mode hors
+      ligne : shell + dés + lecture scénarios) taguées — builds bloqués par
+      la PANNE MAJEURE GitHub Actions du 2026-08-06 ; bumps k8s commités en
+      local (0.4.1 puis 0.5.0), à pousser dès les images publiées.
 - [ ] Tester une création D&D + le lanceur de dés sur mobile en prod.
 - [ ] Tester une création D&D de bout en bout avec le provider réel.
 - [ ] Créer les comptes Authelia enfants dans `parents`/famille selon besoin
