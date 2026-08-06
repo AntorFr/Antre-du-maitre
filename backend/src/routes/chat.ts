@@ -1,7 +1,9 @@
 import {
+  DEFAULT_GAME_SYSTEM,
   SCENARIO_SECTIONS,
   computeScenarioSections,
   deriveScenarioStep,
+  gameSystemHasCofTooling,
   isScenarioReadyToValidate,
   type ScenarioChatHistoryEntry,
   type ScenarioChatResponse,
@@ -277,8 +279,17 @@ async function runScenarioChat(
         ...currentData,
         ...(response.scenarioUpdate ?? {}),
       });
+      // Le titre de création est provisoire : Merlin peut en proposer un qui
+      // colle à l'histoire (scenarioUpdate.title). La colonne `title` reste la
+      // source des listes — on la synchronise avec la donnée.
+      const proposedTitle =
+        typeof response.scenarioUpdate?.title === 'string'
+          ? response.scenarioUpdate.title.trim().slice(0, 120)
+          : '';
+      const nextTitle = proposedTitle || scenario.title;
       const nextData: ScenarioData = {
         ...mergedData,
+        title: nextTitle,
         currentStep: deriveScenarioStep(mergedData),
       };
       const readyToValidate = isScenarioReadyToValidate(nextData);
@@ -313,6 +324,7 @@ async function runScenarioChat(
           data: {
             data: persistedData as unknown as Prisma.InputJsonValue,
             chatHistory: nextHistory as unknown as Prisma.InputJsonValue,
+            ...(nextTitle !== scenario.title ? { title: nextTitle } : {}),
             ...(isCompletingScenario ? { status: 'COMPLETE' } : {}),
           },
         });
@@ -426,6 +438,11 @@ async function buildMonsterCatalogForTurn(input: {
   scenario: ScenarioData;
   focusSection?: string;
 }) {
+  // Le bestiaire CoF DRS n'existe qu'en CoF Mini.
+  if (!gameSystemHasCofTooling(input.scenario.gameSystem ?? DEFAULT_GAME_SYSTEM)) {
+    return [];
+  }
+
   // Le bestiaire n'est fourni que quand l'antagoniste est encore en jeu :
   // section incomplète, ou focus explicite de l'utilisateur dessus.
   const antagonisteStatus = computeScenarioSections(input.scenario).ANTAGONISTE;

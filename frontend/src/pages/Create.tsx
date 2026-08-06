@@ -1,7 +1,11 @@
 import {
+  DEFAULT_GAME_SYSTEM,
+  GAME_SYSTEMS,
+  GAME_SYSTEM_LABELS,
   SCENARIO_SECTIONS,
   computeScenarioSections,
   firstIncompleteScenarioSection,
+  type GameSystem,
   type ScenarioChatResponse,
   type ScenarioDetail,
   type ScenarioSection,
@@ -78,6 +82,9 @@ export function Create({
   );
   const [isLoading, setIsLoading] = useState(true);
   const [isCreating, setIsCreating] = useState(false);
+  // Titre provisoire (Merlin en proposera un adapté en fin de conception).
+  const [draftTitle, setDraftTitle] = useState('Nouvelle aventure');
+  const [draftSystem, setDraftSystem] = useState<GameSystem>(DEFAULT_GAME_SYSTEM);
   const [isSending, setIsSending] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const chatEndRef = useRef<HTMLDivElement | null>(null);
@@ -207,13 +214,7 @@ export function Create({
   }
 
   async function createScenario() {
-    const title = window.prompt("Titre de l'aventure", 'Nouvelle aventure');
-
-    if (title === null) {
-      return;
-    }
-
-    const normalizedTitle = title.trim() || 'Nouvelle aventure';
+    const normalizedTitle = draftTitle.trim() || 'Nouvelle aventure';
 
     setError(null);
     setIsCreating(true);
@@ -221,6 +222,7 @@ export function Create({
     try {
       const { scenario } = await api.createScenario(token, {
         title: normalizedTitle,
+        gameSystem: draftSystem,
       });
       activateScenario(scenario);
     } catch (caughtError) {
@@ -370,13 +372,50 @@ export function Create({
             Raconte ton idée à Merlin : il remplit la fiche avec toi, dans
             l'ordre que tu veux — histoire, défis et préparation.
           </p>
-          <button
-            className="mt-6 rounded-2xl bg-wizard-600 px-5 py-3 font-medium text-white transition hover:bg-wizard-700 disabled:opacity-60"
-            disabled={isCreating}
-            onClick={createScenario}
-          >
-            {isCreating ? 'Création…' : 'Commencer une aventure'}
-          </button>
+
+          <div className="mx-auto mt-6 w-full max-w-sm space-y-3 text-left">
+            <label className="block">
+              <span className="text-[12px] font-medium text-slate-600">
+                Titre (provisoire : Merlin en proposera un adapté à la fin)
+              </span>
+              <input
+                className="mt-1 h-10 w-full rounded-lg border border-black/15 bg-[#f5f5f3] px-3 text-[13px] outline-none ring-wizard-300 transition focus:ring-4"
+                value={draftTitle}
+                onChange={(event) => setDraftTitle(event.target.value)}
+              />
+            </label>
+
+            <div>
+              <span className="text-[12px] font-medium text-slate-600">
+                Système de jeu
+              </span>
+              <div className="mt-1 grid grid-cols-2 gap-2">
+                {GAME_SYSTEMS.map((system) => (
+                  <button
+                    className={[
+                      'rounded-lg border px-3 py-2 text-[13px] font-medium transition',
+                      draftSystem === system
+                        ? 'border-wizard-300 bg-wizard-100 text-wizard-700'
+                        : 'border-black/15 bg-[#f5f5f3] text-slate-600 hover:border-black/25',
+                    ].join(' ')}
+                    key={system}
+                    onClick={() => setDraftSystem(system)}
+                    type="button"
+                  >
+                    {GAME_SYSTEM_LABELS[system]}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <button
+              className="w-full rounded-2xl bg-wizard-600 px-5 py-3 font-medium text-white transition hover:bg-wizard-700 disabled:opacity-60"
+              disabled={isCreating}
+              onClick={() => void createScenario()}
+            >
+              {isCreating ? 'Création…' : 'Commencer une aventure'}
+            </button>
+          </div>
         </div>
       </section>
     );
@@ -409,7 +448,7 @@ export function Create({
         />
 
         <div className="shrink-0 border-b border-black/10 bg-white px-[18px] py-3">
-          <div className="flex items-center gap-3">
+          <div className="flex flex-wrap items-center gap-3">
             <div className="flex min-w-[220px] flex-1 items-center gap-3 rounded-lg bg-[#f5f5f3] px-4 py-2">
               <span className="whitespace-nowrap text-[12px] text-slate-500">
                 Sections complètes
@@ -425,7 +464,7 @@ export function Create({
               </span>
             </div>
 
-            <div className="grid min-w-[360px] grid-cols-3 gap-2">
+            <div className="grid w-full grid-cols-3 gap-2 lg:w-auto lg:min-w-[360px]">
               <InfoCard icon="location" label="Lieu" value={data.lieu?.nom} />
               <InfoCard icon="spark" label="Ambiance" value={data.ambiance} />
               <InfoCard icon="skull" label="Méchant" value={data.antagoniste?.nom} />
@@ -454,7 +493,7 @@ export function Create({
           </div>
         </div>
 
-        <div className="flex shrink-0 gap-2 border-t border-black/10 bg-white px-[18px] py-3">
+        <div className="flex shrink-0 gap-2 border-t border-black/10 bg-white px-[18px] py-3 pb-[max(0.75rem,env(safe-area-inset-bottom))]">
           <form
             className="flex min-w-0 flex-1 gap-2"
             onSubmit={(event) => {
@@ -629,7 +668,7 @@ function SuggestionPanel({
           ou écris librement en bas
         </p>
       </div>
-      <div className="grid grid-cols-3 gap-2">
+      <div className="grid gap-2 sm:grid-cols-2 md:grid-cols-3">
         {suggestions.map((suggestion, index) => (
           <button
             className={[

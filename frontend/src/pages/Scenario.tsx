@@ -833,8 +833,8 @@ function ActReviewPanel({
 
   return (
     <div className="flex min-h-0 flex-1 flex-col overflow-hidden bg-white">
-      <section className="grid shrink-0 grid-cols-[76px_minmax(0,1fr)_auto] items-center gap-5 border-b border-black/10 bg-white px-7 py-5">
-        <div className="flex h-[76px] w-[76px] items-center justify-center rounded-full border-[2.5px] border-wizard-200 bg-gradient-to-br from-wizard-500 to-wizard-700 text-[28px] font-bold text-white shadow-[0_4px_12px_rgba(83,74,183,0.25)]">
+      <section className="grid shrink-0 grid-cols-[48px_minmax(0,1fr)] items-center gap-3 border-b border-black/10 bg-white px-4 py-4 sm:grid-cols-[76px_minmax(0,1fr)_auto] sm:gap-5 sm:px-7 sm:py-5">
+        <div className="flex h-12 w-12 items-center justify-center rounded-full border-[2.5px] border-wizard-200 bg-gradient-to-br from-wizard-500 to-wizard-700 text-[20px] font-bold text-white shadow-[0_4px_12px_rgba(83,74,183,0.25)] sm:h-[76px] sm:w-[76px] sm:text-[28px]">
           {act.numero}
         </div>
         <div className="min-w-0">
@@ -862,7 +862,7 @@ function ActReviewPanel({
           </div>
         </div>
         <button
-          className="inline-flex min-h-[42px] shrink-0 items-center gap-2 rounded-lg bg-wizard-600 px-5 text-[13px] font-semibold text-white shadow-[0_2px_6px_rgba(83,74,183,0.25)] transition hover:bg-wizard-700"
+          className="col-span-full inline-flex min-h-[42px] shrink-0 items-center justify-center gap-2 rounded-lg bg-wizard-600 px-5 text-[13px] font-semibold text-white shadow-[0_2px_6px_rgba(83,74,183,0.25)] transition hover:bg-wizard-700 sm:col-span-1"
           onClick={onEditWithMerlin}
         >
           <Icon name="magic" className="h-4 w-4" />
@@ -870,7 +870,7 @@ function ActReviewPanel({
         </button>
       </section>
 
-      <div className="min-h-0 flex-1 overflow-y-auto bg-[#faf9f5] px-7 py-5">
+      <div className="min-h-0 flex-1 overflow-y-auto bg-[#faf9f5] px-4 py-5 sm:px-7">
         <div className="mx-auto flex max-w-[1000px] flex-col gap-5">
           <section className="rounded-xl border-l-4 border-wizard-600 bg-white px-5 py-4 shadow-sm ring-1 ring-black/10">
             <p className="flex items-center gap-2 text-[11px] font-bold uppercase tracking-[0.14em] text-wizard-600">

@@ -92,7 +92,7 @@ export function Login({ onLogin }: LoginProps) {
           </div>
         </header>
 
-        <div className="grid min-h-0 flex-1 grid-cols-[1fr_28rem] overflow-hidden">
+        <div className="grid min-h-0 flex-1 grid-cols-1 overflow-y-auto md:grid-cols-[1fr_28rem] md:overflow-hidden">
           <section className="flex min-w-0 flex-col justify-center bg-wizard-950 px-10 py-8 text-wizard-100">
             <div className="relative flex h-[112px] w-[112px] items-center justify-center">
               <div className="absolute h-[112px] w-[112px] rounded-full border border-wizard-600/40" />

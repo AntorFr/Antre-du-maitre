@@ -1,3 +1,4 @@
+export * from './game-system.js';
 export * from './llm.js';
 export * from './auth.js';
 export * from './monster.js';

@@ -2,33 +2,31 @@
 
 > MàJ : 2026-08-06
 
-**État :** Deux chantiers livrés (non déployés) : provider LLM `claude-agent`
-(Claude Agent SDK, consomme l'abonnement Claude Max via
-`CLAUDE_CODE_OAUTH_TOKEN`, transports interchangeables avec l'API Anthropic) et
-**workflow de création libre** (fiche en 9 sections dérivées des données, plus
-de machine à étapes : Merlin remplit plusieurs sections par tour, checklist
-cliquable côté front, validation quand tout est complet). zod migré en v4.
-Smoke tests OK (mock bout-en-bout + appel réel Agent SDK).
+**État :** Les 4 chantiers du plan sont livrés (non déployés) :
+1. **Workflow libre** — fiche en 9 sections dérivées des données, plus de
+   machine à étapes ; titre provisoire à la création, Merlin en propose un
+   adapté en fin de conception (`scenarioUpdate.title`).
+2. **Responsive mobile** — toutes les pages (AppShell plein écran + safe-areas,
+   volets empilés sur mobile, grilles fluides, nav horizontale scrollable).
+3. **Provider `claude-agent`** — abonnement Claude Max via le SDK agent +
+   fenêtre admin « Abonnement Claude » (setup-token piloté, testée en
+   conteneur ; capture du token final à confirmer au premier vrai passage).
+4. **Multi-systèmes** — `gameSystem` sur le scénario (COF_MINI défaut, DND),
+   prompts paramétrés (bestiaire DRS et Battle Mats réservés à CoF), choix du
+   système à la création, todo/PDF adaptés.
 
-**Plan restant (chantiers 2 et 4) :**
-
-- [ ] **Responsive mobile** — s'inspirer de la PWA agent-gw : layout chat
-      mobile-first, panneau résumé escamotable, safe-areas, media queries
-      (`styles.css`, `AppShell`, `Create`, `Scenario`).
-- [ ] **Multi-systèmes de jeu** (D&D / CoF Mini…) — abstraction `GameSystem`
-      (prompts par système, bestiaire, terminologie, sections paramétrables),
-      champ `gameSystem` sur le scénario. La refonte en sections rend ça
-      direct : les définitions de sections deviennent par-système.
+Côté agent-pods : fenêtre « Connexion Claude » livrée ET déployée
+(agent-gw 0.56.0, manifestes alfred + skippy bumpés, ArgoCD sync).
 
 **Prochaines étapes :**
 
-- [x] Fenêtre admin « Abonnement Claude » (setup-token piloté, testée en
-      conteneur) — même option à ajouter côté agent-pods (en cours)
-
-- [ ] Déployer (bump image → chart → manifeste tantive) : inclut le fix
-      act-detail (v0.3.2, jamais déployé) + les deux chantiers du jour.
-      Pour activer l'abonnement en prod : `claude setup-token` puis secret
-      `CLAUDE_CODE_OAUTH_TOKEN` + `LLM_PROVIDER=claude-agent`.
+- [ ] Déployer l'Antre (bump image → chart → manifeste tantive) : inclut le
+      fix act-detail v0.3.2 jamais déployé + les 4 chantiers.
+      Abonnement en prod : panneau Admin → « Abonnement Claude » (ou secret
+      `CLAUDE_CODE_OAUTH_TOKEN`) + `LLM_PROVIDER=claude-agent`.
+- [ ] Valider le premier passage réel de la fenêtre setup-token (capture du
+      token final — deux filets en place).
+- [ ] Tester une création D&D de bout en bout avec le provider réel.
 - [ ] Créer les comptes Authelia enfants dans `parents`/famille selon besoin
       pour l'Antre du Maître (Laurine, Émilie, Timothée existent déjà)
 - [ ] Créer les comptes Authelia des autres membres de la famille (enfant +

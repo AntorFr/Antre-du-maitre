@@ -1,14 +1,20 @@
 import {
+  DEFAULT_GAME_SYSTEM,
+  GAME_SYSTEMS,
   SCENARIO_STEPS,
+  type GameSystem,
   type ScenarioData,
   type ScenarioStep,
 } from '@antre-du-maitre/shared';
 
 type ScenarioSessionPlan = NonNullable<ScenarioData['sessionning']>['sessions'];
 
-export function createEmptyScenarioData(): ScenarioData {
+export function createEmptyScenarioData(
+  gameSystem: GameSystem = DEFAULT_GAME_SYSTEM,
+): ScenarioData {
   return {
     currentStep: 'STEP_1_SENSATION',
+    gameSystem,
     title: '',
     pnjs: [],
     actes: [],
@@ -22,6 +28,7 @@ export function normalizeScenarioData(value: unknown): ScenarioData {
   const normalized: ScenarioData = {
     ...(candidate as Partial<ScenarioData>),
     currentStep,
+    gameSystem: readGameSystem(candidate.gameSystem),
     title: readString(candidate.title),
     ambiance: readAmbiance(candidate.ambiance),
     lieu: normalizeLieu(candidate.lieu),
@@ -80,6 +87,13 @@ function readNumberArray(value: unknown): number[] {
   return Array.isArray(value)
     ? value.filter((item): item is number => typeof item === 'number')
     : [];
+}
+
+function readGameSystem(value: unknown): GameSystem {
+  return typeof value === 'string' &&
+    (GAME_SYSTEMS as readonly string[]).includes(value)
+    ? (value as GameSystem)
+    : DEFAULT_GAME_SYSTEM;
 }
 
 function readScenarioStep(value: unknown): ScenarioStep {

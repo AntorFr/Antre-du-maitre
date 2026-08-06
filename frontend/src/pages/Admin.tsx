@@ -484,8 +484,8 @@ export function Admin({ token, currentUserId, onOpenScenario }: AdminProps) {
   }
 
   return (
-    <section className="flex h-full overflow-hidden bg-white">
-      <aside className="w-64 shrink-0 overflow-y-auto border-r border-black/10 bg-[#f5f5f3] p-3">
+    <section className="flex h-full flex-col overflow-y-auto bg-white md:flex-row md:overflow-hidden">
+      <aside className="w-full shrink-0 border-b border-black/10 bg-[#f5f5f3] p-3 md:w-64 md:overflow-y-auto md:border-b-0 md:border-r">
         <p className="px-2 text-[12px] uppercase tracking-[0.18em] text-wizard-600">
           Administration
         </p>
@@ -624,7 +624,7 @@ export function Admin({ token, currentUserId, onOpenScenario }: AdminProps) {
           ) : null}
         </header>
 
-        <div className="grid min-h-0 flex-1 grid-cols-2 overflow-hidden">
+        <div className="grid min-h-0 flex-1 grid-cols-1 lg:grid-cols-2 lg:overflow-hidden">
           <div className="space-y-4 overflow-y-auto px-[18px] py-4">
             <SectionTitle title="Scénarios" count={scenarios.length} />
             {scenarios.length ? (

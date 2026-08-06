@@ -1,6 +1,8 @@
-import type {
-  ScenarioData,
-  ScenarioSectionMap,
+import {
+  DEFAULT_GAME_SYSTEM,
+  type GameSystem,
+  type ScenarioData,
+  type ScenarioSectionMap,
 } from '@antre-du-maitre/shared';
 
 import type {
@@ -10,9 +12,53 @@ import type {
 } from './types.js';
 
 // Prompts système et constructeurs de prompts utilisateur, partagés par tous
-// les transports LLM.
+// les transports LLM. Les textes sont paramétrés par système de jeu : même
+// pédagogie partout, seuls le nom du système et son outillage (bestiaire CoF,
+// Battle Mats) changent.
 
-export const SCENARIO_SYSTEM_PROMPT = `Tu es Merlin, assistant de création d'aventures Chroniques Oubliées Mini pour un(e) jeune MJ.
+interface GameSystemPromptFacet {
+  nomComplet: string;
+  /** Consigne bestiaire dans le prompt système du chat scénario. */
+  bestiaireScenario: string;
+  /** Titre de la section « monstres candidats » du prompt utilisateur. */
+  bestiaireContexte: string;
+  /** Consigne sur le champ antagoniste.monsterId. */
+  antagonisteMonstre: string;
+  /** Consigne Battle Mats (outillage CoF) — null si le système n'en a pas. */
+  battleMats: string | null;
+}
+
+const GAME_SYSTEM_FACETS: Record<GameSystem, GameSystemPromptFacet> = {
+  COF_MINI: {
+    nomComplet: 'Chroniques Oubliées Mini',
+    bestiaireScenario:
+      "Tu peux piocher dans le bestiaire CoF DRS fourni quand la discussion parle de l'antagoniste.",
+    bestiaireContexte: 'Candidats monstres CoF DRS disponibles',
+    antagonisteMonstre:
+      'monsterId optionnel : un id du bestiaire CoF DRS fourni.',
+    battleMats:
+      "Ne prépare pas les Battle Mats dans ce workflow : elles seront choisies dans les workflows d'acte et la todo.",
+  },
+  DND: {
+    nomComplet: 'Donjons & Dragons (5e édition)',
+    bestiaireScenario:
+      'Propose des créatures classiques de D&D (gobelins, squelettes, loups sinistres…) sans statistiques chiffrées : le MJ les prendra dans son Monster Manual.',
+    bestiaireContexte:
+      'Aucun bestiaire intégré pour ce système (liste toujours vide)',
+    antagonisteMonstre:
+      'ne renseigne jamais monsterId (réservé au bestiaire CoF Mini) ; nomme plutôt la créature D&D correspondante dans nature.',
+    battleMats: null,
+  },
+};
+
+export function resolveGameSystem(scenario: ScenarioData): GameSystem {
+  return scenario.gameSystem ?? DEFAULT_GAME_SYSTEM;
+}
+
+export function buildScenarioSystemPrompt(system: GameSystem): string {
+  const facet = GAME_SYSTEM_FACETS[system];
+
+  return `Tu es Merlin, assistant de création d'aventures ${facet.nomComplet} pour un(e) jeune MJ.
 Tu dois aider à créer une aventure claire, jouable.
 
 Le scénario est une fiche en 9 sections : SENSATION, LIEU, QUETE, ANTAGONISTE, OBJECTIF_HEROS, ACTES, PNJS, DUREE, FIN.
@@ -21,6 +67,7 @@ La discussion est LIBRE, il n'y a pas d'ordre imposé :
 - Si l'utilisateur raconte déjà toute son idée d'aventure, remplis directement tout ce que tu peux, puis pose une question uniquement sur ce qui manque vraiment.
 - Ne redemande JAMAIS une information déjà donnée. Ne pose qu'une question à la fois : la plus utile.
 - L'utilisateur peut revenir sur une section complète à tout moment : applique sa retouche sans discuter l'ordre.
+- Le titre donné à la création est souvent provisoire (choisi avant d'inventer l'histoire). Quand l'aventure a pris forme — au plus tard au récap final — propose dans scenarioUpdate.title un titre court et évocateur qui colle à l'histoire, et signale-le dans reply. Ne remplace pas un titre que l'utilisateur a choisi délibérément ou déjà validé.
 - focusSection = la section sur laquelle porte ta question de fin de reply (null si tout est complet et que tu proposes le récap et la validation).
 - Quand toutes les sections sont complètes, fais un court récap et propose de valider.
 - validationRequested=true uniquement quand l'utilisateur demande clairement de valider/finaliser le scénario.
@@ -33,9 +80,8 @@ Contraintes produit :
 - Évite les suggestions génériques si tu peux proposer une option plus vivante liée à l'aventure.
 - Tu peux utiliser quelques emojis dans le texte de reply ou les suggestions si cela rend le ton plus vivant, sans en abuser.
 - Termine reply par une question claire portant sur focusSection (ou par la proposition de validation).
-- Tu peux piocher dans le bestiaire CoF DRS fourni quand la discussion parle de l'antagoniste.
-- Ne prépare pas les Battle Mats dans ce workflow : elles seront choisies dans les workflows d'acte et la todo.
-- Les entités durables du monde doivent être proposées, pas ajoutées silencieusement.
+- ${facet.bestiaireScenario}
+${facet.battleMats ? `- ${facet.battleMats}\n` : ''}- Les entités durables du monde doivent être proposées, pas ajoutées silencieusement.
 - Après validation finale, le scénario doit contenir une sensation, un lieu riche, une quête structurée, un antagoniste/cause, un objectif héros, des actes, quelques PNJs, une durée et une fin.
 
 Tu dois répondre uniquement avec un objet JSON valide, sans markdown, sans texte autour.
@@ -50,8 +96,12 @@ Schéma :
   "focusSection": "SENSATION|LIEU|QUETE|ANTAGONISTE|OBJECTIF_HEROS|ACTES|PNJS|DUREE|FIN" ou null,
   "validationRequested": true ou false
 }`;
+}
 
-export const DEBRIEF_SYSTEM_PROMPT = `Tu es Merlin, assistant de debrief après une session jouée de Chroniques Oubliées Mini.
+export function buildDebriefSystemPrompt(system: GameSystem): string {
+  const facet = GAME_SYSTEM_FACETS[system];
+
+  return `Tu es Merlin, assistant de debrief après une session jouée de ${facet.nomComplet}.
 Tu dois aider à transformer ce qui s'est passé en mémoire du monde.
 
 Contraintes produit :
@@ -71,8 +121,12 @@ Schéma :
   ],
   "debriefComplete": true ou false
 }`;
+}
 
-export const ACT_DETAIL_SYSTEM_PROMPT = `Tu es Merlin, assistant de préparation MJ pour Chroniques Oubliées Mini.
+export function buildActDetailSystemPrompt(system: GameSystem): string {
+  const facet = GAME_SYSTEM_FACETS[system];
+
+  return `Tu es Merlin, assistant de préparation MJ pour ${facet.nomComplet}.
 Tu aides à détailler un acte déjà créé afin qu'il devienne jouable à table.
 
 Contraintes produit :
@@ -110,11 +164,14 @@ detailUpdate est un patch, pas un ActDetail complet :
 - Pour modifier moduleSpecialise, scènes, voies, indices, choixConsequences, transitions, preparation, notesImpro ou timing, fournis seulement ces champs.
 - N'inclus jamais un champ inchangé.
 - Réponse compacte obligatoire.`;
+}
 
 export function buildScenarioUserPrompt(
   input: ScenarioChatInput,
   sections: ScenarioSectionMap,
 ) {
+  const facet = GAME_SYSTEM_FACETS[resolveGameSystem(input.scenario)];
+
   return `Message utilisateur : ${input.message}
 Entrée vocale : ${input.voiceInput ? 'oui' : 'non'}
 ${input.focusSection ? `Focus demandé par l'utilisateur (clic sur la checklist) : ${input.focusSection} — réponds en priorité sur cette section.\n` : ''}
@@ -127,14 +184,14 @@ ${safeStringify(input.scenario)}
 Résumé du monde persistant :
 ${input.worldSummary || 'Aucune entité validée pour le moment.'}
 
-Candidats monstres CoF DRS disponibles :
+${facet.bestiaireContexte} :
 ${safeStringify(input.monsterCatalog)}
 
 Contenu attendu par section (remplis-en autant que le message le permet, dans n'importe quel ordre) :
 - SENSATION : ambiance parmi mystere, humour, action, frisson, merveilleux, exploration.
 - LIEU : lieu riche {nom, type, imageForte, particulariteMagique, dangerPrincipal, endroitSecret optionnel, description} + proposer une entité LIEU.
 - QUETE : problème central structuré quete {phraseSimple, ceQuiNeVaPas, pourquoiCestGrave, pourquoiMaintenant, ceQuiArriveSiPersonneNagit}. L'urgence doit rester douce et adaptée aux enfants.
-- ANTAGONISTE : cause du problème antagoniste {type, nom, description, nature, monsterId optionnel, motivation, ceQuIlVeut, faiblesseOuSolution}. Ne force pas un méchant classique : créature incomprise, malentendu ou magie déréglée sont bienvenus.
+- ANTAGONISTE : cause du problème antagoniste {type, nom, description, nature, monsterId optionnel, motivation, ceQuIlVeut, faiblesseOuSolution}. Ne force pas un méchant classique : créature incomprise, malentendu ou magie déréglée sont bienvenus. Pour monsterId : ${facet.antagonisteMonstre}
 - OBJECTIF_HEROS : objectifDesHeros {phraseSimple, objectifVisible, signeDeReussite}.
 - ACTES : 3 à 5 grandes étapes dans actes, avec roleDansLHistoire, description, lieu optionnel, obstaclePrincipal ou informationApprise, options et durée estimée. Ne détaille pas encore les mécaniques de combat ou les Battle Mats.
 - PNJS : jusqu'à 3 PNJs importants dans pnjs. Chaque PNJ a nom, role parmi allie/neutre/ennemi, fonctionNarrative, attitude, motivation, particularite, informationOuService.

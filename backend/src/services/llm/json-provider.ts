@@ -17,12 +17,13 @@ import {
 import { writeLlmErrorLog } from '../llm-error-log.js';
 import { extractReplyValue, parseJsonObject } from './json.js';
 import {
-  ACT_DETAIL_SYSTEM_PROMPT,
-  DEBRIEF_SYSTEM_PROMPT,
-  SCENARIO_SYSTEM_PROMPT,
+  buildActDetailSystemPrompt,
   buildActDetailUserPrompt,
+  buildDebriefSystemPrompt,
   buildDebriefUserPrompt,
+  buildScenarioSystemPrompt,
   buildScenarioUserPrompt,
+  resolveGameSystem,
 } from './prompts.js';
 import {
   actDetailPatchResponseSchema,
@@ -53,7 +54,7 @@ export class JsonLlmProvider implements LlmProvider {
     const prompt = buildScenarioUserPrompt(input, sections);
 
     const parsed = await this.createValidatedJsonMessage({
-      system: SCENARIO_SYSTEM_PROMPT,
+      system: buildScenarioSystemPrompt(resolveGameSystem(input.scenario)),
       user: prompt,
       maxTokens: 4_000,
       kind: 'scenario-chat',
@@ -99,7 +100,7 @@ export class JsonLlmProvider implements LlmProvider {
 
     const prompt = buildActDetailUserPrompt(input);
     const parsed = await this.createValidatedJsonMessage({
-      system: ACT_DETAIL_SYSTEM_PROMPT,
+      system: buildActDetailSystemPrompt(resolveGameSystem(input.scenario)),
       user: prompt,
       maxTokens: 6_400,
       kind: 'act-detail',
@@ -148,7 +149,7 @@ export class JsonLlmProvider implements LlmProvider {
   ): Promise<SessionDebriefResponse> {
     const prompt = buildDebriefUserPrompt(input);
     const parsed = await this.createValidatedJsonMessage({
-      system: DEBRIEF_SYSTEM_PROMPT,
+      system: buildDebriefSystemPrompt(resolveGameSystem(input.scenario)),
       user: prompt,
       maxTokens: 1_600,
       kind: 'session-debrief',

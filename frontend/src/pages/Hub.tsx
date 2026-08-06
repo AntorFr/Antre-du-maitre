@@ -1,4 +1,8 @@
-import type { ScenarioSummary } from '@antre-du-maitre/shared';
+import {
+  DEFAULT_GAME_SYSTEM,
+  GAME_SYSTEM_LABELS,
+  type ScenarioSummary,
+} from '@antre-du-maitre/shared';
 import { useEffect, useMemo, useState } from 'react';
 
 import { Icon } from '../components/Icon';
@@ -71,9 +75,9 @@ export function Hub({
   }, [scenarios, search]);
 
   return (
-    <div className="grid h-full min-h-0 grid-cols-[230px_minmax(0,1fr)] overflow-hidden bg-white">
-      <aside className="flex min-h-0 flex-col border-r border-black/10 bg-[#f7f6f1] px-4 py-4">
-        <div className="space-y-1">
+    <div className="flex h-full min-h-0 flex-col overflow-hidden bg-white md:grid md:grid-cols-[230px_minmax(0,1fr)]">
+      <aside className="shrink-0 border-b border-black/10 bg-[#f7f6f1] px-4 py-2 md:flex md:min-h-0 md:flex-col md:border-b-0 md:border-r md:py-4">
+        <div className="flex gap-1 md:block md:space-y-1">
           <HubNavButton
             active={section === 'scenarios'}
             icon="scenario"
@@ -88,7 +92,7 @@ export function Hub({
           />
         </div>
 
-        <article className="mt-auto rounded-xl bg-white p-4 ring-1 ring-black/10">
+        <article className="mt-auto hidden rounded-xl bg-white p-4 ring-1 ring-black/10 md:block">
           <p className="text-[11px] font-medium uppercase tracking-[0.16em] text-wizard-600">
             Reprendre
           </p>
@@ -104,7 +108,7 @@ export function Hub({
       ) : (
         <main className="flex min-h-0 flex-col overflow-hidden bg-[#faf9f5]">
           <header className="shrink-0 border-b border-black/10 bg-white px-[18px] py-4">
-            <div className="flex items-center gap-3">
+            <div className="flex flex-wrap items-center gap-3">
               <div className="min-w-0">
                 <p className="text-[12px] uppercase tracking-[0.18em] text-wizard-600">
                   Bibliothèque
@@ -113,7 +117,7 @@ export function Hub({
                   Mes scénarios
                 </h1>
               </div>
-              <div className="ml-auto flex min-w-[280px] items-center gap-2 rounded-lg border border-black/10 bg-[#f5f5f3] px-3 py-2">
+              <div className="flex w-full min-w-0 items-center gap-2 rounded-lg border border-black/10 bg-[#f5f5f3] px-3 py-2 sm:ml-auto sm:w-auto sm:min-w-[280px]">
                 <Icon name="search" className="h-4 w-4 text-slate-400" />
                 <input
                   className="min-w-0 flex-1 bg-transparent text-[13px] outline-none placeholder:text-slate-400"
@@ -223,6 +227,9 @@ function ScenarioLibraryCard({
         <div className="min-w-0">
           <p className="text-[11px] font-medium uppercase tracking-[0.16em] text-wizard-600">
             {scenarioStatusLabel(scenario.status)}
+            <span className="ml-1.5 normal-case tracking-normal text-slate-400">
+              · {GAME_SYSTEM_LABELS[scenario.data.gameSystem ?? DEFAULT_GAME_SYSTEM]}
+            </span>
           </p>
           <h2 className="mt-1 line-clamp-2 text-[18px] font-semibold leading-6 text-slate-950">
             {scenario.title}

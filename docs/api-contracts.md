@@ -56,6 +56,11 @@ quel ordre. La finalisation a lieu quand toutes les sections sont complètes et
 que l'utilisateur demande la validation.
 
 ```ts
+type CreateScenarioRequest = {
+  title?: string; // provisoire : Merlin propose un titre adapté en fin de conception
+  gameSystem?: GameSystem; // 'COF_MINI' (défaut) | 'DND'
+};
+
 type ScenarioChatRequest = {
   message: string;
   voiceInput: boolean;

@@ -239,7 +239,7 @@ export function Todo({
 
   return (
     <section className="flex h-full flex-col overflow-hidden bg-white">
-      <header className="flex shrink-0 items-center gap-3 border-b border-black/10 px-[18px] py-3">
+      <header className="flex shrink-0 flex-wrap items-center gap-3 border-b border-black/10 px-[18px] py-3">
         <div className="min-w-0">
           <p className="text-[12px] uppercase tracking-[0.18em] text-wizard-600">
             Préparation de partie
@@ -248,15 +248,15 @@ export function Todo({
             {scenario.title}
           </h2>
         </div>
-        <div className="ml-auto grid min-w-[420px] grid-cols-3 gap-2">
+        <div className="grid w-full grid-cols-3 gap-2 md:ml-auto md:w-auto md:min-w-[420px]">
           <PrepMetric label="Progression" value={`${progressPct}%`} />
           <PrepMetric label="Restant" value={`${remainingCount}`} />
           <PrepMetric label="Total" value={`${items.length}`} />
         </div>
       </header>
 
-      <div className="grid min-h-0 flex-1 grid-cols-[340px_minmax(0,1fr)] overflow-hidden">
-        <aside className="space-y-3 overflow-y-auto border-r border-black/10 bg-[#f7f6f1] px-[18px] py-4">
+      <div className="flex min-h-0 flex-1 flex-col overflow-y-auto md:grid md:grid-cols-[340px_minmax(0,1fr)] md:overflow-hidden">
+        <aside className="space-y-3 border-b border-black/10 bg-[#f7f6f1] px-[18px] py-4 md:overflow-y-auto md:border-b-0 md:border-r">
           <article className="rounded-xl bg-white p-4 ring-1 ring-black/10">
             <div className="flex items-center justify-between gap-3">
               <div>
@@ -325,9 +325,9 @@ export function Todo({
           </article>
         </aside>
 
-        <main className="flex min-w-0 flex-col overflow-hidden bg-white">
+        <main className="flex min-w-0 flex-col bg-white md:overflow-hidden">
           <div className="shrink-0 border-b border-black/10 px-[18px] py-3">
-            <div className="flex items-center justify-between gap-3">
+            <div className="flex flex-wrap items-center justify-between gap-3">
               <div className="min-w-0">
                 <p className="flex items-center gap-2 text-[11px] font-medium uppercase tracking-[0.16em] text-wizard-600">
                   <Icon
@@ -340,7 +340,7 @@ export function Todo({
                   {CATEGORY_META[activeCategory].helper}
                 </p>
               </div>
-              <div className="min-w-[220px] rounded-lg bg-[#f5f5f3] px-4 py-2">
+              <div className="w-full rounded-lg bg-[#f5f5f3] px-4 py-2 sm:w-auto sm:min-w-[220px]">
                 <div className="flex items-center justify-between text-[12px]">
                   <span className="text-slate-500">Catégorie</span>
                   <span className="font-medium text-wizard-600">
@@ -357,7 +357,7 @@ export function Todo({
             </div>
           </div>
 
-          <div className="min-h-0 flex-1 overflow-y-auto px-[18px] py-4">
+          <div className="min-h-0 flex-1 px-[18px] py-4 md:overflow-y-auto">
             {items.length === 0 ? (
               <div className="rounded-xl bg-[#f5f5f3] px-4 py-8 text-center text-[13px] text-slate-500">
                 Le todo apparaîtra quand le scénario sera finalisé.

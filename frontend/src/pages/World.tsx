@@ -225,14 +225,14 @@ export function World({ token, refreshKey }: WorldProps) {
             Canon validé et propositions Merlin
           </h2>
         </div>
-        <div className="ml-auto grid min-w-[360px] grid-cols-2 gap-2">
+        <div className="grid w-full grid-cols-2 gap-2 md:ml-auto md:w-auto md:min-w-[360px]">
           <WorldMetric label="Canon" value={`${entities.length}`} />
           <WorldMetric label="À valider" value={`${proposals.length}`} />
         </div>
       </header>
 
-      <div className="grid min-h-0 flex-1 grid-cols-[360px_minmax(0,1fr)] overflow-hidden">
-        <aside className="space-y-3 overflow-y-auto border-r border-black/10 bg-[#f7f6f1] px-[18px] py-4">
+      <div className="flex min-h-0 flex-1 flex-col overflow-y-auto md:grid md:grid-cols-[360px_minmax(0,1fr)] md:overflow-hidden">
+        <aside className="space-y-3 border-b border-black/10 bg-[#f7f6f1] px-[18px] py-4 md:overflow-y-auto md:border-b-0 md:border-r">
           <article className="rounded-xl bg-white p-4 ring-1 ring-black/10">
             <div className="flex items-start justify-between gap-3">
               <div>
@@ -323,7 +323,7 @@ export function World({ token, refreshKey }: WorldProps) {
           </article>
         </aside>
 
-        <main className="flex min-w-0 flex-col overflow-hidden bg-white">
+        <main className="flex min-w-0 flex-col bg-white md:overflow-hidden">
           <div className="shrink-0 border-b border-black/10 px-[18px] py-4">
             {selectedProposal ? (
               <ProposalReview
@@ -362,7 +362,7 @@ export function World({ token, refreshKey }: WorldProps) {
             </span>
           </div>
 
-          <div className="grid min-h-0 flex-1 auto-rows-min grid-cols-2 gap-3 overflow-y-auto px-[18px] py-4 xl:grid-cols-3">
+          <div className="grid min-h-0 flex-1 auto-rows-min grid-cols-1 gap-3 px-[18px] py-4 sm:grid-cols-2 md:overflow-y-auto xl:grid-cols-3">
             {isLoading ? (
               <div className="col-span-full rounded-xl bg-[#f5f5f3] px-4 py-4 text-[13px] text-slate-500">
                 Chargement du canon…

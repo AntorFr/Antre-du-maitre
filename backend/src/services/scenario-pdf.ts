@@ -1,3 +1,7 @@
+import {
+  DEFAULT_GAME_SYSTEM,
+  type GameSystem,
+} from '@antre-du-maitre/shared';
 import type { Scenario, ScenarioSession, TodoItem } from '@prisma/client';
 import PDFDocument from 'pdfkit';
 
@@ -28,7 +32,7 @@ export async function renderScenarioPdf(
       info: {
         Title: scenario.title,
         Author: "L'Antre du Maitre",
-        Subject: 'Scenario CoF Mini',
+        Subject: `Scenario ${PDF_SYSTEM_LABELS[normalizeScenarioData(scenario.data).gameSystem ?? DEFAULT_GAME_SYSTEM]}`,
       },
     });
     const chunks: Buffer[] = [];
@@ -42,6 +46,11 @@ export async function renderScenarioPdf(
   });
 }
 
+const PDF_SYSTEM_LABELS: Record<GameSystem, string> = {
+  COF_MINI: 'Chroniques Oubliees Mini',
+  DND: 'Donjons & Dragons',
+};
+
 function writeScenario(doc: PDFKit.PDFDocument, scenario: ScenarioPdfInput) {
   const data = ensureActDetails(normalizeScenarioData(scenario.data));
 
@@ -51,7 +60,7 @@ function writeScenario(doc: PDFKit.PDFDocument, scenario: ScenarioPdfInput) {
     .font('Helvetica')
     .fontSize(10)
     .fillColor('#666666')
-    .text(`Chroniques Oubliees Mini - export ${formatDate(new Date())}`);
+    .text(`${PDF_SYSTEM_LABELS[data.gameSystem ?? DEFAULT_GAME_SYSTEM]} - export ${formatDate(new Date())}`);
 
   doc.moveDown(1);
   section(doc, 'Resume');

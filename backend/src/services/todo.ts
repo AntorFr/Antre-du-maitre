@@ -1,4 +1,8 @@
-import type { ScenarioData } from '@antre-du-maitre/shared';
+import {
+  DEFAULT_GAME_SYSTEM,
+  gameSystemHasCofTooling,
+  type ScenarioData,
+} from '@antre-du-maitre/shared';
 import type { TodoCategory } from '@prisma/client';
 
 import {
@@ -17,6 +21,11 @@ export function generateMockTodoItems(
   scenario: ScenarioData,
 ): GeneratedTodoItem[] {
   const items: GeneratedTodoItem[] = [];
+  // Les Battle Mats sont l'outillage CoF Mini : pas de todo « cartes » pour
+  // les autres systèmes.
+  const withBattleMats = gameSystemHasCofTooling(
+    scenario.gameSystem ?? DEFAULT_GAME_SYSTEM,
+  );
   let order = 1;
 
   if (scenario.antagoniste) {
@@ -42,7 +51,7 @@ export function generateMockTodoItems(
       order: order++,
     });
 
-    if (rencontre.carteBattleMat) {
+    if (withBattleMats && rencontre.carteBattleMat) {
       items.push({
         category: 'CARTES',
         label: `Sortir ${rencontre.carteBattleMat.id} — ${rencontre.carteBattleMat.nom}`,
@@ -58,6 +67,7 @@ export function generateMockTodoItems(
   );
 
   for (const acte of scenario.actes) {
+    if (!withBattleMats) break;
     if (actesAvecCarte.has(acte.numero)) continue;
 
     const rencontresDansActe = scenario.rencontres.filter(

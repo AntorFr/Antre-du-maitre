@@ -1,4 +1,7 @@
-import { isScenarioReadyToValidate } from '@antre-du-maitre/shared';
+import {
+  GAME_SYSTEMS,
+  isScenarioReadyToValidate,
+} from '@antre-du-maitre/shared';
 import { Prisma } from '@prisma/client';
 import { z } from 'zod';
 import type { FastifyInstance } from 'fastify';
@@ -22,6 +25,7 @@ import { toScenarioDetail, toScenarioSummary } from '../utils/scenarios.js';
 
 const createScenarioSchema = z.object({
   title: z.string().trim().min(1).max(120).optional(),
+  gameSystem: z.enum(GAME_SYSTEMS).optional(),
 });
 const actDetailChatSchema = z.object({
   message: z.string().trim().max(2_000).optional(),
@@ -71,7 +75,7 @@ export async function registerScenarioRoutes(app: FastifyInstance) {
       }
 
       const title = parsed.data.title ?? 'Nouvelle aventure';
-      const data = createEmptyScenarioData();
+      const data = createEmptyScenarioData(parsed.data.gameSystem);
       data.title = title;
 
       const scenario = await prisma.scenario.create({

@@ -1,6 +1,7 @@
 # L'Antre du Maître
 
-PWA iPad de création guidée de scénarios CoF Mini.
+PWA (iPad et mobile) de création guidée de scénarios JDR — Chroniques
+Oubliées Mini et Donjons & Dragons.
 
 ## Structure
 

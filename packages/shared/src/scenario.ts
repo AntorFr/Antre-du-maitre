@@ -151,6 +151,8 @@ export interface ActDetail {
 
 export interface ScenarioData {
   currentStep: ScenarioStep;
+  /** Système de jeu (COF_MINI par défaut pour les scénarios antérieurs). */
+  gameSystem?: import('./game-system.js').GameSystem;
   title: string;
   ambiance?: Ambiance;
   lieu?: {
@@ -293,4 +295,5 @@ export interface ActDetailChatResponse {
 
 export interface CreateScenarioRequest {
   title?: string;
+  gameSystem?: import('./game-system.js').GameSystem;
 }

@@ -36,9 +36,10 @@ export function AppShell({
         : 'Accueil';
 
   return (
-    <main className="flex min-h-screen items-start justify-center bg-[#f0eff5] p-3 text-slate-950 md:p-6">
-      <section className="flex h-[calc(100vh-1.5rem)] min-h-[560px] w-full max-w-[1120px] flex-col overflow-hidden rounded-[20px] bg-white shadow-[0_4px_32px_rgba(0,0,0,0.10)] ring-1 ring-black/10 md:h-[calc(100vh-3rem)]">
-        <header className="flex h-12 shrink-0 items-center gap-3 bg-wizard-900 px-4 text-wizard-100">
+    <main className="flex min-h-screen items-start justify-center bg-[#f0eff5] p-0 text-slate-950 sm:p-3 md:p-6">
+      <section className="flex h-[100dvh] w-full max-w-[1120px] flex-col overflow-hidden rounded-none bg-white shadow-[0_4px_32px_rgba(0,0,0,0.10)] ring-1 ring-black/10 sm:h-[calc(100vh-1.5rem)] sm:min-h-[560px] sm:rounded-[20px] md:h-[calc(100vh-3rem)]">
+        {/* Safe area iOS : la barre d'état translucide passe au-dessus du header. */}
+        <header className="flex h-[calc(3rem+env(safe-area-inset-top))] shrink-0 items-center gap-3 bg-wizard-900 px-4 pt-[env(safe-area-inset-top)] text-wizard-100">
           <button
             className="flex h-[30px] w-[30px] shrink-0 items-center justify-center rounded-full border border-wizard-300 bg-wizard-600 text-sm transition hover:bg-wizard-500"
             onClick={onOpenHub}
@@ -94,7 +95,7 @@ export function AppShell({
         </header>
 
         {isScenarioContext ? (
-          <nav className="flex shrink-0 items-center gap-2 border-b border-black/10 bg-white px-4 py-2">
+          <nav className="flex shrink-0 items-center gap-2 overflow-x-auto border-b border-black/10 bg-white px-4 py-2">
             <ScenarioTabButton
               active={scenarioTab === 'overview'}
               icon="scenario"
@@ -136,7 +137,7 @@ function ScenarioTabButton({
   return (
     <button
       className={[
-        'flex min-h-9 items-center gap-2 rounded-lg px-3 text-[13px] font-medium transition',
+        'flex min-h-9 shrink-0 items-center gap-2 whitespace-nowrap rounded-lg px-3 text-[13px] font-medium transition',
         active
           ? 'bg-wizard-600 text-white'
           : 'bg-[#f5f5f3] text-slate-600 hover:bg-wizard-50 hover:text-wizard-700',
