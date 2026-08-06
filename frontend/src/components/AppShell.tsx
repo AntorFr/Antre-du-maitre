@@ -1,6 +1,7 @@
 import type { AuthUser, ScenarioSummary } from '@antre-du-maitre/shared';
-import type { ReactNode } from 'react';
+import { useState, type ReactNode } from 'react';
 import type { AppView, ScenarioTab } from '../types/navigation';
+import { DiceRoller } from './DiceRoller';
 import { Icon, type IconName } from './Icon';
 
 type AppShellProps = {
@@ -26,6 +27,7 @@ export function AppShell({
   onLogout,
   children,
 }: AppShellProps) {
+  const [showDice, setShowDice] = useState(false);
   const isScenarioContext = activeView === 'scenario' && scenario;
   const contextLabel = isScenarioContext
     ? scenario.title
@@ -75,6 +77,15 @@ export function AppShell({
 
           <div className="flex-1" />
 
+          <button
+            className="flex h-9 w-9 items-center justify-center rounded-full bg-white/10 text-wizard-100 transition hover:bg-white/15"
+            onClick={() => setShowDice(true)}
+            title="Lancer un dé"
+            type="button"
+          >
+            <Icon name="dice" className="h-5 w-5" />
+          </button>
+
           <details className="relative">
             <summary className="flex h-9 w-9 cursor-pointer list-none items-center justify-center rounded-full bg-white/10 text-[11px] font-semibold text-wizard-100 transition hover:bg-white/15">
               {user.username.slice(0, 2).toUpperCase()}
@@ -119,6 +130,8 @@ export function AppShell({
 
         <div className="min-h-0 flex-1 overflow-hidden">{children}</div>
       </section>
+
+      <DiceRoller open={showDice} onClose={() => setShowDice(false)} />
     </main>
   );
 }

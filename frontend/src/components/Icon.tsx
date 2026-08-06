@@ -6,6 +6,7 @@ export type IconName =
   | 'book'
   | 'check'
   | 'clock'
+  | 'dice'
   | 'gem'
   | 'location'
   | 'logout'
@@ -46,6 +47,14 @@ const ICONS: Record<IconName, ReactNode> = {
       <path d="M14.5 4.5l5 5" />
       <path d="M19 5l-9.8 9.8-2.2.7.7-2.2L17.5 3.5z" />
       <path d="M4.5 19.5l5-5" />
+    </>
+  ),
+  // d20 stylisé : hexagone + facette centrale
+  dice: (
+    <>
+      <path d="M12 2.5l8.2 4.75v9.5L12 21.5l-8.2-4.75v-9.5z" />
+      <path d="M12 7.5l4.3 7.5H7.7z" />
+      <path d="M12 2.5v5M3.8 7.25L7.7 15M20.2 7.25L16.3 15M12 21.5l-4.3-6.5M12 21.5l4.3-6.5" />
     </>
   ),
   book: (

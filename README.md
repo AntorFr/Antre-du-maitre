@@ -198,6 +198,14 @@ de toutes les tentatives, avec le contexte, le prompt et la réponse brute :
 
 Ces fichiers sont ignorés par Git.
 
+## Lancer de dés
+
+Le bouton d20 du bandeau ouvre un lanceur plein écran (d4, d6, d8, d10, d12,
+d20, d100) pensé pour jouer en mobilité : le dé culbute avec un chiffre qui
+défile, atterrit avec un rebond (et une vibration sur mobile), critiques et
+échecs critiques mis en scène. Historique des derniers jets. Aucune
+dépendance : SVG + animations CSS, tirage via `crypto.getRandomValues`.
+
 ## Saisie vocale
 
 Les zones de chat (création, détail d'acte, debrief) proposent une dictée via la

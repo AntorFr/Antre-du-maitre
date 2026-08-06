@@ -15,6 +15,9 @@
    prompts paramétrés (bestiaire DRS et Battle Mats réservés à CoF), choix du
    système à la création, todo/PDF adaptés.
 
+Bonus : lanceur de dés plein écran (d4→d100, animation culbute + rebond,
+vibration, critiques mis en scène) accessible partout via le bandeau.
+
 Côté agent-pods : fenêtre « Connexion Claude » livrée ET déployée
 (agent-gw 0.56.0, manifestes alfred + skippy bumpés, ArgoCD sync).
 
