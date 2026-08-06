@@ -180,7 +180,10 @@ class ClaudeSetupSession {
     }
 
     this.state = 'exchanging';
-    this.child.stdin.write(`${code}\n`);
+    // \r et non \n : le pty est en mode brut (TUI Ink), la touche Entrée y est
+    // CR. Avec \n le champ ne se soumet JAMAIS (vécu en prod v0.4.1, prouvé
+    // en conteneur : LF = saisie muette, CR = soumission).
+    this.child.stdin.write(`${code}\r`);
 
     await new Promise<void>((resolvePromise) => {
       const timer = setTimeout(() => {
