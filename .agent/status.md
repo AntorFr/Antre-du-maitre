@@ -1,6 +1,6 @@
 # Status — L'Antre du Maître
 
-> MàJ : 2026-08-06
+> MàJ : 2026-08-06 (soir)
 
 **État :** Les 4 chantiers du plan sont livrés (non déployés) :
 1. **Workflow libre** — fiche en 9 sections dérivées des données, plus de
@@ -23,12 +23,14 @@ Côté agent-pods : fenêtre « Connexion Claude » livrée ET déployée
 
 **Prochaines étapes :**
 
-- [ ] Déployer l'Antre (bump image → chart → manifeste tantive) : inclut le
-      fix act-detail v0.3.2 jamais déployé + les 4 chantiers.
-      Abonnement en prod : panneau Admin → « Abonnement Claude » (ou secret
-      `CLAUDE_CODE_OAUTH_TOKEN`) + `LLM_PROVIDER=claude-agent`.
-- [ ] Valider le premier passage réel de la fenêtre setup-token (capture du
-      token final — deux filets en place).
+- [x] Déployé : v0.4.0 taguée (image CI) + manifeste tantive bumpé, avec
+      bascule `LLM_PROVIDER=claude-agent` (abonnement Claude Max).
+      `ANTHROPIC_API_KEY` reste au coffre : rollback = repasser le provider
+      à `anthropic`.
+- [ ] ⚠️ Juste après le rollout : Admin → « Abonnement Claude » pour générer
+      le token (sans lui, Merlin ne répond pas en prod). Ce premier passage
+      valide aussi la capture du token (deux filets en place).
+- [ ] Tester une création D&D + le lanceur de dés sur mobile en prod.
 - [ ] Tester une création D&D de bout en bout avec le provider réel.
 - [ ] Créer les comptes Authelia enfants dans `parents`/famille selon besoin
       pour l'Antre du Maître (Laurine, Émilie, Timothée existent déjà)
