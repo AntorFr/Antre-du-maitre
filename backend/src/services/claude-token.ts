@@ -1,5 +1,6 @@
 import { spawn, type ChildProcessWithoutNullStreams } from 'node:child_process';
 import { randomUUID } from 'node:crypto';
+import { existsSync } from 'node:fs';
 import { chmod, mkdir, readFile, stat, writeFile } from 'node:fs/promises';
 import { createRequire } from 'node:module';
 import { dirname, resolve } from 'node:path';
@@ -300,14 +301,37 @@ export function resolveClaudeBinary(): string {
     return process.env.CLAUDE_CODE_BIN;
   }
 
-  const require = createRequire(import.meta.url);
-  const sdkPkg = require.resolve('@anthropic-ai/claude-agent-sdk/package.json');
-  const platformPkg = `@anthropic-ai/claude-agent-sdk-${process.platform}-${process.arch}`;
-  const binPkg = require.resolve(`${platformPkg}/package.json`, {
-    paths: [dirname(sdkPkg)],
-  });
+  const platformDir = `claude-agent-sdk-${process.platform}-${process.arch}`;
+  const candidates: string[] = [];
 
-  return resolve(dirname(binPkg), 'claude');
+  // 1) Depuis l'entrée du SDK (require.resolve du package.json est interdit
+  //    par ses `exports` — vécu en prod v0.4.0) : le paquet plateforme est un
+  //    frère dans le même scope @anthropic-ai.
+  try {
+    const require = createRequire(import.meta.url);
+    const sdkEntry = require.resolve('@anthropic-ai/claude-agent-sdk');
+    candidates.push(resolve(dirname(sdkEntry), '..', platformDir, 'claude'));
+  } catch {
+    // SDK non résolvable d'ici : on tente les node_modules connus.
+  }
+
+  // 2) node_modules courant (prod : /app) puis parent (dev : racine du
+  //    monorepo quand le backend tourne depuis backend/).
+  for (const base of [process.cwd(), resolve(process.cwd(), '..')]) {
+    candidates.push(
+      resolve(base, 'node_modules', '@anthropic-ai', platformDir, 'claude'),
+    );
+  }
+
+  const found = candidates.find((candidate) => existsSync(candidate));
+
+  if (!found) {
+    throw new Error(
+      `Binaire Claude Code introuvable (@anthropic-ai/${platformDir}) — définir CLAUDE_CODE_BIN.`,
+    );
+  }
+
+  return found;
 }
 
 function stripAnsi(value: string): string {
