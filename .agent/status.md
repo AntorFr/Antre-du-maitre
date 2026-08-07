@@ -1,6 +1,14 @@
 # Status — L'Antre du Maître
 
-> MàJ : 2026-08-06 (soir)
+> MàJ : 2026-08-07
+
+**v0.5.3 — correctif détail d'acte :** le panneau « Déroulé » d'un acte affichait
+« Cet acte sera initialisé au prochain chargement » sans jamais s'initialiser —
+`GET /api/scenarios/:id` ne générait les `detailsMJ` que si le scénario était
+`COMPLETE` ou entièrement rempli (reste de la machine à étapes, resté en place
+lors du passage au workflow libre en v0.5.2). Le squelette MJ est désormais créé
+dès qu'un acte existe, quel que soit l'état des autres sections : le message du
+front redevient vrai, un rechargement suffit.
 
 **État :** Les 4 chantiers du plan sont livrés (non déployés) :
 1. **Workflow libre** — fiche en 9 sections dérivées des données, plus de

@@ -1,7 +1,4 @@
-import {
-  GAME_SYSTEMS,
-  isScenarioReadyToValidate,
-} from '@antre-du-maitre/shared';
+import { GAME_SYSTEMS } from '@antre-du-maitre/shared';
 import { Prisma } from '@prisma/client';
 import { z } from 'zod';
 import type { FastifyInstance } from 'fastify';
@@ -167,19 +164,19 @@ export async function registerScenarioRoutes(app: FastifyInstance) {
       }
 
       const normalizedData = normalizeScenarioData(scenario.data);
-      const shouldEnsureActDetails =
-        scenario.status !== 'DRAFT' || isScenarioReadyToValidate(normalizedData);
-      const detailedData =
-        shouldEnsureActDetails ? ensureActDetails(normalizedData) : normalizedData;
+      // Workflow libre : détailler un acte ne dépend plus de la validation du
+      // scénario. Dès qu'un acte existe, son squelette MJ est disponible — sinon
+      // le panneau « Déroulé » promettait une initialisation qui n'arrivait
+      // jamais tant qu'une section restait incomplète.
+      const detailedData = ensureActDetails(normalizedData);
       const scenarioDetail = {
         ...toScenarioDetail(scenario),
         data: detailedData,
       };
 
       if (
-        shouldEnsureActDetails &&
-        (needsActDetails(normalizedData) ||
-          JSON.stringify(detailedData) !== JSON.stringify(normalizedData))
+        needsActDetails(normalizedData) ||
+        JSON.stringify(detailedData) !== JSON.stringify(normalizedData)
       ) {
         await prisma.scenario.update({
           where: {
@@ -330,7 +327,7 @@ export async function registerScenarioRoutes(app: FastifyInstance) {
 function slugifyFilename(value: string) {
   const normalized = value
     .normalize('NFD')
-    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/[̀-ͯ]/g, '')
     .toLowerCase()
     .replace(/[^a-z0-9]+/g, '-')
     .replace(/^-+|-+$/g, '');
